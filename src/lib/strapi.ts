@@ -1,7 +1,7 @@
 // src/lib/strapi.ts
 // Strapi API 数据获取工具
 
-const STRAPI_URL = import.meta.env.STRAPI_URL || 'https://strapi.hser.ren';
+const STRAPI_URL = import.meta.env.STRAPI_URL || 'https://strapi.hser.ren:1337';
 const STRAPI_TOKEN = import.meta.env.STRAPI_TOKEN || '';
 
 interface StrapiResponse<T> {

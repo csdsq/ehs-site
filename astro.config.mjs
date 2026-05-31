@@ -2,6 +2,6 @@ import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://ehs.hser.ren',
+  site: 'https://hser.ren',
   output: 'static',
 });
