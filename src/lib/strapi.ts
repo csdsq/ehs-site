@@ -17,18 +17,23 @@ interface StrapiResponse<T> {
 }
 
 async function fetchStrapi<T>(endpoint: string): Promise<T[]> {
-  const url = `${STRAPI_URL}/api/${endpoint}?pagination[pageSize]=100&sort=publishDate:desc`;
-  const res = await fetch(url, {
-    headers: STRAPI_TOKEN
-      ? { Authorization: `Bearer ${STRAPI_TOKEN}` }
-      : {},
-  });
-  if (!res.ok) {
-    console.error(`Strapi fetch failed: ${url} - ${res.status}`);
+  try {
+    const url = `${STRAPI_URL}/api/${endpoint}?pagination[pageSize]=100&sort=publishDate:desc`;
+    const res = await fetch(url, {
+      headers: STRAPI_TOKEN
+        ? { Authorization: `Bearer ${STRAPI_TOKEN}` }
+        : {},
+    });
+    if (!res.ok) {
+      console.error(`Strapi fetch failed: ${url} - ${res.status}`);
+      return [];
+    }
+    const json: StrapiResponse<T> = await res.json();
+    return json.data ?? [];
+  } catch (err) {
+    console.error(`Strapi fetch error (${endpoint}):`, err);
     return [];
   }
-  const json: StrapiResponse<T> = await res.json();
-  return json.data ?? [];
 }
 
 // 法规标准
