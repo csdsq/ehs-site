@@ -1,0 +1,60 @@
+---
+// src/pages/index.astro
+import Layout from '../layouts/Layout.astro';
+import { getRegulations, getAccidents } from '../lib/strapi';
+
+const regulations = await getRegulations();
+const accidents = await getAccidents();
+const latestRegs = regulations.slice(0, 5);
+const latestAcc = accidents.slice(0, 5);
+---
+<Layout title="首页">
+  <h1 style="margin-bottom:24px;color:#1a5276;">EHS 信息站</h1>
+  <p style="color:#666;margin-bottom:32px;">安全健康环境专业信息平台 · 由 <strong>hser.ren</strong> 提供</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;">
+    <!-- 法规标准 -->
+    <div class="card">
+      <h2 style="margin-bottom:16px;color:#1a5276;"><a href="/regulations/" style="text-decoration:none;color:inherit;">📋 最新法规标准</a></h2>
+      {latestRegs.length === 0
+        ? <p class="empty">暂无数据，请先在 Strapi 后台录入</p>
+        : latestRegs.map(r => (
+          <div style="border-bottom:1px solid #eee;padding:10px 0;last-child:border-none;">
+            <div style="font-weight:500;">{r.attributes.title}</div>
+            <div style="font-size:.85em;color:#888;margin-top:4px;">{r.attributes.publishDate} · {r.attributes.source}</div>
+          </div>
+        ))
+      }
+      <a href="/regulations/" style="display:block;text-align:right;margin-top:12px;color:#1a5276;font-size:.9em;">查看全部 →</a>
+    </div>
+
+    <!-- 事故报告 -->
+    <div class="card">
+      <h2 style="margin-bottom:16px;color:#1a5276;"><a href="/accidents/" style="text-decoration:none;color:inherit;">⚠️ 最新事故报告</a></h2>
+      {latestAcc.length === 0
+        ? <p class="empty">暂无数据，请先在 Strapi 后台录入</p>
+        : latestAcc.map(a => (
+          <div style="border-bottom:1px solid #eee;padding:10px 0;">
+            <div style="font-weight:500;">{a.attributes.title}</div>
+            <div style="font-size:.85em;color:#888;margin-top:4px;">{a.attributes.publishDate} · <span class="tag">{a.attributes.level}</span></div>
+          </div>
+        ))
+      }
+      <a href="/accidents/" style="display:block;text-align:right;margin-top:12px;color:#1a5276;font-size:.9em;">查看全部 →</a>
+    </div>
+  </div>
+
+  <!-- 快捷入口 -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+    {[
+      {href:'/videos/',icon:'🎬',label:'视频课堂'},
+      {href:'/documents/',icon:'📁',label:'资料文件'},
+      {href:'/qa/',icon:'💬',label:'问答中心'},
+    ].map(item => (
+      <a href={item.href} class="card" style="text-align:center;text-decoration:none;color:inherit;font-size:1.1em;font-weight:500;padding:28px 0;">
+        <div style="font-size:2em;margin-bottom:8px;">{item.icon}</div>
+        {item.label}
+      </a>
+    ))}
+  </div>
+</Layout>

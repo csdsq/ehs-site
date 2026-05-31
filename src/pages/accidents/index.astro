@@ -1,0 +1,29 @@
+---
+// src/pages/accidents/index.astro
+import Layout from '../../layouts/Layout.astro';
+import { getAccidents } from '../../lib/strapi';
+
+const items = await getAccidents();
+---
+<Layout title="事故报告">
+  <h1 style="margin-bottom:24px;color:#1a5276;">⚠️ 事故报告</h1>
+  {items.length === 0
+    ? <div class="card empty">暂无数据，请在 Strapi 后台录入内容</div>
+    : items.map(item => (
+      <div class="card">
+        <div style="font-weight:600;font-size:1.05em;margin-bottom:6px;">{item.attributes.title}</div>
+        <div style="font-size:.85em;color:#888;margin-bottom:8px;">
+          {item.attributes.publishDate} · {item.attributes.location}
+          <span class="tag" style="margin-left:8px;">{item.attributes.level}</span>
+        </div>
+        {item.attributes.casualties && <p style="color:#c0392b;font-size:.9em;margin-bottom:4px;">伤亡：{item.attributes.casualties}</p>}
+        {item.attributes.summary && <p style="color:#555;font-size:.95em;">{item.attributes.summary}</p>}
+        {item.attributes.tags && (
+          <div style="margin-top:8px;">
+            {item.attributes.tags.split(',').map(t => <span class="tag">{t.trim()}</span>)}
+          </div>
+        )}
+      </div>
+    ))
+  }
+</Layout>

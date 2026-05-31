@@ -1,0 +1,28 @@
+---
+// src/pages/regulations/index.astro
+import Layout from '../../layouts/Layout.astro';
+import { getRegulations } from '../../lib/strapi';
+
+const items = await getRegulations();
+---
+<Layout title="法规标准">
+  <h1 style="margin-bottom:24px;color:#1a5276;">📋 法规标准</h1>
+  {items.length === 0
+    ? <div class="card empty">暂无数据，请在 Strapi 后台录入内容</div>
+    : items.map(item => (
+      <div class="card">
+        <div style="font-weight:600;font-size:1.05em;margin-bottom:6px;">{item.attributes.title}</div>
+        <div style="font-size:.85em;color:#888;margin-bottom:8px;">
+          {item.attributes.publishDate} · {item.attributes.source}
+          {item.attributes.standardNo && <span>· 编号：{item.attributes.standardNo}</span>}
+        </div>
+        {item.attributes.summary && <p style="color:#555;font-size:.95em;">{item.attributes.summary}</p>}
+        {item.attributes.tags && (
+          <div style="margin-top:8px;">
+            {item.attributes.tags.split(',').map(t => <span class="tag">{t.trim()}</span>)}
+          </div>
+        )}
+      </div>
+    ))
+  }
+</Layout>

@@ -1,0 +1,28 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getDocuments } from '../../lib/strapi';
+const items = await getDocuments();
+---
+<Layout title="资料文件">
+  <h1 style="margin-bottom:24px;color:#1a5276;">📁 资料文件</h1>
+  {items.length === 0
+    ? <div class="card empty">暂无数据，请在 Strapi 后台录入内容</div>
+    : items.map(item => (
+      <div class="card" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:600;font-size:1.05em;margin-bottom:6px;">{item.attributes.title}</div>
+          <div style="font-size:.85em;color:#888;margin-bottom:6px;">
+            <span class="tag">{item.attributes.fileType?.toUpperCase()}</span>
+            {item.attributes.pages && <span style="margin-left:6px;">{item.attributes.pages}页</span>}
+            {item.attributes.fileSize && <span style="margin-left:6px;">{item.attributes.fileSize}</span>}
+            {item.attributes.version && <span style="margin-left:6px;">v{item.attributes.version}</span>}
+          </div>
+          {item.attributes.description && <p style="color:#555;font-size:.9em;">{item.attributes.description}</p>}
+        </div>
+        {item.attributes.previewUrl && (
+          <a href={item.attributes.previewUrl} target="_blank" style="white-space:nowrap;color:#1a5276;margin-left:16px;font-size:.9em;">预览/下载</a>
+        )}
+      </div>
+    ))
+  }
+</Layout>

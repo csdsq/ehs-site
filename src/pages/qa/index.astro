@@ -1,0 +1,26 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getQAs } from '../../lib/strapi';
+const items = await getQAs();
+---
+<Layout title="问答">
+  <h1 style="margin-bottom:24px;color:#1a5276;">💬 问答中心</h1>
+  {items.length === 0
+    ? <div class="card empty">暂无数据，请在 Strapi 后台录入内容</div>
+    : items.map(item => (
+      <div class="card">
+        <div style="font-weight:600;font-size:1.05em;margin-bottom:10px;color:#1a5276;">Q: {item.attributes.question}</div>
+        <div style="color:#555;border-left:3px solid #1a5276;padding-left:12px;">
+          {typeof item.attributes.answer === 'string'
+            ? item.attributes.answer
+            : '（富文本，请在详情页查看）'
+          }
+        </div>
+        <div style="font-size:.85em;color:#888;margin-top:8px;">
+          {item.attributes.category && <span class="tag">{item.attributes.category}</span>}
+          {item.attributes.viewCount != null && <span style="margin-left:6px;">👁 {item.attributes.viewCount}</span>}
+        </div>
+      </div>
+    ))
+  }
+</Layout>

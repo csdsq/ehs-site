@@ -1,0 +1,41 @@
+---
+// src/layouts/Layout.astro
+interface Props {
+  title?: string;
+}
+const { title = 'EHS信息站' } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} - EHS信息站</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
+    nav { background: #1a5276; color: white; padding: 12px 24px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+    nav a { color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; transition: background .2s; }
+    nav a:hover { background: rgba(255,255,255,0.2); }
+    .brand { font-weight: bold; font-size: 1.1em; margin-right: 12px; }
+    main { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .tag { display: inline-block; background: #eaf4fb; color: #1a5276; padding: 2px 8px; border-radius: 12px; font-size: .8em; margin: 2px; }
+    .empty { color: #888; text-align: center; padding: 40px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <span class="brand">⚡ EHS信息站</span>
+    <a href="/">首页</a>
+    <a href="/regulations/">法规标准</a>
+    <a href="/accidents/">事故报告</a>
+    <a href="/videos/">视频课堂</a>
+    <a href="/documents/">资料文件</a>
+    <a href="/qa/">问答</a>
+  </nav>
+  <main>
+    <slot />
+  </main>
+</body>
+</html>
