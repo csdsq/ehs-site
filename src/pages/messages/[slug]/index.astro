@@ -1,0 +1,144 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  return [];
+}
+
+const { slug } = Astro.params;
+---
+<Layout title="留言详情" currentPath="/messages/">
+  <div class="detail-header">
+    <div class="container">
+      <div class="detail-breadcrumb">
+        <a href="/">首页</a> / <a href="/messages/">留言板</a> / 详情
+      </div>
+      <h1 class="detail-title" id="detail-title">加载中...</h1>
+      <div class="detail-meta" id="detail-meta"></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+
+  <script define:vars={{ slug }}>
+    const API = '/api';
+
+    async function loadDetail() {
+      try {
+        let res = await fetch(`${API}/messages?filters[slug][$eq]=${slug}&pagination[pageSize]=1&populate=*`);
+        let json = await res.json();
+        let item = json.data?.[0];
+        if (!item) {
+          res = await fetch(`${API}/messages/${slug}?populate=*`);
+          json = await res.json();
+          item = json.data;
+        }
+        if (item) {
+          document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-meta').innerHTML = [
+            item.author ? `<span>留言人：${item.author}</span>` : '<span>游客</span>',
+            item.category ? `<span>${item.category}</span>` : '',
+            item.publishDate ? `<span>${item.publishDate}</span>` : '',
+          ].filter(Boolean).join('');
+
+          // 获取回复
+          const replies = item.replies || item.adminReplies || [];
+
+          document.getElementById('detail-body').innerHTML = `
+            <!-- 留言内容 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">💬 留言内容</h2>
+              <div class="detail-section-content">
+                <div class="msg-bubble msg-guest">
+                  <div class="msg-author">${item.author || '游客'}</div>
+                  <div class="msg-text">${item.content || ''}</div>
+                  <div class="msg-time">${item.publishDate || ''}</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- 管理员回复 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">🛡 管理员回复</h2>
+              <div class="detail-section-content" id="admin-replies">
+                ${replies.length > 0
+                  ? replies.map(r => `
+                      <div class="msg-bubble msg-admin">
+                        <div class="msg-author">管理员</div>
+                        <div class="msg-text">${r.content || r.reply || ''}</div>
+                        <div class="msg-time">${r.publishDate || r.createdAt || ''}</div>
+                      </div>`).join('')
+                  : '<p class="detail-empty">暂无回复</p>'}
+              </div>
+            </section>
+
+            <!-- 访客追加留言 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">✍️ 追加留言</h2>
+              <div class="detail-section-content">
+                <form id="reply-form" class="msg-form">
+                  <div class="msg-form-row">
+                    <input type="text" id="reply-author" placeholder="你的昵称（选填）" class="msg-input" />
+                  </div>
+                  <div class="msg-form-row">
+                    <textarea id="reply-content" placeholder="输入你的留言..." class="msg-textarea" rows="4"></textarea>
+                  </div>
+                  <button type="submit" class="detail-action-btn">提交留言</button>
+                  <div id="reply-status" style="margin-top:8px;font-size:13px;"></div>
+                </form>
+              </div>
+            </section>
+          `;
+
+          // 绑定表单提交
+          const form = document.getElementById('reply-form');
+          if (form) {
+            form.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const author = document.getElementById('reply-author').value.trim() || '游客';
+              const content = document.getElementById('reply-content').value.trim();
+              if (!content) {
+                document.getElementById('reply-status').textContent = '请输入留言内容';
+                document.getElementById('reply-status').style.color = '#e63946';
+                return;
+              }
+              try {
+                const res = await fetch(`${API}/message-replies`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    data: {
+                      author: author,
+                      content: content,
+                      message: item.id,
+                    }
+                  })
+                });
+                if (res.ok) {
+                  document.getElementById('reply-status').textContent = '留言提交成功！';
+                  document.getElementById('reply-status').style.color = '#2a9d8f';
+                  document.getElementById('reply-content').value = '';
+                  // 刷新页面显示新留言
+                  setTimeout(() => loadDetail(), 1000);
+                } else {
+                  throw new Error('提交失败');
+                }
+              } catch (err) {
+                document.getElementById('reply-status').textContent = '提交失败，请稍后重试';
+                document.getElementById('reply-status').style.color = '#e63946';
+              }
+            });
+          }
+        } else {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该留言</div>';
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+    loadDetail();
+  </script>
+</Layout>

@@ -1,0 +1,87 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  return [];
+}
+
+const { slug } = Astro.params;
+---
+<Layout title="视频详情" currentPath="/videos/">
+  <div class="detail-header">
+    <div class="container">
+      <div class="detail-breadcrumb">
+        <a href="/">首页</a> / <a href="/videos/">视频课堂</a> / 详情
+      </div>
+      <h1 class="detail-title" id="detail-title">加载中...</h1>
+      <div class="detail-meta" id="detail-meta"></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+
+  <script define:vars={{ slug }}>
+    const API = '/api';
+    async function loadDetail() {
+      try {
+        let res = await fetch(`${API}/videos?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        let json = await res.json();
+        let item = json.data?.[0];
+        if (!item) {
+          res = await fetch(`${API}/videos/${slug}`);
+          json = await res.json();
+          item = json.data;
+        }
+        if (item) {
+          document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-meta').innerHTML = [
+            item.category ? `<span>${item.category}</span>` : '',
+            item.duration ? `<span>时长：${item.duration}</span>` : '',
+          ].filter(Boolean).join('');
+
+          document.getElementById('detail-body').innerHTML = `
+            <!-- 嵌入可播放的视频 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">🎬 视频播放</h2>
+              <div class="detail-section-content">
+                ${item.videoUrl || item.url
+                  ? `<div class="detail-iframe-wrap">
+                       <iframe src="${item.videoUrl || item.url}" allowfullscreen style="width:100%;height:480px;border:none;border-radius:12px;"></iframe>
+                     </div>`
+                  : '<p class="detail-empty">暂无视频资源</p>'}
+              </div>
+            </section>
+
+            <!-- 主要内容描述 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📄 主要内容描述</h2>
+              <div class="detail-section-content">
+                ${item.description
+                  ? `<div class="detail-text">${item.description}</div>`
+                  : '<p class="detail-empty">暂无内容描述</p>'}
+              </div>
+            </section>
+
+            <!-- 视频直接下载链接 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📥 视频下载</h2>
+              <div class="detail-section-content">
+                ${item.downloadUrl
+                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">下载视频文件 &darr;</a>`
+                  : '<p class="detail-empty">暂无下载链接</p>'}
+              </div>
+            </section>
+          `;
+        } else {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该视频</div>';
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+    loadDetail();
+  </script>
+</Layout>

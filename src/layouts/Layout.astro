@@ -1,9 +1,22 @@
 ---
 // src/layouts/Layout.astro
+import '../styles/global.css';
+
 interface Props {
   title?: string;
+  currentPath?: string;
 }
-const { title = 'EHS信息站' } = Astro.props;
+const { title = 'EHS信息站', currentPath = '' } = Astro.props;
+
+const navItems = [
+  { label: 'AI应用', href: '/ai-apps/', icon: '🤖' },
+  { label: '法律法规', href: '/regulations/', icon: '⚖️' },
+  { label: '规范文件', href: '/standards/', icon: '📋' },
+  { label: '事故报告', href: '/accidents/', icon: '⚠️' },
+  { label: '视频课堂', href: '/videos/', icon: '🎬' },
+  { label: '资料中心', href: '/documents/', icon: '📁' },
+  { label: '留言板', href: '/messages/', icon: '💬' },
+];
 ---
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -11,31 +24,101 @@ const { title = 'EHS信息站' } = Astro.props;
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title} - EHS信息站</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
-    nav { background: #1a5276; color: white; padding: 12px 24px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-    nav a { color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; transition: background .2s; }
-    nav a:hover { background: rgba(255,255,255,0.2); }
-    .brand { font-weight: bold; font-size: 1.1em; margin-right: 12px; }
-    main { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
-    .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .tag { display: inline-block; background: #eaf4fb; color: #1a5276; padding: 2px 8px; border-radius: 12px; font-size: .8em; margin: 2px; }
-    .empty { color: #888; text-align: center; padding: 40px; }
-  </style>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 </head>
 <body>
-  <nav>
-    <span class="brand">⚡ EHS信息站</span>
-    <a href="/">首页</a>
-    <a href="/regulations/">法规标准</a>
-    <a href="/accidents/">事故报告</a>
-    <a href="/videos/">视频课堂</a>
-    <a href="/documents/">资料文件</a>
-    <a href="/qa/">问答</a>
-  </nav>
-  <main>
-    <slot />
-  </main>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">🛡</span>
+        <span>EHS信息站</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          {navItems.map(item => (
+            <li>
+              <a
+                href={item.href}
+                class:list={['', { active: currentPath === item.href || (currentPath !== '/' && item.href !== '/' && currentPath.startsWith(item.href.replace(/\/$/, ''))) }]}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <!-- Mobile menu button -->
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="菜单">☰</button>
+    </div>
+    <!-- Mobile nav -->
+    <div class="mobile-nav" id="mobile-nav">
+      <ul class="mobile-nav-links">
+        {navItems.map(item => (
+          <li>
+            <a href={item.href} class:list={['', { active: currentPath === item.href }]}>
+              <span class="mobile-nav-icon">{item.icon}</span>
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </header>
+
+  <slot />
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <h3>🛡 EHS信息站</h3>
+          <p style="font-size: 13px; margin-top: 8px; line-height: 1.8;">
+            聚合环境、健康、安全领域法律法规、规范文件、事故报告，<br />
+            助力EHS从业者高效获取专业安全信息。
+          </p>
+        </div>
+        <div class="footer-links">
+          <h4>内容频道</h4>
+          <ul>
+            <li><a href="/ai-apps/">AI应用</a></li>
+            <li><a href="/regulations/">法律法规</a></li>
+            <li><a href="/standards/">规范文件</a></li>
+            <li><a href="/accidents/">事故报告</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>更多</h4>
+          <ul>
+            <li><a href="/videos/">视频课堂</a></li>
+            <li><a href="/documents/">资料中心</a></li>
+            <li><a href="/messages/">留言板</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>数据来源</h4>
+          <ul>
+            <li><a href="https://openstd.samr.gov.cn" target="_blank">国家标准公开</a></li>
+            <li><a href="https://www.mem.gov.cn" target="_blank">应急管理部</a></li>
+            <li><a href="https://www.mee.gov.cn" target="_blank">生态环境部</a></li>
+            <li><a href="https://www.nhc.gov.cn" target="_blank">国家卫健委</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 EHS信息站 &middot; 数据来源于官方公开渠道 &middot; 仅供学习参考</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    const btn = document.getElementById('mobile-menu-btn');
+    const nav = document.getElementById('mobile-nav');
+    if (btn && nav) {
+      btn.addEventListener('click', () => {
+        nav.classList.toggle('open');
+      });
+    }
+  </script>
 </body>
 </html>

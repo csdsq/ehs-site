@@ -1,0 +1,70 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout title="规范文件" currentPath="/standards/">
+
+  <div class="page-layout">
+    <div class="container">
+      <h1 class="page-title">📋 规范文件</h1>
+      <p class="page-description">收录国家标准、行业标准、技术规范，为EHS合规管理提供标准依据。</p>
+
+      <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+        <input type="text" id="std-search" placeholder="搜索规范名称、标准号..." />
+        <button id="std-search-btn">搜索</button>
+      </div>
+
+      <div id="std-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
+      <div class="list-grid" id="std-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let allItems: any[] = [];
+
+    async function loadItems() {
+      try {
+        const res = await fetch(`${API}/standards?pagination[pageSize]=100&sort=publishDate:desc`);
+        const json = await res.json();
+        allItems = json.data ?? [];
+        const total = json.meta?.pagination?.total ?? 0;
+        document.getElementById('std-count')!.textContent = `共 ${total} 项`;
+        renderItems(allItems);
+      } catch (e) {
+        document.getElementById('std-list')!.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function renderItems(items: any[]) {
+      const el = document.getElementById('std-list');
+      if (!el) return;
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
+      el.innerHTML = items.map(item => `
+        <a href="/standards/${item.slug || item.id}" class="list-item">
+          <div class="list-item-icon icon-standard">${item.icon || '📋'}</div>
+          <div class="list-item-body">
+            <div class="list-item-title">${item.title}</div>
+            <div class="list-item-desc">${item.description || item.standardNo || item.category || ''}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </a>`).join('');
+    }
+
+    function doSearch() {
+      const q = (document.getElementById('std-search') as HTMLInputElement).value.trim().toLowerCase();
+      if (!q) { renderItems(allItems); return; }
+      renderItems(allItems.filter(item =>
+        (item.title ?? '').toLowerCase().includes(q) ||
+        (item.standardNo ?? '').toLowerCase().includes(q) ||
+        (item.category ?? '').toLowerCase().includes(q)
+      ));
+    }
+
+    document.getElementById('std-search')!.addEventListener('input', doSearch);
+    document.getElementById('std-search-btn')!.addEventListener('click', doSearch);
+
+    loadItems();
+  </script>
+</Layout>

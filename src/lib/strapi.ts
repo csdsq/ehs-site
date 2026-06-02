@@ -1,10 +1,9 @@
 // src/lib/strapi.ts
-// Strapi API 数据获取工具
+// Strapi v5 API 数据获取工具
 
-const STRAPI_URL = import.meta.env.STRAPI_URL || 'https://strapi.hser.ren:1337';
-const STRAPI_TOKEN = import.meta.env.STRAPI_TOKEN || '';
+export const STRAPI_URL = ''; // Use Vercel rewrites to proxy to Strapi
 
-interface StrapiResponse<T> {
+export interface StrapiResponse<T> {
   data: T[];
   meta: {
     pagination: {
@@ -16,14 +15,10 @@ interface StrapiResponse<T> {
   };
 }
 
-async function fetchStrapi<T>(endpoint: string): Promise<T[]> {
+export async function fetchStrapi<T>(endpoint: string): Promise<T[]> {
   try {
-    const url = `${STRAPI_URL}/api/${endpoint}?pagination[pageSize]=100&sort=publishDate:desc`;
-    const res = await fetch(url, {
-      headers: STRAPI_TOKEN
-        ? { Authorization: `Bearer ${STRAPI_TOKEN}` }
-        : {},
-    });
+    const url = `${STRAPI_URL}/api/${endpoint}?pagination[pageSize]=100`;
+    const res = await fetch(url);
     if (!res.ok) {
       console.error(`Strapi fetch failed: ${url} - ${res.status}`);
       return [];
@@ -36,80 +31,91 @@ async function fetchStrapi<T>(endpoint: string): Promise<T[]> {
   }
 }
 
-// 法规标准
+// AI应用
+export interface AiApp {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  icon: string;
+  url: string;
+  slug: string;
+}
+export const getAiApps = () => fetchStrapi<AiApp>('ai-apps');
+
+// 法律法规
 export interface Regulation {
   id: number;
-  attributes: {
-    title: string;
-    category: string;
-    source: string;
-    publishDate: string;
-    content: any;
-    summary: string;
-    standardNo: string;
-    tags: string;
-  };
+  title: string;
+  description: string;
+  category: string;
+  publishDate: string;
+  source: string;
+  content: any;
+  slug: string;
 }
 export const getRegulations = () => fetchStrapi<Regulation>('regulations');
+
+// 规范文件
+export interface Standard {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  standardNo: string;
+  publishDate: string;
+  source: string;
+  slug: string;
+}
+export const getStandards = () => fetchStrapi<Standard>('standards');
 
 // 事故报告
 export interface Accident {
   id: number;
-  attributes: {
-    title: string;
-    level: string;
-    source: string;
-    publishDate: string;
-    content: any;
-    location: string;
-    casualties: string;
-    summary: string;
-    tags: string;
-  };
+  title: string;
+  description: string;
+  severity: string;
+  category: string;
+  date: string;
+  location: string;
+  casualties: string;
+  slug: string;
 }
 export const getAccidents = () => fetchStrapi<Accident>('accidents');
 
 // 视频课堂
 export interface Video {
   id: number;
-  attributes: {
-    title: string;
-    category: string;
-    publishDate: string;
-    description: string;
-    videoUrl: string;
-    duration: string;
-    tags: string;
-  };
+  title: string;
+  description: string;
+  category: string;
+  url: string;
+  duration: string;
+  slug: string;
 }
 export const getVideos = () => fetchStrapi<Video>('videos');
 
 // 资料文件
 export interface Document {
   id: number;
-  attributes: {
-    title: string;
-    fileType: string;
-    description: string;
-    pages: string;
-    fileSize: string;
-    version: string;
-    previewUrl: string;
-    tags: string;
-  };
+  title: string;
+  description: string;
+  category: string;
+  fileType: string;
+  fileSize: string;
+  publishDate: string;
+  slug: string;
 }
 export const getDocuments = () => fetchStrapi<Document>('documents');
 
-// 问答
-export interface QA {
+// 留言
+export interface Message {
   id: number;
-  attributes: {
-    question: string;
-    answer: any;
-    category: string;
-    publishDate: string;
-    viewCount: number;
-    tags: string;
-  };
+  title: string;
+  content: string;
+  author: string;
+  category: string;
+  publishDate: string;
+  slug: string;
 }
-export const getQAs = () => fetchStrapi<QA>('q-as');
+export const getMessages = () => fetchStrapi<Message>('messages');

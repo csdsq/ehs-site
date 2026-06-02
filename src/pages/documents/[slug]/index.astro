@@ -1,0 +1,108 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  return [];
+}
+
+const { slug } = Astro.params;
+---
+<Layout title="资料详情" currentPath="/documents/">
+  <div class="detail-header">
+    <div class="container">
+      <div class="detail-breadcrumb">
+        <a href="/">首页</a> / <a href="/documents/">资料中心</a> / 详情
+      </div>
+      <h1 class="detail-title" id="detail-title">加载中...</h1>
+      <div class="detail-meta" id="detail-meta"></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+
+  <script define:vars={{ slug }}>
+    const API = '/api';
+    async function loadDetail() {
+      try {
+        let res = await fetch(`${API}/documents?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        let json = await res.json();
+        let item = json.data?.[0];
+        if (!item) {
+          res = await fetch(`${API}/documents/${slug}`);
+          json = await res.json();
+          item = json.data;
+        }
+        if (item) {
+          document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-meta').innerHTML = [
+            item.fileType ? `<span>类型：${item.fileType}</span>` : '',
+            item.fileSize ? `<span>大小：${item.fileSize}</span>` : '',
+            item.publishDate ? `<span>日期：${item.publishDate}</span>` : '',
+            item.version ? `<span>版本：${item.version}</span>` : '',
+          ].filter(Boolean).join('');
+
+          // 判断预览方式
+          const ft = (item.fileType || '').toLowerCase();
+          let previewHtml = '';
+          if (item.previewUrl) {
+            if (ft.includes('pdf')) {
+              previewHtml = `<div class="detail-iframe-wrap">
+                <iframe src="${item.previewUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
+              </div>`;
+            } else if (ft.includes('doc') || ft.includes('ppt') || ft.includes('xls')) {
+              // 使用微软Office在线预览
+              const encodedUrl = encodeURIComponent(item.previewUrl);
+              previewHtml = `<div class="detail-iframe-wrap">
+                <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
+              </div>`;
+            } else {
+              previewHtml = `<div class="detail-iframe-wrap">
+                <iframe src="${item.previewUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
+              </div>`;
+            }
+          }
+
+          document.getElementById('detail-body').innerHTML = `
+            <!-- 资料大概内容简述 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📄 资料内容简述</h2>
+              <div class="detail-section-content">
+                ${item.description
+                  ? `<div class="detail-text">${item.description}</div>`
+                  : '<p class="detail-empty">暂无内容简述</p>'}
+              </div>
+            </section>
+
+            <!-- 资料在线预览 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">👁 在线预览</h2>
+              <div class="detail-section-content">
+                ${previewHtml
+                  ? previewHtml
+                  : '<p class="detail-empty">暂不支持在线预览</p>'}
+              </div>
+            </section>
+
+            <!-- 资料下载链接 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📥 资料下载</h2>
+              <div class="detail-section-content">
+                ${item.downloadUrl
+                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">下载资料文件 &darr;</a>`
+                  : '<p class="detail-empty">暂无下载链接</p>'}
+              </div>
+            </section>
+          `;
+        } else {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该资料</div>';
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+    loadDetail();
+  </script>
+</Layout>

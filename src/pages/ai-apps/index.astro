@@ -1,0 +1,70 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout title="AI应用" currentPath="/ai-apps/">
+
+  <div class="page-layout">
+    <div class="container">
+      <h1 class="page-title">🤖 AI应用</h1>
+      <p class="page-description">智能问答、文档分析、风险评估等EHS领域AI工具，助力安全管理工作提效。</p>
+
+      <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+        <input type="text" id="ai-search" placeholder="搜索AI应用名称..." />
+        <button id="ai-search-btn">搜索</button>
+      </div>
+
+      <div id="ai-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
+      <div class="list-grid" id="ai-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let allItems: any[] = [];
+
+    async function loadItems() {
+      try {
+        const res = await fetch(`${API}/ai-apps?pagination[pageSize]=100&sort=createdAt:desc`);
+        const json = await res.json();
+        allItems = json.data ?? [];
+        const total = json.meta?.pagination?.total ?? 0;
+        document.getElementById('ai-count')!.textContent = `共 ${total} 个应用`;
+        renderItems(allItems);
+      } catch (e) {
+        document.getElementById('ai-list')!.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function renderItems(items: any[]) {
+      const el = document.getElementById('ai-list');
+      if (!el) return;
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无AI应用</div>'; return; }
+      el.innerHTML = items.map(item => `
+        <a href="/ai-apps/${item.slug || item.id}" class="list-item">
+          <div class="list-item-icon icon-ai">${item.icon || '🤖'}</div>
+          <div class="list-item-body">
+            <div class="list-item-title">${item.title}</div>
+            <div class="list-item-desc">${item.description || ''}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </a>`).join('');
+    }
+
+    function doSearch() {
+      const q = (document.getElementById('ai-search') as HTMLInputElement).value.trim().toLowerCase();
+      if (!q) { renderItems(allItems); return; }
+      renderItems(allItems.filter(item =>
+        (item.title ?? '').toLowerCase().includes(q) ||
+        (item.description ?? '').toLowerCase().includes(q) ||
+        (item.category ?? '').toLowerCase().includes(q)
+      ));
+    }
+
+    document.getElementById('ai-search')!.addEventListener('input', doSearch);
+    document.getElementById('ai-search-btn')!.addEventListener('click', doSearch);
+
+    loadItems();
+  </script>
+</Layout>

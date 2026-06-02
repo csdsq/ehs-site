@@ -1,28 +1,74 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getDocuments } from '../../lib/strapi';
-const items = await getDocuments();
 ---
-<Layout title="资料文件">
-  <h1 style="margin-bottom:24px;color:#1a5276;">📁 资料文件</h1>
-  {items.length === 0
-    ? <div class="card empty">暂无数据，请在 Strapi 后台录入内容</div>
-    : items.map(item => (
-      <div class="card" style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div style="font-weight:600;font-size:1.05em;margin-bottom:6px;">{item.attributes.title}</div>
-          <div style="font-size:.85em;color:#888;margin-bottom:6px;">
-            <span class="tag">{item.attributes.fileType?.toUpperCase()}</span>
-            {item.attributes.pages && <span style="margin-left:6px;">{item.attributes.pages}页</span>}
-            {item.attributes.fileSize && <span style="margin-left:6px;">{item.attributes.fileSize}</span>}
-            {item.attributes.version && <span style="margin-left:6px;">v{item.attributes.version}</span>}
-          </div>
-          {item.attributes.description && <p style="color:#555;font-size:.9em;">{item.attributes.description}</p>}
-        </div>
-        {item.attributes.previewUrl && (
-          <a href={item.attributes.previewUrl} target="_blank" style="white-space:nowrap;color:#1a5276;margin-left:16px;font-size:.9em;">预览/下载</a>
-        )}
+<Layout title="资料中心" currentPath="/documents/">
+
+  <div class="page-layout">
+    <div class="container">
+      <h1 class="page-title">📁 资料中心</h1>
+      <p class="page-description">PPT、PDF、Word模板、检查表等EHS实用资料，即下即用。</p>
+
+      <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+        <input type="text" id="doc-search" placeholder="搜索资料名称..." />
+        <button id="doc-search-btn">搜索</button>
       </div>
-    ))
-  }
+
+      <div id="doc-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
+      <div class="list-grid" id="doc-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let allItems: any[] = [];
+
+    async function loadItems() {
+      try {
+        const res = await fetch(`${API}/documents?pagination[pageSize]=100&sort=createdAt:desc`);
+        const json = await res.json();
+        allItems = json.data ?? [];
+        const total = json.meta?.pagination?.total ?? 0;
+        document.getElementById('doc-count')!.textContent = `共 ${total} 份资料`;
+        renderItems(allItems);
+      } catch (e) {
+        document.getElementById('doc-list')!.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function renderItems(items: any[]) {
+      const el = document.getElementById('doc-list');
+      if (!el) return;
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无资料</div>'; return; }
+      el.innerHTML = items.map(item => {
+        const ft = (item.fileType || '').toLowerCase();
+        const icon = ft.includes('ppt') ? '📊' : ft.includes('pdf') ? '📄' : ft.includes('doc') ? '📝' : ft.includes('xls') ? '📈' : '📁';
+        return `
+        <a href="/documents/${item.slug || item.id}" class="list-item">
+          <div class="list-item-icon icon-doc">${item.icon || icon}</div>
+          <div class="list-item-body">
+            <div class="list-item-title">${item.title}</div>
+            <div class="list-item-desc">${item.description || `${item.fileType || ''} ${item.fileSize ? '· ' + item.fileSize : ''}`.trim()}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </a>`;
+      }).join('');
+    }
+
+    function doSearch() {
+      const q = (document.getElementById('doc-search') as HTMLInputElement).value.trim().toLowerCase();
+      if (!q) { renderItems(allItems); return; }
+      renderItems(allItems.filter(item =>
+        (item.title ?? '').toLowerCase().includes(q) ||
+        (item.category ?? '').toLowerCase().includes(q) ||
+        (item.fileType ?? '').toLowerCase().includes(q)
+      ));
+    }
+
+    document.getElementById('doc-search')!.addEventListener('input', doSearch);
+    document.getElementById('doc-search-btn')!.addEventListener('click', doSearch);
+
+    loadItems();
+  </script>
 </Layout>

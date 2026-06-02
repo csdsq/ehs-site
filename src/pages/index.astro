@@ -1,60 +1,176 @@
 ---
-// src/pages/index.astro
 import Layout from '../layouts/Layout.astro';
-import { getRegulations, getAccidents } from '../lib/strapi';
-
-const regulations = await getRegulations();
-const accidents = await getAccidents();
-const latestRegs = regulations.slice(0, 5);
-const latestAcc = accidents.slice(0, 5);
 ---
-<Layout title="首页">
-  <h1 style="margin-bottom:24px;color:#1a5276;">EHS 信息站</h1>
-  <p style="color:#666;margin-bottom:32px;">安全健康环境专业信息平台 · 由 <strong>hser.ren</strong> 提供</p>
+<Layout title="首页" currentPath="/">
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;">
-    <!-- 法规标准 -->
-    <div class="card">
-      <h2 style="margin-bottom:16px;color:#1a5276;"><a href="/regulations/" style="text-decoration:none;color:inherit;">📋 最新法规标准</a></h2>
-      {latestRegs.length === 0
-        ? <p class="empty">暂无数据，请先在 Strapi 后台录入</p>
-        : latestRegs.map(r => (
-          <div style="border-bottom:1px solid #eee;padding:10px 0;last-child:border-none;">
-            <div style="font-weight:500;">{r.attributes.title}</div>
-            <div style="font-size:.85em;color:#888;margin-top:4px;">{r.attributes.publishDate} · {r.attributes.source}</div>
-          </div>
-        ))
-      }
-      <a href="/regulations/" style="display:block;text-align:right;margin-top:12px;color:#1a5276;font-size:.9em;">查看全部 →</a>
-    </div>
-
-    <!-- 事故报告 -->
-    <div class="card">
-      <h2 style="margin-bottom:16px;color:#1a5276;"><a href="/accidents/" style="text-decoration:none;color:inherit;">⚠️ 最新事故报告</a></h2>
-      {latestAcc.length === 0
-        ? <p class="empty">暂无数据，请先在 Strapi 后台录入</p>
-        : latestAcc.map(a => (
-          <div style="border-bottom:1px solid #eee;padding:10px 0;">
-            <div style="font-weight:500;">{a.attributes.title}</div>
-            <div style="font-size:.85em;color:#888;margin-top:4px;">{a.attributes.publishDate} · <span class="tag">{a.attributes.level}</span></div>
-          </div>
-        ))
-      }
-      <a href="/accidents/" style="display:block;text-align:right;margin-top:12px;color:#1a5276;font-size:.9em;">查看全部 →</a>
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stats-grid">
+      <div class="stat-item"><span class="stat-value" id="stat-laws">--</span><span class="stat-label">法律法规</span></div>
+      <div class="stat-item"><span class="stat-value" id="stat-standards">--</span><span class="stat-label">规范文件</span></div>
+      <div class="stat-item"><span class="stat-value" id="stat-accs">--</span><span class="stat-label">事故报告</span></div>
+      <div class="stat-item"><span class="stat-value" id="stat-docs">--</span><span class="stat-label">资料文件</span></div>
     </div>
   </div>
 
-  <!-- 快捷入口 -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
-    {[
-      {href:'/videos/',icon:'🎬',label:'视频课堂'},
-      {href:'/documents/',icon:'📁',label:'资料文件'},
-      {href:'/qa/',icon:'💬',label:'问答中心'},
-    ].map(item => (
-      <a href={item.href} class="card" style="text-align:center;text-decoration:none;color:inherit;font-size:1.1em;font-weight:500;padding:28px 0;">
-        <div style="font-size:2em;margin-bottom:8px;">{item.icon}</div>
-        {item.label}
-      </a>
-    ))}
-  </div>
+  <!-- Module Cards -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">🔍 内容频道</h2>
+      </div>
+      <div class="module-grid">
+        <a href="/ai-apps/" class="module-card">
+          <div class="module-card-icon icon-ai">🤖</div>
+          <div class="module-card-title">AI应用</div>
+          <div class="module-card-desc">智能问答、文档分析、风险评估</div>
+        </a>
+        <a href="/regulations/" class="module-card">
+          <div class="module-card-icon icon-law">⚖️</div>
+          <div class="module-card-title">法律法规</div>
+          <div class="module-card-desc">国家及地方法律、行政法规</div>
+        </a>
+        <a href="/standards/" class="module-card">
+          <div class="module-card-icon icon-standard">📋</div>
+          <div class="module-card-title">规范文件</div>
+          <div class="module-card-desc">国家标准、行业标准、技术规范</div>
+        </a>
+        <a href="/accidents/" class="module-card">
+          <div class="module-card-icon icon-accident">⚠️</div>
+          <div class="module-card-title">事故报告</div>
+          <div class="module-card-desc">事故调查、原因分析、经验教训</div>
+        </a>
+        <a href="/videos/" class="module-card">
+          <div class="module-card-icon icon-video">🎬</div>
+          <div class="module-card-title">视频课堂</div>
+          <div class="module-card-desc">安全培训、应急处置、案例教学</div>
+        </a>
+        <a href="/documents/" class="module-card">
+          <div class="module-card-icon icon-doc">📁</div>
+          <div class="module-card-title">资料中心</div>
+          <div class="module-card-desc">PPT、PDF、模板、检查表</div>
+        </a>
+        <a href="/messages/" class="module-card">
+          <div class="module-card-icon icon-msg">💬</div>
+          <div class="module-card-title">留言板</div>
+          <div class="module-card-desc">交流讨论、经验分享、问题反馈</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Regulations -->
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">⚖️ 最新法律法规</h2>
+        <a href="/regulations/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid" id="home-laws-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Accidents -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">⚠️ 最新事故报告</h2>
+        <a href="/accidents/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid" id="home-accs-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Standards -->
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">📋 最新规范文件</h2>
+        <a href="/standards/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid" id="home-standards-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const API = '/api';
+
+    async function safeFetch(url) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      } catch (e) {
+        console.warn('Fetch failed:', url, e);
+        return null;
+      }
+    }
+
+    function renderListItem(item, iconClass, defaultIcon, hrefPrefix) {
+      const desc = item.description || item.summary || item.content?.slice(0, 60) || '';
+      return `
+        <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+          <div class="list-item-icon ${iconClass}">${item.icon || defaultIcon}</div>
+          <div class="list-item-body">
+            <div class="list-item-title">${item.title || item.question || ''}</div>
+            <div class="list-item-desc">${desc}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </a>`;
+    }
+
+    async function loadAll() {
+      const [regs, standards, accs, docs] = await Promise.all([
+        safeFetch(`${API}/regulations?pagination[pageSize]=5&sort=publishDate:desc`),
+        safeFetch(`${API}/standards?pagination[pageSize]=5&sort=publishDate:desc`),
+        safeFetch(`${API}/accidents?pagination[pageSize]=5&sort=date:desc`),
+        safeFetch(`${API}/documents?pagination[pageSize]=5&sort=createdAt:desc`),
+      ]);
+
+      // Stats
+      const sl = document.getElementById('stat-laws');
+      const ss = document.getElementById('stat-standards');
+      const sa = document.getElementById('stat-accs');
+      const sd = document.getElementById('stat-docs');
+      if (sl) sl.textContent = regs?.meta?.pagination?.total ?? '0';
+      if (ss) ss.textContent = standards?.meta?.pagination?.total ?? '0';
+      if (sa) sa.textContent = accs?.meta?.pagination?.total ?? '0';
+      if (sd) sd.textContent = docs?.meta?.pagination?.total ?? '0';
+
+      // Regulations
+      const lawsEl = document.getElementById('home-laws-list');
+      if (lawsEl) {
+        const items = regs?.data ?? [];
+        lawsEl.innerHTML = items.length === 0
+          ? '<div class="empty">暂无数据</div>'
+          : items.map(r => renderListItem(r, 'icon-law', '⚖️', '/regulations/')).join('');
+      }
+
+      // Accidents
+      const accsEl = document.getElementById('home-accs-list');
+      if (accsEl) {
+        const items = accs?.data ?? [];
+        accsEl.innerHTML = items.length === 0
+          ? '<div class="empty">暂无数据</div>'
+          : items.map(a => renderListItem(a, 'icon-accident', '⚠️', '/accidents/')).join('');
+      }
+
+      // Standards
+      const stdsEl = document.getElementById('home-standards-list');
+      if (stdsEl) {
+        const items = standards?.data ?? [];
+        stdsEl.innerHTML = items.length === 0
+          ? '<div class="empty">暂无数据</div>'
+          : items.map(s => renderListItem(s, 'icon-standard', '📋', '/standards/')).join('');
+      }
+    }
+
+    loadAll();
+  </script>
 </Layout>

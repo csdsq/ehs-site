@@ -1,29 +1,70 @@
 ---
-// src/pages/accidents/index.astro
 import Layout from '../../layouts/Layout.astro';
-import { getAccidents } from '../../lib/strapi';
-
-const items = await getAccidents();
 ---
-<Layout title="事故报告">
-  <h1 style="margin-bottom:24px;color:#1a5276;">⚠️ 事故报告</h1>
-  {items.length === 0
-    ? <div class="card empty">暂无数据，请在 Strapi 后台录入内容</div>
-    : items.map(item => (
-      <div class="card">
-        <div style="font-weight:600;font-size:1.05em;margin-bottom:6px;">{item.attributes.title}</div>
-        <div style="font-size:.85em;color:#888;margin-bottom:8px;">
-          {item.attributes.publishDate} · {item.attributes.location}
-          <span class="tag" style="margin-left:8px;">{item.attributes.level}</span>
-        </div>
-        {item.attributes.casualties && <p style="color:#c0392b;font-size:.9em;margin-bottom:4px;">伤亡：{item.attributes.casualties}</p>}
-        {item.attributes.summary && <p style="color:#555;font-size:.95em;">{item.attributes.summary}</p>}
-        {item.attributes.tags && (
-          <div style="margin-top:8px;">
-            {item.attributes.tags.split(',').map(t => <span class="tag">{t.trim()}</span>)}
-          </div>
-        )}
+<Layout title="事故报告" currentPath="/accidents/">
+
+  <div class="page-layout">
+    <div class="container">
+      <h1 class="page-title">⚠️ 事故报告</h1>
+      <p class="page-description">收录各类生产安全事故调查报告，分析事故原因，总结经验教训，预防同类事故。</p>
+
+      <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+        <input type="text" id="acc-search" placeholder="搜索事故名称、地点..." />
+        <button id="acc-search-btn">搜索</button>
       </div>
-    ))
-  }
+
+      <div id="acc-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
+      <div class="list-grid" id="acc-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let allItems: any[] = [];
+
+    async function loadItems() {
+      try {
+        const res = await fetch(`${API}/accidents?pagination[pageSize]=100&sort=date:desc`);
+        const json = await res.json();
+        allItems = json.data ?? [];
+        const total = json.meta?.pagination?.total ?? 0;
+        document.getElementById('acc-count')!.textContent = `共 ${total} 项`;
+        renderItems(allItems);
+      } catch (e) {
+        document.getElementById('acc-list')!.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function renderItems(items: any[]) {
+      const el = document.getElementById('acc-list');
+      if (!el) return;
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
+      el.innerHTML = items.map(item => `
+        <a href="/accidents/${item.slug || item.id}" class="list-item">
+          <div class="list-item-icon icon-accident">${item.icon || '⚠️'}</div>
+          <div class="list-item-body">
+            <div class="list-item-title">${item.title}</div>
+            <div class="list-item-desc">${item.description || `${item.severity || ''} ${item.location || ''} ${item.date || ''}`.trim()}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </a>`).join('');
+    }
+
+    function doSearch() {
+      const q = (document.getElementById('acc-search') as HTMLInputElement).value.trim().toLowerCase();
+      if (!q) { renderItems(allItems); return; }
+      renderItems(allItems.filter(item =>
+        (item.title ?? '').toLowerCase().includes(q) ||
+        (item.location ?? '').toLowerCase().includes(q) ||
+        (item.severity ?? '').toLowerCase().includes(q)
+      ));
+    }
+
+    document.getElementById('acc-search')!.addEventListener('input', doSearch);
+    document.getElementById('acc-search-btn')!.addEventListener('click', doSearch);
+
+    loadItems();
+  </script>
 </Layout>

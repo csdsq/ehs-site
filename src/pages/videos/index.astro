@@ -1,26 +1,69 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getVideos } from '../../lib/strapi';
-const items = await getVideos();
 ---
-<Layout title="视频课堂">
-  <h1 style="margin-bottom:24px;color:#1a5276;">🎬 视频课堂</h1>
-  {items.length === 0
-    ? <div class="card empty">暂无数据，请在 Strapi 后台录入内容</div>
-    : <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
-        {items.map(item => (
-          <div class="card">
-            <div style="font-weight:600;font-size:1.05em;margin-bottom:6px;">{item.attributes.title}</div>
-            <div style="font-size:.85em;color:#888;margin-bottom:8px;">
-              {item.attributes.publishDate} · {item.attributes.category}
-              {item.attributes.duration && <span> · {item.attributes.duration}</span>}
-            </div>
-            {item.attributes.description && <p style="color:#555;font-size:.9em;">{item.attributes.description}</p>}
-            {item.attributes.videoUrl && (
-              <a href={item.attributes.videoUrl} target="_blank" style="display:inline-block;margin-top:10px;color:#1a5276;font-size:.9em;">▶ 观看视频</a>
-            )}
-          </div>
-        ))}
+<Layout title="视频课堂" currentPath="/videos/">
+
+  <div class="page-layout">
+    <div class="container">
+      <h1 class="page-title">🎬 视频课堂</h1>
+      <p class="page-description">安全培训、应急处置、事故案例分析等视频资源，助力安全意识与技能提升。</p>
+
+      <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+        <input type="text" id="vid-search" placeholder="搜索视频名称..." />
+        <button id="vid-search-btn">搜索</button>
       </div>
-  }
+
+      <div id="vid-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
+      <div class="list-grid" id="vid-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let allItems: any[] = [];
+
+    async function loadItems() {
+      try {
+        const res = await fetch(`${API}/videos?pagination[pageSize]=100&sort=createdAt:desc`);
+        const json = await res.json();
+        allItems = json.data ?? [];
+        const total = json.meta?.pagination?.total ?? 0;
+        document.getElementById('vid-count')!.textContent = `共 ${total} 个视频`;
+        renderItems(allItems);
+      } catch (e) {
+        document.getElementById('vid-list')!.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function renderItems(items: any[]) {
+      const el = document.getElementById('vid-list');
+      if (!el) return;
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无视频</div>'; return; }
+      el.innerHTML = items.map(item => `
+        <a href="/videos/${item.slug || item.id}" class="list-item">
+          <div class="list-item-icon icon-video">${item.icon || '🎬'}</div>
+          <div class="list-item-body">
+            <div class="list-item-title">${item.title}</div>
+            <div class="list-item-desc">${item.description || `${item.category || ''} ${item.duration ? '· ' + item.duration : ''}`.trim()}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </a>`).join('');
+    }
+
+    function doSearch() {
+      const q = (document.getElementById('vid-search') as HTMLInputElement).value.trim().toLowerCase();
+      if (!q) { renderItems(allItems); return; }
+      renderItems(allItems.filter(item =>
+        (item.title ?? '').toLowerCase().includes(q) ||
+        (item.category ?? '').toLowerCase().includes(q)
+      ));
+    }
+
+    document.getElementById('vid-search')!.addEventListener('input', doSearch);
+    document.getElementById('vid-search-btn')!.addEventListener('click', doSearch);
+
+    loadItems();
+  </script>
 </Layout>

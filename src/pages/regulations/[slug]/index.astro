@@ -1,0 +1,101 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  return [];
+}
+
+const { slug } = Astro.params;
+---
+<Layout title="法律法规详情" currentPath="/regulations/">
+  <div class="detail-header">
+    <div class="container">
+      <div class="detail-breadcrumb">
+        <a href="/">首页</a> / <a href="/regulations/">法律法规</a> / 详情
+      </div>
+      <h1 class="detail-title" id="detail-title">加载中...</h1>
+      <div class="detail-meta" id="detail-meta"></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+
+  <script define:vars={{ slug }}>
+    const API = '/api';
+    async function loadDetail() {
+      try {
+        let res = await fetch(`${API}/regulations?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        let json = await res.json();
+        let item = json.data?.[0];
+        if (!item) {
+          res = await fetch(`${API}/regulations/${slug}`);
+          json = await res.json();
+          item = json.data;
+        }
+        if (item) {
+          document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-meta').innerHTML = [
+            item.category ? `<span>类别：${item.category}</span>` : '',
+            item.source ? `<span>来源：${item.source}</span>` : '',
+            item.publishDate ? `<span>发布日期：${item.publishDate}</span>` : '',
+            item.effectiveDate ? `<span>生效日期：${item.effectiveDate}</span>` : '',
+          ].filter(Boolean).join('');
+
+          // 基础信息表格
+          const infoRows = [
+            ['法规名称', item.title],
+            ['法规类别', item.category],
+            ['发布机关', item.source],
+            ['发布日期', item.publishDate],
+            ['标准编号', item.standardNo],
+            ['生效日期', item.effectiveDate],
+            ['时效性', item.validity || '现行有效'],
+          ].filter(([,v]) => v);
+
+          document.getElementById('detail-body').innerHTML = `
+            <!-- 法规基础信息 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📋 法规基础信息</h2>
+              <div class="detail-section-content">
+                ${infoRows.length > 0
+                  ? `<table class="detail-info-table">
+                       ${infoRows.map(([k,v]) => `<tr><td class="info-label">${k}</td><td class="info-value">${v}</td></tr>`).join('')}
+                     </table>`
+                  : '<p class="detail-empty">暂无基础信息</p>'}
+              </div>
+            </section>
+
+            <!-- 大概内容描述 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📄 大概内容描述</h2>
+              <div class="detail-section-content">
+                ${item.description || item.content || item.summary
+                  ? `<div class="detail-text">${item.description || item.summary || ''}</div>
+                     ${item.content ? `<details class="detail-expand"><summary>查看法规全文</summary><div class="detail-expand-body">${item.content}</div></details>` : ''}`
+                  : '<p class="detail-empty">暂无内容描述</p>'}
+              </div>
+            </section>
+
+            <!-- 法规下载链接 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📥 法规下载链接</h2>
+              <div class="detail-section-content">
+                ${item.downloadUrl
+                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">下载法规文件 &darr;</a>`
+                  : '<p class="detail-empty">暂无下载链接</p>'}
+              </div>
+            </section>
+          `;
+        } else {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该法规</div>';
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+    loadDetail();
+  </script>
+</Layout>

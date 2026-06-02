@@ -1,0 +1,99 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  return [];
+}
+
+const { slug } = Astro.params;
+---
+<Layout title="规范文件详情" currentPath="/standards/">
+  <div class="detail-header">
+    <div class="container">
+      <div class="detail-breadcrumb">
+        <a href="/">首页</a> / <a href="/standards/">规范文件</a> / 详情
+      </div>
+      <h1 class="detail-title" id="detail-title">加载中...</h1>
+      <div class="detail-meta" id="detail-meta"></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+
+  <script define:vars={{ slug }}>
+    const API = '/api';
+    async function loadDetail() {
+      try {
+        let res = await fetch(`${API}/standards?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        let json = await res.json();
+        let item = json.data?.[0];
+        if (!item) {
+          res = await fetch(`${API}/standards/${slug}`);
+          json = await res.json();
+          item = json.data;
+        }
+        if (item) {
+          document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-meta').innerHTML = [
+            item.standardNo ? `<span>标准号：${item.standardNo}</span>` : '',
+            item.category ? `<span>${item.category}</span>` : '',
+            item.publishDate ? `<span>发布日期：${item.publishDate}</span>` : '',
+          ].filter(Boolean).join('');
+
+          const infoRows = [
+            ['规范名称', item.title],
+            ['标准编号', item.standardNo],
+            ['规范类别', item.category],
+            ['发布机构', item.source],
+            ['发布日期', item.publishDate],
+            ['实施日期', item.effectiveDate],
+            ['状态', item.status || '现行'],
+          ].filter(([,v]) => v);
+
+          document.getElementById('detail-body').innerHTML = `
+            <!-- 基本信息 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📋 基本信息</h2>
+              <div class="detail-section-content">
+                ${infoRows.length > 0
+                  ? `<table class="detail-info-table">
+                       ${infoRows.map(([k,v]) => `<tr><td class="info-label">${k}</td><td class="info-value">${v}</td></tr>`).join('')}
+                     </table>`
+                  : '<p class="detail-empty">暂无基本信息</p>'}
+              </div>
+            </section>
+
+            <!-- 大概内容简述 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">📄 大概内容简述</h2>
+              <div class="detail-section-content">
+                ${item.description || item.summary
+                  ? `<div class="detail-text">${item.description || item.summary}</div>
+                     ${item.content ? `<details class="detail-expand"><summary>查看规范全文</summary><div class="detail-expand-body">${item.content}</div></details>` : ''}`
+                  : '<p class="detail-empty">暂无内容简述</p>'}
+              </div>
+            </section>
+
+            <!-- 原文链接 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">🔗 原文链接</h2>
+              <div class="detail-section-content">
+                ${item.sourceUrl || item.downloadUrl
+                  ? `<a href="${item.sourceUrl || item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">查看原文 &rarr;</a>`
+                  : '<p class="detail-empty">暂无原文链接</p>'}
+              </div>
+            </section>
+          `;
+        } else {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该规范</div>';
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+    loadDetail();
+  </script>
+</Layout>
