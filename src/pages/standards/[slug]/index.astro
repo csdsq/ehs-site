@@ -50,7 +50,7 @@ const { slug } = Astro.params;
             ['发布机构', item.source],
             ['发布日期', item.publishDate],
             ['实施日期', item.effectiveDate],
-            ['状态', item.status || '现行'],
+            ['状态', ({current:'现行',revoked:'废止',revised:'修订'}[item.status]) || item.status || '现行'],
           ].filter(([,v]) => v);
 
           document.getElementById('detail-body').innerHTML = `
