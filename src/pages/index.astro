@@ -5,56 +5,25 @@ import Layout from '../layouts/Layout.astro';
 
   <!-- Stats Bar -->
   <div class="stats-bar">
-    <div class="stats-grid">
+    <div class="stats-grid stats-grid-6">
+      <div class="stat-item"><span class="stat-value" id="stat-ai">--</span><span class="stat-label">AI应用</span></div>
       <div class="stat-item"><span class="stat-value" id="stat-laws">--</span><span class="stat-label">法律法规</span></div>
       <div class="stat-item"><span class="stat-value" id="stat-standards">--</span><span class="stat-label">规范文件</span></div>
       <div class="stat-item"><span class="stat-value" id="stat-accs">--</span><span class="stat-label">事故报告</span></div>
-      <div class="stat-item"><span class="stat-value" id="stat-docs">--</span><span class="stat-label">资料文件</span></div>
+      <div class="stat-item"><span class="stat-value" id="stat-videos">--</span><span class="stat-label">视频课堂</span></div>
+      <div class="stat-item"><span class="stat-value" id="stat-docs">--</span><span class="stat-label">资料中心</span></div>
     </div>
   </div>
 
-  <!-- Module Cards -->
+  <!-- Latest AI Apps -->
   <section class="section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">🔍 内容频道</h2>
+        <h2 class="section-title">🤖 最新AI应用</h2>
+        <a href="/ai-apps/" class="section-more">查看全部 &rarr;</a>
       </div>
-      <div class="module-grid">
-        <a href="/ai-apps/" class="module-card">
-          <div class="module-card-icon icon-ai">🤖</div>
-          <div class="module-card-title">AI应用</div>
-          <div class="module-card-desc">智能问答、文档分析、风险评估</div>
-        </a>
-        <a href="/regulations/" class="module-card">
-          <div class="module-card-icon icon-law">⚖️</div>
-          <div class="module-card-title">法律法规</div>
-          <div class="module-card-desc">国家及地方法律、行政法规</div>
-        </a>
-        <a href="/standards/" class="module-card">
-          <div class="module-card-icon icon-standard">📋</div>
-          <div class="module-card-title">规范文件</div>
-          <div class="module-card-desc">国家标准、行业标准、技术规范</div>
-        </a>
-        <a href="/accidents/" class="module-card">
-          <div class="module-card-icon icon-accident">⚠️</div>
-          <div class="module-card-title">事故报告</div>
-          <div class="module-card-desc">事故调查、原因分析、经验教训</div>
-        </a>
-        <a href="/videos/" class="module-card">
-          <div class="module-card-icon icon-video">🎬</div>
-          <div class="module-card-title">视频课堂</div>
-          <div class="module-card-desc">安全培训、应急处置、案例教学</div>
-        </a>
-        <a href="/documents/" class="module-card">
-          <div class="module-card-icon icon-doc">📁</div>
-          <div class="module-card-title">资料中心</div>
-          <div class="module-card-desc">PPT、PDF、模板、检查表</div>
-        </a>
-        <a href="/messages/" class="module-card">
-          <div class="module-card-icon icon-msg">💬</div>
-          <div class="module-card-title">留言板</div>
-          <div class="module-card-desc">交流讨论、经验分享、问题反馈</div>
-        </a>
+      <div class="list-grid" id="home-ai-list">
+        <div class="empty">加载中...</div>
       </div>
     </div>
   </section>
@@ -72,8 +41,21 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 
-  <!-- Latest Accidents -->
+  <!-- Latest Standards -->
   <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">📋 最新规范文件</h2>
+        <a href="/standards/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid" id="home-standards-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Accidents -->
+  <section class="section section-alt">
     <div class="container">
       <div class="section-header">
         <h2 class="section-title">⚠️ 最新事故报告</h2>
@@ -85,14 +67,27 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 
-  <!-- Latest Standards -->
+  <!-- Latest Videos -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">🎬 最新视频课堂</h2>
+        <a href="/videos/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid" id="home-videos-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Documents -->
   <section class="section section-alt">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">📋 最新规范文件</h2>
-        <a href="/standards/" class="section-more">查看全部 &rarr;</a>
+        <h2 class="section-title">📁 最新资料中心</h2>
+        <a href="/documents/" class="section-more">查看全部 &rarr;</a>
       </div>
-      <div class="list-grid" id="home-standards-list">
+      <div class="list-grid" id="home-docs-list">
         <div class="empty">加载中...</div>
       </div>
     </div>
@@ -126,49 +121,40 @@ import Layout from '../layouts/Layout.astro';
     }
 
     async function loadAll() {
-      const [regs, standards, accs, docs] = await Promise.all([
+      const [aiApps, regs, standards, accs, videos, docs] = await Promise.all([
+        safeFetch(`${API}/ai-apps?pagination[pageSize]=5&sort=createdAt:desc`),
         safeFetch(`${API}/regulations?pagination[pageSize]=5&sort=publishDate:desc`),
         safeFetch(`${API}/standards?pagination[pageSize]=5&sort=publishDate:desc`),
         safeFetch(`${API}/accidents?pagination[pageSize]=5&sort=date:desc`),
+        safeFetch(`${API}/videos?pagination[pageSize]=5&sort=createdAt:desc`),
         safeFetch(`${API}/documents?pagination[pageSize]=5&sort=createdAt:desc`),
       ]);
 
       // Stats
-      const sl = document.getElementById('stat-laws');
-      const ss = document.getElementById('stat-standards');
-      const sa = document.getElementById('stat-accs');
-      const sd = document.getElementById('stat-docs');
-      if (sl) sl.textContent = regs?.meta?.pagination?.total ?? '0';
-      if (ss) ss.textContent = standards?.meta?.pagination?.total ?? '0';
-      if (sa) sa.textContent = accs?.meta?.pagination?.total ?? '0';
-      if (sd) sd.textContent = docs?.meta?.pagination?.total ?? '0';
+      const s = (el, data) => { const e = document.getElementById(el); if (e) e.textContent = data?.meta?.pagination?.total ?? '0'; };
+      s('stat-ai', aiApps);
+      s('stat-laws', regs);
+      s('stat-standards', standards);
+      s('stat-accs', accs);
+      s('stat-videos', videos);
+      s('stat-docs', docs);
 
-      // Regulations
-      const lawsEl = document.getElementById('home-laws-list');
-      if (lawsEl) {
-        const items = regs?.data ?? [];
-        lawsEl.innerHTML = items.length === 0
+      // Render lists
+      const render = (elId, data, iconClass, icon, href) => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        const items = data?.data ?? [];
+        el.innerHTML = items.length === 0
           ? '<div class="empty">暂无数据</div>'
-          : items.map(r => renderListItem(r, 'icon-law', '⚖️', '/regulations/')).join('');
-      }
+          : items.map(item => renderListItem(item, iconClass, icon, href)).join('');
+      };
 
-      // Accidents
-      const accsEl = document.getElementById('home-accs-list');
-      if (accsEl) {
-        const items = accs?.data ?? [];
-        accsEl.innerHTML = items.length === 0
-          ? '<div class="empty">暂无数据</div>'
-          : items.map(a => renderListItem(a, 'icon-accident', '⚠️', '/accidents/')).join('');
-      }
-
-      // Standards
-      const stdsEl = document.getElementById('home-standards-list');
-      if (stdsEl) {
-        const items = standards?.data ?? [];
-        stdsEl.innerHTML = items.length === 0
-          ? '<div class="empty">暂无数据</div>'
-          : items.map(s => renderListItem(s, 'icon-standard', '📋', '/standards/')).join('');
-      }
+      render('home-ai-list', aiApps, 'icon-ai', '🤖', '/ai-apps/');
+      render('home-laws-list', regs, 'icon-law', '⚖️', '/regulations/');
+      render('home-standards-list', standards, 'icon-standard', '📋', '/standards/');
+      render('home-accs-list', accs, 'icon-accident', '⚠️', '/accidents/');
+      render('home-videos-list', videos, 'icon-video', '🎬', '/videos/');
+      render('home-docs-list', docs, 'icon-doc', '📁', '/documents/');
     }
 
     loadAll();

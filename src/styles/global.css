@@ -152,6 +152,9 @@ a:hover { color: var(--primary); }
   margin: 0 auto;
   padding: 0 24px;
 }
+.stats-grid-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
 .stat-item { text-align: center; }
 .stat-value {
   font-size: 30px;
@@ -525,6 +528,7 @@ a:hover { color: var(--primary); }
 }
 @media (max-width: 768px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid-6 { grid-template-columns: repeat(3, 1fr); }
   .module-grid { grid-template-columns: repeat(2, 1fr); }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .hero h1 { font-size: 26px; }
