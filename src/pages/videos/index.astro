@@ -17,12 +17,18 @@ import Layout from '../../layouts/Layout.astro';
       <div class="video-grid video-grid-3col" id="vid-list">
         <div class="empty">加载中...</div>
       </div>
+      <div id="vid-pagination" class="pagination-bar" style="display:none;"></div>
     </div>
   </div>
 
   <script>
     const API = 'https://api.hser.ren';
     let allItems: any[] = [];
+    let filteredItems: any[] = [];
+    let currentPage = 1;
+    let pageSize = 10;
+
+    function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
     function renderVideoCard(item: any) {
       const title = item.title || '';
@@ -61,19 +67,6 @@ import Layout from '../../layouts/Layout.astro';
         </a>`;
     }
 
-    async function loadItems() {
-      try {
-        const res = await fetch(`${API}/videos?pagination[pageSize]=100&sort=createdAt:desc`);
-        const json = await res.json();
-        allItems = json.data ?? [];
-        const total = json.meta?.pagination?.total ?? 0;
-        document.getElementById('vid-count')!.textContent = `共 ${total} 个视频`;
-        renderItems(allItems);
-      } catch (e) {
-        document.getElementById('vid-list')!.innerHTML = '<div class="empty">加载失败</div>';
-      }
-    }
-
     function renderItems(items: any[]) {
       const el = document.getElementById('vid-list');
       if (!el) return;
@@ -81,13 +74,96 @@ import Layout from '../../layouts/Layout.astro';
       el.innerHTML = items.map(item => renderVideoCard(item)).join('');
     }
 
+    function renderPagination() {
+      const el = document.getElementById('vid-pagination')!;
+      const total = filteredItems.length;
+      const totalPages = getTotalPages();
+      if (total <= pageSize) { el.style.display = 'none'; return; }
+      el.style.display = 'flex';
+
+      const start = (currentPage - 1) * pageSize + 1;
+      const end = Math.min(currentPage * pageSize, total);
+
+      let pagesHtml = '';
+      const range: number[] = [];
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) range.push(i);
+      } else {
+        range.push(1);
+        if (currentPage > 4) range.push(-1);
+        const s = Math.max(2, currentPage - 2);
+        const e = Math.min(totalPages - 1, currentPage + 2);
+        for (let i = s; i <= e; i++) range.push(i);
+        if (currentPage < totalPages - 3) range.push(-2);
+        range.push(totalPages);
+      }
+      for (const p of range) {
+        if (p < 0) { pagesHtml += `<span class="page-ellipsis">…</span>`; }
+        else { pagesHtml += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`; }
+      }
+
+      el.innerHTML = `
+        <div class="pagination-info">显示 ${start}-${end}，共 ${total} 个视频</div>
+        <div class="pagination-controls">
+          <button data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
+          ${pagesHtml}
+          <button data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
+        </div>
+        <div class="page-size-select">
+          每页
+          <select id="vid-page-size">
+            <option value="10" ${pageSize===10?'selected':''}>10</option>
+            <option value="20" ${pageSize===20?'selected':''}>20</option>
+            <option value="50" ${pageSize===50?'selected':''}>50</option>
+            <option value="100" ${pageSize===100?'selected':''}>100</option>
+          </select>
+          条
+        </div>`;
+
+      el.querySelector('#vid-page-size')!.addEventListener('change', (e: any) => {
+        pageSize = parseInt(e.target.value); currentPage = 1; updateView();
+      });
+      el.querySelectorAll('[data-page]').forEach(btn => {
+        btn.addEventListener('click', () => { currentPage = parseInt((btn as HTMLElement).dataset.page!); updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      });
+      el.querySelector('[data-action="prev"]')!.addEventListener('click', () => {
+        if (currentPage > 1) { currentPage--; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      });
+      el.querySelector('[data-action="next"]')!.addEventListener('click', () => {
+        if (currentPage < getTotalPages()) { currentPage++; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      });
+    }
+
+    function updateView() {
+      const start = (currentPage - 1) * pageSize;
+      renderItems(filteredItems.slice(start, start + pageSize));
+      renderPagination();
+    }
+
+    async function loadItems() {
+      try {
+        const res = await fetch(`${API}/videos?pagination[pageSize]=200&sort=createdAt:desc`);
+        const json = await res.json();
+        allItems = json.data ?? [];
+        filteredItems = [...allItems];
+        const total = json.meta?.pagination?.total ?? 0;
+        document.getElementById('vid-count')!.textContent = `共 ${total} 个视频`;
+        updateView();
+      } catch (e) {
+        document.getElementById('vid-list')!.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
     function doSearch() {
       const q = (document.getElementById('vid-search') as HTMLInputElement).value.trim().toLowerCase();
-      if (!q) { renderItems(allItems); return; }
-      renderItems(allItems.filter(item =>
-        (item.title ?? '').toLowerCase().includes(q) ||
-        (item.category ?? '').toLowerCase().includes(q)
-      ));
+      if (!q) { filteredItems = [...allItems]; } else {
+        filteredItems = allItems.filter(item =>
+          (item.title ?? '').toLowerCase().includes(q) ||
+          (item.category ?? '').toLowerCase().includes(q)
+        );
+      }
+      currentPage = 1;
+      updateView();
     }
 
     document.getElementById('vid-search')!.addEventListener('input', doSearch);
