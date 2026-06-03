@@ -189,6 +189,11 @@ a:hover { color: var(--primary); }
   display: flex;
   align-items: center;
   gap: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+.section-title:hover {
+  color: var(--primary);
 }
 .section-more {
   font-size: 14px;

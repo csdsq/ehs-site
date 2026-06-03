@@ -20,7 +20,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">最新AI应用</h2>
+        <a href="/ai-apps/" class="section-title">最新AI应用</a>
         <a href="/ai-apps/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid list-grid-2col" id="home-ai-list">
@@ -33,7 +33,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section section-alt">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">最新法律法规</h2>
+        <a href="/regulations/" class="section-title">最新法律法规</a>
         <a href="/regulations/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid list-grid-2col" id="home-laws-list">
@@ -46,7 +46,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">最新规范文件</h2>
+        <a href="/standards/" class="section-title">最新规范文件</a>
         <a href="/standards/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid list-grid-2col" id="home-standards-list">
@@ -59,7 +59,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section section-alt">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">最新事故报告</h2>
+        <a href="/accidents/" class="section-title">最新事故报告</a>
         <a href="/accidents/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid list-grid-2col" id="home-accs-list">
@@ -86,7 +86,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section section-alt">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">最新资料文档</h2>
+        <a href="/documents/" class="section-title">最新资料文档</a>
         <a href="/documents/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid list-grid-2col" id="home-docs-list">
@@ -163,6 +163,25 @@ import Layout from '../layouts/Layout.astro';
                 ${date ? `<span>发生日期：${date}</span>` : ''}
                 ${category ? `<span>事故类型：${category}</span>` : ''}
                 ${severity ? `<span>事故等级：${severity}</span>` : ''}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
+      // 资料文档类型：标题后加（类型，大小），小字显示分类
+      if (type === 'document') {
+        const fileType = item.fileType ? item.fileType.toUpperCase() : '';
+        const fileSize = item.fileSize || '';
+        const typeSizeTag = (fileType || fileSize) ? ` <span class="list-item-no">(${[fileType, fileSize].filter(Boolean).join('，')})</span>` : '';
+        const category = item.category || '';
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}${typeSizeTag}</div>
+              <div class="list-item-meta-row">
+                ${category ? `<span>${category}</span>` : ''}
+                ${item.publishDate ? `<span>${item.publishDate}</span>` : ''}
               </div>
             </div>
             <div class="list-item-arrow">&rarr;</div>
@@ -250,7 +269,7 @@ import Layout from '../layouts/Layout.astro';
       renderList('home-laws-list', regs, '/regulations/', 'regulation');
       renderList('home-standards-list', standards, '/standards/', 'standard');
       renderList('home-accs-list', accs, '/accidents/', 'accident');
-      renderList('home-docs-list', docs, '/documents/');
+      renderList('home-docs-list', docs, '/documents/', 'document');
 
       // Render video cards
       const videoEl = document.getElementById('home-videos-list');
