@@ -665,7 +665,7 @@ a:hover { color: var(--primary); }
 }
 .footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 32px;
   margin-bottom: 32px;
 }
@@ -678,6 +678,16 @@ a:hover { color: var(--primary); }
   font-size: 13px;
 }
 .footer-links a:hover { color: #fff; }
+.footer-stats p {
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.footer-stats span {
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+}
 .footer-bottom {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 20px;
@@ -725,7 +735,7 @@ a:hover { color: var(--primary); }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .stats-grid-6 { grid-template-columns: repeat(3, 1fr); }
   .module-grid { grid-template-columns: repeat(2, 1fr); }
-  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .footer-grid { grid-template-columns: 1fr; }
   .hero h1 { font-size: 26px; }
   .hero p { font-size: 15px; }
   .cards-grid { grid-template-columns: 1fr; }
