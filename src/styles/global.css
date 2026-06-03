@@ -560,6 +560,37 @@ a:hover { color: var(--primary); }
 }
 .detail-breadcrumb a { color: rgba(255,255,255,0.8); }
 .detail-breadcrumb a:hover { color: #fff; }
+
+/* Flat (white) header variant */
+.detail-breadcrumb-flat {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  padding-top: 32px;
+}
+.detail-breadcrumb-flat a { color: var(--primary-light); }
+.detail-breadcrumb-flat a:hover { color: var(--primary); }
+.detail-title-flat {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.detail-meta-flat {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+.detail-meta-flat span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: var(--bg);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
 .detail-title {
   font-size: 24px;
   font-weight: 700;

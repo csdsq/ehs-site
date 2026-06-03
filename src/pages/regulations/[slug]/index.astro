@@ -2,7 +2,6 @@
 import Layout from '../../../layouts/Layout.astro';
 
 export async function getStaticPaths() {
-  // 在构建时获取所有法规slug，生成静态页面
   try {
     const res = await fetch('http://strapi.hser.ren:1337/api/regulations?pagination[pageSize]=100&fields[0]=slug');
     const json = await res.json();
@@ -11,7 +10,6 @@ export async function getStaticPaths() {
       params: { slug: item.slug || String(item.id) }
     }));
   } catch (e) {
-    // 构建时Strapi不可用则返回空，页面仍可通过客户端JS加载
     return [];
   }
 }
@@ -19,16 +17,12 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 ---
 <Layout title="法律法规详情" currentPath="/regulations/">
-  <div class="detail-header">
-    <div class="container">
-      <div class="detail-breadcrumb">
-        <a href="/">首页</a> / <a href="/regulations/">法律法规</a> / 详情
-      </div>
-      <h1 class="detail-title" id="detail-title">加载中...</h1>
-      <div class="detail-meta" id="detail-meta"></div>
-    </div>
-  </div>
   <div class="container">
+    <div class="detail-breadcrumb-flat">
+      <a href="/">首页</a> / <a href="/regulations/">法律法规</a> / 详情
+    </div>
+    <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
+    <div class="detail-meta-flat" id="detail-meta"></div>
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
@@ -50,7 +44,6 @@ const { slug } = Astro.params;
           document.getElementById('detail-title').textContent = item.title || '';
           document.getElementById('detail-meta').innerHTML = [
             item.standardNo ? `<span>${item.standardNo}</span>` : '',
-            item.validity ? `<span class="tag tag-${item.validity === '即将实施' ? 'warning' : item.validity === '现行有效' || item.validity === 'current' ? 'success' : 'default'}">${item.validity}</span>` : '',
           ].filter(Boolean).join(' ');
 
           // 解析 content 中的结构化数据
@@ -80,9 +73,10 @@ const { slug } = Astro.params;
             ['出版社', extraInfo.publishingHouse],
           ].filter(([,v]) => v);
 
-          // 预览和下载链接
-          const previewUrl = extraInfo.previewUrl || '';
-          const downloadUrl = extraInfo.downloadUrl || item.downloadUrl || '';
+          // 从 hcno 构建真实的预览/下载链接
+          const hcno = extraInfo.hcno || '';
+          const previewUrl = hcno ? `https://c.gb688.cn/bzgk/gb/showGb?type=online&hcno=${hcno}` : (extraInfo.previewUrl || '');
+          const downloadUrl = hcno ? `https://c.gb688.cn/bzgk/gb/showGb?type=download&hcno=${hcno}` : (extraInfo.downloadUrl || item.downloadUrl || '');
 
           document.getElementById('detail-body').innerHTML = `
             <!-- 标准简介 -->
