@@ -845,7 +845,7 @@ a:hover { color: var(--primary); }
   text-align: center;
 }
 .detail-app-image img {
-  max-width: 100%;
+  max-width: 80%;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
 }
