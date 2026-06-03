@@ -56,3 +56,70 @@ const navItems = [
         {navItems.map(item => (
           <li>
             <a href={item.href} class:list={['', { active: currentPath === item.href }]}>
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <h3>🛡 EHS信息站</h3>
+          <p style="font-size: 13px; margin-top: 8px; line-height: 1.8;">
+            聚合环境、健康、安全领域法律法规、规范文件、事故报告，<br>
+            助力EHS从业者高效获取专业安全信息。
+          </p>
+        </div>
+        <div class="footer-links">
+          <h4>内容频道</h4>
+          <ul>
+            <li><a href="/ai-apps/">AI应用</a></li>
+            <li><a href="/regulations/">法律法规</a></li>
+            <li><a href="/standards/">规范文件</a></li>
+            <li><a href="/accidents/">事故报告</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>更多</h4>
+          <ul>
+            <li><a href="/videos/">视频课堂</a></li>
+            <li><a href="/documents/">资料中心</a></li>
+            <li><a href="/messages/">留言板</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>数据来源</h4>
+          <ul>
+            <li><a href="https://openstd.samr.gov.cn" target="_blank">国家标准公开</a></li>
+            <li><a href="https://www.mem.gov.cn" target="_blank">应急管理部</a></li>
+            <li><a href="https://www.mee.gov.cn" target="_blank">生态环境部</a></li>
+            <li><a href="https://www.nhc.gov.cn" target="_blank">国家卫健委</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 EHS信息站 &middot; 数据来源于官方公开渠道 &middot; 仅供学习参考</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const btn = document.getElementById('mobile-menu-btn');
+    const nav = document.getElementById('mobile-nav');
+    if (btn && nav) {
+      btn.addEventListener('click', () => {
+        nav.classList.toggle('open');
+        btn.textContent = nav.classList.contains('open') ? '✕' : '☰';
+      });
+    }
+  </script>
+</body>
+</html>
