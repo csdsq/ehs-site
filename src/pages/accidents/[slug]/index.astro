@@ -13,7 +13,7 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 ---
 <Layout title="事故报告详情" currentPath="/accidents/">
-  <div class="detail-header">
+  <div class="detail-header detail-header-white">
     <div class="container">
       <div class="detail-breadcrumb">
         <a href="/">首页</a> / <a href="/accidents/">事故报告</a> / 详情
@@ -43,28 +43,28 @@ const { slug } = Astro.params;
         if (item) {
           document.getElementById('detail-title').textContent = item.title || '';
           document.getElementById('detail-meta').innerHTML = [
+            item.category ? `<span>事故类型：${item.category}</span>` : '',
             item.severity ? `<span>事故等级：${item.severity}</span>` : '',
-            item.location ? `<span>地点：${item.location}</span>` : '',
             item.date ? `<span>日期：${item.date}</span>` : '',
-            item.casualties ? `<span>伤亡情况：${item.casualties}</span>` : '',
+            item.casualties ? `<span>伤亡：${item.casualties}</span>` : '',
           ].filter(Boolean).join('');
 
-          // 基础信息表格
+          // 基本信息表格
           const infoRows = [
             ['事故名称', item.title],
+            ['事故类型', item.category],
             ['事故等级', item.severity],
             ['发生地点', item.location],
             ['发生时间', item.date],
             ['伤亡情况', item.casualties],
             ['涉及企业', item.company],
-            ['事故类型', item.category],
             ['直接经济损失', item.economicLoss],
           ].filter(([,v]) => v);
 
           document.getElementById('detail-body').innerHTML = `
-            <!-- 事故基本信息 -->
+            <!-- 基本信息 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">事故基本信息</h2>
+              <h2 class="detail-section-title">基本信息</h2>
               <div class="detail-section-content">
                 ${infoRows.length > 0
                   ? `<table class="detail-info-table">
@@ -74,35 +74,44 @@ const { slug } = Astro.params;
               </div>
             </section>
 
-            <!-- 主要原因及整改建议 -->
+            <!-- 事故原因 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">🔍 主要原因及整改建议</h2>
+              <h2 class="detail-section-title">事故原因</h2>
               <div class="detail-section-content">
-                ${item.causes || item.description
-                  ? `<div class="detail-text">${item.causes || item.description || ''}</div>
-                     ${item.suggestions ? `<div style="margin-top:16px;padding:16px;background:#fff8e1;border-left:4px solid #ffc107;border-radius:0 8px 8px 0;"><strong>整改建议：</strong><div style="margin-top:8px;">${item.suggestions}</div></div>` : ''}`
+                ${item.causes
+                  ? `<div class="detail-text">${item.causes}</div>`
                   : '<p class="detail-empty">暂无原因分析</p>'}
               </div>
             </section>
 
-            <!-- 事故人员处理 -->
+            <!-- 改善措施 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">👥 事故人员处理</h2>
+              <h2 class="detail-section-title">改善措施</h2>
+              <div class="detail-section-content">
+                ${item.suggestions
+                  ? `<div class="detail-text">${item.suggestions}</div>`
+                  : '<p class="detail-empty">暂无改善措施</p>'}
+              </div>
+            </section>
+
+            <!-- 处理结果 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">处理结果</h2>
               <div class="detail-section-content">
                 ${item.personnelHandling
                   ? `<div class="detail-text">${item.personnelHandling}</div>`
-                  : '<p class="detail-empty">暂无人员处理信息</p>'}
+                  : '<p class="detail-empty">暂无处理结果</p>'}
               </div>
             </section>
 
             <!-- 报告原文 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">📑 报告原文</h2>
+              <h2 class="detail-section-title">报告原文</h2>
               <div class="detail-section-content">
-                ${item.content
-                  ? `<details class="detail-expand" open><summary>展开/收起报告全文</summary><div class="detail-expand-body">${item.content}</div></details>`
-                  : item.reportUrl || item.downloadUrl
-                    ? `<a href="${item.reportUrl || item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">查看报告原文 &rarr;</a>`
+                ${item.reportUrl || item.downloadUrl
+                  ? `<a href="${item.reportUrl || item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">查看报告原文 &rarr;</a>`
+                  : item.content
+                    ? `<details class="detail-expand" open><summary>展开/收起报告全文</summary><div class="detail-expand-body">${item.content}</div></details>`
                     : '<p class="detail-empty">暂无报告原文</p>'}
               </div>
             </section>

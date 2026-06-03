@@ -129,6 +129,23 @@ import Layout from '../layouts/Layout.astro';
           </a>`;
       }
 
+      // 事故类型：标题下小字显示事故类型、事故等级
+      if (type === 'accident') {
+        const category = item.category || '';
+        const severity = item.severity || '';
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}</div>
+              <div class="list-item-meta-row">
+                ${category ? `<span>${category}</span>` : ''}
+                ${severity ? `<span>${severity}</span>` : ''}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
       return `
         <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
           <div class="list-item-body">
@@ -207,7 +224,7 @@ import Layout from '../layouts/Layout.astro';
       renderList('home-ai-list', aiApps, '/ai-apps/');
       renderList('home-laws-list', regs, '/regulations/', 'regulation');
       renderList('home-standards-list', standards, '/standards/');
-      renderList('home-accs-list', accs, '/accidents/');
+      renderList('home-accs-list', accs, '/accidents/', 'accident');
       renderList('home-docs-list', docs, '/documents/');
 
       // Render video cards
