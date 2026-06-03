@@ -845,9 +845,14 @@ a:hover { color: var(--primary); }
   text-align: center;
 }
 .detail-app-image img {
-  max-width: 80%;
+  max-width: 100%;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
+}
+@media (min-width: 769px) {
+  .detail-app-image img {
+    max-width: min(80%, 100%);
+  }
 }
 
 /* Iframe wrap */
