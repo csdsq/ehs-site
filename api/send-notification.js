@@ -6,22 +6,29 @@ const SMTP_USER = process.env.SMTP_USER || 'csdsq@qq.com';
 const SMTP_PASS = process.env.SMTP_PASS;
 const ADMIN_KEY = process.env.ADMIN_KEY || 'ehs2026';
 
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: true,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS,
-  },
-});
-
 export default async function handler(req, res) {
+  // Log for debugging
+  console.log('Method:', req.method, 'URL:', req.url);
+  
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(200).end();
+  }
+  
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed', method: req.method });
   }
 
-  const { adminKey, toEmail, toName, messageTitle, replyContent, messageUrl } = req.body;
+  let body = req.body;
+  if (!body && req.headers['content-type']?.includes('application/json')) {
+    let raw = '';
+    for await (const chunk of req) { raw += chunk; }
+    body = JSON.parse(raw);
+  }
+
+  const { adminKey, toEmail, toName, messageTitle, replyContent, messageUrl } = body || {};
 
   if (adminKey !== ADMIN_KEY) {
     return res.status(403).json({ error: 'Unauthorized' });
@@ -32,6 +39,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: true,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+
     const mailOptions = {
       from: `"EHS信息站" <${SMTP_USER}>`,
       to: toEmail,
