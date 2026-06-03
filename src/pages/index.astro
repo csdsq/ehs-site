@@ -162,7 +162,7 @@ import Layout from '../layouts/Layout.astro';
         safeFetch(`${API}/regulations?pagination[pageSize]=6&sort=publishDate:desc`),
         safeFetch(`${API}/standards?pagination[pageSize]=6&sort=publishDate:desc`),
         safeFetch(`${API}/accidents?pagination[pageSize]=6&sort=date:desc`),
-        safeFetch(`${API}/videos?pagination[pageSize]=6&sort=createdAt:desc`),
+        safeFetch(`${API}/videos?pagination[pageSize]=3&sort=createdAt:desc`),
         safeFetch(`${API}/documents?pagination[pageSize]=6&sort=createdAt:desc`),
       ]);
 
