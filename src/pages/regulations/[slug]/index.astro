@@ -38,56 +38,90 @@ const { slug } = Astro.params;
         if (item) {
           document.getElementById('detail-title').textContent = item.title || '';
           document.getElementById('detail-meta').innerHTML = [
-            item.category ? `<span>类别：${item.category}</span>` : '',
-            item.source ? `<span>来源：${item.source}</span>` : '',
-            item.publishDate ? `<span>发布日期：${item.publishDate}</span>` : '',
-            item.effectiveDate ? `<span>生效日期：${item.effectiveDate}</span>` : '',
-          ].filter(Boolean).join('');
+            item.standardNo ? `<span>${item.standardNo}</span>` : '',
+            item.validity ? `<span class="tag tag-${item.validity === '即将实施' ? 'warning' : item.validity === '现行有效' || item.validity === 'current' ? 'success' : 'default'}">${item.validity}</span>` : '',
+          ].filter(Boolean).join(' ');
 
-          // 基础信息表格
+          // 解析 content 中的结构化数据
+          let extraInfo = {};
+          try {
+            // content 可能是 JSON 格式的结构化数据
+            if (item.content && item.content.startsWith('{')) {
+              extraInfo = JSON.parse(item.content);
+            }
+          } catch(e) {}
+
+          // 标准简介
+          const intro = item.description || extraInfo.intro || '';
+
+          // 法规信息表
           const infoRows = [
-            ['法规名称', item.title],
-            ['法规类别', item.category],
-            ['发布机关', item.source],
-            ['发布日期', item.publishDate],
+            ['英文名称', extraInfo.englishName],
             ['标准编号', item.standardNo],
-            ['生效日期', item.effectiveDate],
-            ['时效性', item.validity || '现行有效'],
+            ['替代情况', extraInfo.replacement],
+            ['中标分类', extraInfo.ccs],
+            ['ICS分类', extraInfo.ics],
+            ['发布部门', item.source || extraInfo.publisher],
+            ['发布日期', item.publishDate],
+            ['实施日期', item.effectiveDate],
+            ['提出单位', extraInfo.proposingOrg],
+            ['归口单位', extraInfo.managingOrg],
+            ['页数', extraInfo.pages],
+            ['出版社', extraInfo.publishingHouse],
           ].filter(([,v]) => v);
 
+          // 预览和下载链接
+          const previewUrl = extraInfo.previewUrl || item.previewUrl || '';
+          const downloadUrl = extraInfo.downloadUrl || item.downloadUrl || '';
+
           document.getElementById('detail-body').innerHTML = `
-            <!-- 法规基础信息 -->
+            <!-- 标准简介 -->
+            ${intro ? `
             <section class="detail-section">
-              <h2 class="detail-section-title">法规基础信息</h2>
+              <h2 class="detail-section-title">标准简介</h2>
+              <div class="detail-section-content">
+                <div class="detail-text">${intro}</div>
+              </div>
+            </section>` : ''}
+
+            <!-- 法规信息 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">法规信息</h2>
               <div class="detail-section-content">
                 ${infoRows.length > 0
                   ? `<table class="detail-info-table">
                        ${infoRows.map(([k,v]) => `<tr><td class="info-label">${k}</td><td class="info-value">${v}</td></tr>`).join('')}
                      </table>`
-                  : '<p class="detail-empty">暂无基础信息</p>'}
+                  : '<p class="detail-empty">暂无法规信息</p>'}
               </div>
             </section>
 
-            <!-- 大概内容描述 -->
+            <!-- 全文内容 -->
+            ${(item.content && !item.content.startsWith('{')) ? `
             <section class="detail-section">
-              <h2 class="detail-section-title">大概内容描述</h2>
+              <h2 class="detail-section-title">法规全文</h2>
               <div class="detail-section-content">
-                ${item.description || item.content || item.summary
-                  ? `<div class="detail-text">${item.description || item.summary || ''}</div>
-                     ${item.content ? `<details class="detail-expand"><summary>查看法规全文</summary><div class="detail-expand-body">${item.content}</div></details>` : ''}`
-                  : '<p class="detail-empty">暂无内容描述</p>'}
+                <div class="detail-text">${item.content}</div>
               </div>
-            </section>
+            </section>` : ''}
 
-            <!-- 法规下载链接 -->
+            <!-- 在线预览和下载 -->
+            ${(previewUrl || downloadUrl) ? `
             <section class="detail-section">
-              <h2 class="detail-section-title">📥 法规下载链接</h2>
+              <h2 class="detail-section-title">标准查阅</h2>
               <div class="detail-section-content">
-                ${item.downloadUrl
-                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">下载法规文件 &darr;</a>`
-                  : '<p class="detail-empty">暂无下载链接</p>'}
+                <div class="detail-actions">
+                  ${previewUrl ? `<a href="${previewUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-preview">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    在线预览
+                  </a>` : ''}
+                  ${downloadUrl ? `<a href="${downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-download">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    下载标准
+                  </a>` : ''}
+                </div>
               </div>
-            </section>
+            </section>` : ''}
           `;
         } else {
           document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该法规</div>';

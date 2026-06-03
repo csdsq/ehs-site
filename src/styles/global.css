@@ -572,6 +572,16 @@ a:hover { color: var(--primary); }
   gap: 16px;
   flex-wrap: wrap;
 }
+.detail-meta .tag {
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 1;
+}
+.detail-meta .tag-warning { background: #f59e0b; color: #fff; }
+.detail-meta .tag-success { background: #10b981; color: #fff; }
+.detail-meta .tag-default { background: rgba(255,255,255,0.2); color: #fff; }
 .detail-body {
   background: var(--card);
   border-radius: var(--radius-lg);
@@ -771,6 +781,20 @@ a:hover { color: var(--primary); }
   color: #fff;
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
+}
+.detail-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.btn-preview {
+  background: var(--primary-light);
+}
+.btn-download {
+  background: #10b981;
+}
+.btn-download:hover {
+  background: #059669;
 }
 
 /* Iframe wrap */
