@@ -179,8 +179,8 @@ a:hover { color: var(--primary); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
   border-bottom: 2px solid var(--border);
 }
 .section-title {
