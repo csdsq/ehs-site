@@ -107,9 +107,28 @@ import Layout from '../layouts/Layout.astro';
       }
     }
 
-    function renderListItem(item, hrefPrefix) {
+    function renderListItem(item, hrefPrefix, type) {
       const title = item.title || '';
       const desc = item.description || item.summary || '';
+      const standardNo = item.standardNo || '';
+      const publishDate = item.publishDate || '';
+      const effectiveDate = item.effectiveDate || '';
+
+      // 法规类型：标题后加标准号，小字显示日期
+      if (type === 'regulation') {
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}${standardNo ? ` <span class="list-item-no">${standardNo}</span>` : ''}</div>
+              <div class="list-item-meta-row">
+                ${publishDate ? `<span>发布：${publishDate}</span>` : ''}
+                ${effectiveDate ? `<span>实施：${effectiveDate}</span>` : ''}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
       return `
         <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
           <div class="list-item-body">
@@ -176,17 +195,17 @@ import Layout from '../layouts/Layout.astro';
       s('stat-docs', docs);
 
       // Render lists (non-video modules)
-      const renderList = (elId, data, href) => {
+      const renderList = (elId, data, href, type) => {
         const el = document.getElementById(elId);
         if (!el) return;
         const items = data?.data ?? [];
         el.innerHTML = items.length === 0
           ? '<div class="empty">暂无数据</div>'
-          : items.map(item => renderListItem(item, href)).join('');
+          : items.map(item => renderListItem(item, href, type)).join('');
       };
 
       renderList('home-ai-list', aiApps, '/ai-apps/');
-      renderList('home-laws-list', regs, '/regulations/');
+      renderList('home-laws-list', regs, '/regulations/', 'regulation');
       renderList('home-standards-list', standards, '/standards/');
       renderList('home-accs-list', accs, '/accidents/');
       renderList('home-docs-list', docs, '/documents/');

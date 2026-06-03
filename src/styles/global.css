@@ -284,6 +284,18 @@ a:hover { color: var(--primary); }
   line-height: 1.5;
   margin-bottom: 4px;
 }
+.list-item-no {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--primary-light);
+  margin-left: 6px;
+}
+.list-item-meta-row {
+  font-size: 12px;
+  color: var(--text-light);
+  display: flex;
+  gap: 16px;
+}
 .list-item-title a { color: var(--text); }
 .list-item-title a:hover { color: var(--primary-light); }
 .list-item-desc {
