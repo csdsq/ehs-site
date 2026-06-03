@@ -129,6 +129,26 @@ import Layout from '../layouts/Layout.astro';
           </a>`;
       }
 
+      // 规范文件类型：标题下小字显示发文机构、发文号、实施/发文日期
+      if (type === 'standard') {
+        const source = item.source || '';
+        const stdNo = item.standardNo || '';
+        const dateLabel = item.effectiveDate ? '实施日期' : '发文日期';
+        const dateValue = item.effectiveDate || item.publishDate || '';
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}</div>
+              <div class="list-item-meta-row">
+                ${source ? `<span>发文机构：${source}</span>` : ''}
+                ${stdNo ? `<span>发文号：${stdNo}</span>` : ''}
+                ${dateValue ? `<span>${dateLabel}：${dateValue}</span>` : ''}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
       // 事故类型：标题下小字显示发生日期、事故类型、事故等级
       if (type === 'accident') {
         const category = item.category || '';
@@ -225,7 +245,7 @@ import Layout from '../layouts/Layout.astro';
 
       renderList('home-ai-list', aiApps, '/ai-apps/');
       renderList('home-laws-list', regs, '/regulations/', 'regulation');
-      renderList('home-standards-list', standards, '/standards/');
+      renderList('home-standards-list', standards, '/standards/', 'standard');
       renderList('home-accs-list', accs, '/accidents/', 'accident');
       renderList('home-docs-list', docs, '/documents/');
 

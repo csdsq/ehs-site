@@ -41,14 +41,22 @@ import Layout from '../../layouts/Layout.astro';
       const el = document.getElementById('std-list');
       if (!el) return;
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
-      el.innerHTML = items.map(item => `
-        <a href="/standards/${item.slug || item.id}" class="list-item">
-          <div class="list-item-body">
-            <div class="list-item-title">${item.title}</div>
-            ${item.description || item.standardNo || item.category || "" ? `<div class="list-item-desc">${item.description || item.standardNo || item.category || ""}</div>` : ""}
-          </div>
-          <div class="list-item-arrow">&rarr;</div>
-        </a>`).join('');
+      el.innerHTML = items.map(item => {
+        const metaParts = [];
+        if (item.source) metaParts.push(`<span>发文机构：${item.source}</span>`);
+        if (item.standardNo) metaParts.push(`<span>发文号：${item.standardNo}</span>`);
+        const dateLabel = item.effectiveDate ? '实施日期' : '发文日期';
+        const dateValue = item.effectiveDate || item.publishDate;
+        if (dateValue) metaParts.push(`<span>${dateLabel}：${dateValue}</span>`);
+        return `
+          <a href="/standards/${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${item.title}</div>
+              ${metaParts.length > 0 ? `<div class="list-item-meta-row">${metaParts.join('')}</div>` : ''}
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }).join('');
     }
 
     function doSearch() {
