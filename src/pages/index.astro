@@ -149,6 +149,33 @@ import Layout from '../layouts/Layout.astro';
           </a>`;
       }
 
+      // AI应用类型：带图标
+      if (type === 'ai-app') {
+        const iconMap = {
+          'ehs-checklist-generator': '📋',
+          'ghs-label-generator': '🏷️',
+          'safety-toolbox-generator': '👷',
+          'fire-extinguisher-calculator': '🧯',
+        };
+        const categoryIconMap = {
+          '安全检查': '📋',
+          '化学品管理': '🏷️',
+          '安全管理': '👷',
+          '消防管理': '🧯',
+        };
+        const icon = iconMap[item.slug] || categoryIconMap[item.category] || '🤖';
+        const category = item.category || '';
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-icon icon-ai">${icon}</div>
+            <div class="list-item-body">
+              <div class="list-item-title">${title}</div>
+              ${category ? `<div class="list-item-meta-row"><span>${category}</span></div>` : ''}
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
       // 事故类型：标题下小字显示发生日期、事故类型、事故等级
       if (type === 'accident') {
         const category = item.category || '';
@@ -243,7 +270,7 @@ import Layout from '../layouts/Layout.astro';
           : items.map(item => renderListItem(item, href, type)).join('');
       };
 
-      renderList('home-ai-list', aiApps, '/ai-apps/');
+      renderList('home-ai-list', aiApps, '/ai-apps/', 'ai-app');
       renderList('home-laws-list', regs, '/regulations/', 'regulation');
       renderList('home-standards-list', standards, '/standards/', 'standard');
       renderList('home-accs-list', accs, '/accidents/', 'accident');

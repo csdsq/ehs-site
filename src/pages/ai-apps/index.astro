@@ -41,14 +41,32 @@ import Layout from '../../layouts/Layout.astro';
       const el = document.getElementById('ai-list');
       if (!el) return;
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无AI应用</div>'; return; }
-      el.innerHTML = items.map(item => `
+      const iconMap: Record<string, string> = {
+        'ehs-checklist-generator': '📋',
+        'ghs-label-generator': '🏷️',
+        'safety-toolbox-generator': '👷',
+        'fire-extinguisher-calculator': '🧯',
+      };
+      const categoryIconMap: Record<string, string> = {
+        '安全检查': '📋',
+        '化学品管理': '🏷️',
+        '安全管理': '👷',
+        '消防管理': '🧯',
+      };
+      el.innerHTML = items.map(item => {
+        const icon = iconMap[item.slug] || categoryIconMap[item.category] || '🤖';
+        return `
         <a href="/ai-apps/${item.slug || item.id}" class="list-item">
+          <div class="list-item-icon icon-ai">${icon}</div>
           <div class="list-item-body">
             <div class="list-item-title">${item.title}</div>
-            ${item.description || "" ? `<div class="list-item-desc">${item.description || ""}</div>` : ""}
+            <div class="list-item-meta-row">
+              ${item.category ? `<span>${item.category}</span>` : ''}
+            </div>
           </div>
           <div class="list-item-arrow">&rarr;</div>
-        </a>`).join('');
+        </a>`;
+      }).join('');
     }
 
     function doSearch() {
