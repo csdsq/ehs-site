@@ -73,10 +73,11 @@ const { slug } = Astro.params;
             ['出版社', extraInfo.publishingHouse],
           ].filter(([,v]) => v);
 
-          // 从 hcno 构建真实的预览/下载链接
+          // 标准查阅链接：优先 hcno 构造 openstd 信息页，否则用 downloadUrl
           const hcno = extraInfo.hcno || '';
-          const previewUrl = hcno ? `https://c.gb688.cn/bzgk/gb/showGb?type=online&hcno=${hcno}` : (extraInfo.previewUrl || '');
-          const downloadUrl = hcno ? `https://c.gb688.cn/bzgk/gb/showGb?type=download&hcno=${hcno}` : (extraInfo.downloadUrl || item.downloadUrl || '');
+          const stdPageUrl = hcno
+            ? `https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=${hcno}`
+            : (item.downloadUrl || '');
 
           document.getElementById('detail-body').innerHTML = `
             <!-- 标准简介 -->
@@ -109,20 +110,16 @@ const { slug } = Astro.params;
               </div>
             </section>` : ''}
 
-            <!-- 在线预览和下载 -->
-            ${(previewUrl || downloadUrl) ? `
+            <!-- 标准查阅 -->
+            ${stdPageUrl ? `
             <section class="detail-section">
               <h2 class="detail-section-title">标准查阅</h2>
               <div class="detail-section-content">
                 <div class="detail-actions">
-                  ${previewUrl ? `<a href="${previewUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-preview">
+                  <a href="${stdPageUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-preview">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    在线预览
-                  </a>` : ''}
-                  ${downloadUrl ? `<a href="${downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-download">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    下载标准
-                  </a>` : ''}
+                    在线预览/下载标准
+                  </a>
                 </div>
               </div>
             </section>` : ''}
