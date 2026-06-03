@@ -74,6 +74,16 @@ const { slug } = Astro.params;
               </div>
             </section>
 
+            <!-- 事故经过 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">事故经过</h2>
+              <div class="detail-section-content">
+                ${item.content
+                  ? `<div class="detail-text">${item.content}</div>`
+                  : '<p class="detail-empty">暂无事故经过</p>'}
+              </div>
+            </section>
+
             <!-- 事故原因 -->
             <section class="detail-section">
               <h2 class="detail-section-title">事故原因</h2>
