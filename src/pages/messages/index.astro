@@ -8,6 +8,13 @@ import Layout from '../../layouts/Layout.astro';
       <h1 class="page-title">留言板</h1>
       <p class="page-description">交流讨论、经验分享、问题反馈，EHS从业者互助社区。</p>
 
+      <div style="margin-top:24px; margin-bottom:24px;">
+        <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+          <input type="text" id="msg-search" placeholder="搜索留言..." />
+          <button id="msg-search-btn">搜索</button>
+        </div>
+      </div>
+
       <!-- 提交留言 -->
       <div class="msg-submit-card">
         <h3 style="font-size:16px;margin-bottom:16px;font-weight:600;">✍️ 发表留言</h3>
@@ -35,15 +42,13 @@ import Layout from '../../layouts/Layout.astro';
       </div>
 
       <div style="margin-top:32px;">
-        <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
-          <input type="text" id="msg-search" placeholder="搜索留言..." />
-          <button id="msg-search-btn">搜索</button>
-        </div>
-
         <div id="msg-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
         <div class="list-grid" id="msg-list">
           <div class="empty">加载中...</div>
         </div>
+      </div>
+
+      
       </div>
     </div>
   </div>
@@ -114,7 +119,7 @@ import Layout from '../../layouts/Layout.astro';
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            data: { author, category, title, content, publishDate: new Date().toISOString().split('T')[0] }
+            data: { author, category, title, content, slug: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), publishDate: new Date().toISOString().split('T')[0] }
           })
         });
         if (res.ok) {
