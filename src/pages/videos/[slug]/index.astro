@@ -13,16 +13,11 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 ---
 <Layout title="视频详情" currentPath="/videos/">
-  <div class="detail-header">
-    <div class="container">
-      <div class="detail-breadcrumb">
-        <a href="/">首页</a> / <a href="/videos/">视频课堂</a> / 详情
-      </div>
-      <h1 class="detail-title" id="detail-title">加载中...</h1>
-      <div class="detail-meta" id="detail-meta"></div>
-    </div>
-  </div>
   <div class="container">
+    <div class="detail-breadcrumb-flat">
+      <a href="/">首页</a> / <a href="/videos/">视频课堂</a> / 详情
+    </div>
+    <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
@@ -30,6 +25,19 @@ const { slug } = Astro.params;
 
   <script define:vars={{ slug }}>
     const API = 'https://api.hser.ren';
+
+    function getBilibiliEmbed(url) {
+      const bvMatch = url.match(/BV[a-zA-Z0-9]+/);
+      if (bvMatch) return `https://player.bilibili.com/player.html?bvid=${bvMatch[0]}&autoplay=0&high_quality=1`;
+      return null;
+    }
+
+    function getBilibiliPage(url) {
+      const bvMatch = url.match(/BV[a-zA-Z0-9]+/);
+      if (bvMatch) return `https://www.bilibili.com/video/${bvMatch[0]}/`;
+      return url;
+    }
+
     async function loadDetail() {
       try {
         let res = await fetch(`${API}/videos?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
@@ -42,41 +50,69 @@ const { slug } = Astro.params;
         }
         if (item) {
           document.getElementById('detail-title').textContent = item.title || '';
-          document.getElementById('detail-meta').innerHTML = [
-            item.category ? `<span>${item.category}</span>` : '',
-            item.duration ? `<span>时长：${item.duration}</span>` : '',
-          ].filter(Boolean).join('');
+
+          const videoUrl = item.videoUrl || item.url || '';
+          const isBilibili = videoUrl.includes('bilibili.com');
+          const embedUrl = isBilibili ? getBilibiliEmbed(videoUrl) : null;
+          const pageUrl = isBilibili ? getBilibiliPage(videoUrl) : videoUrl;
+
+          // 视频播放区
+          let playerHtml = '';
+          if (embedUrl) {
+            // Bilibili embed
+            playerHtml = `
+              <div class="detail-video-wrap">
+                <iframe src="${embedUrl}" 
+                  allowfullscreen="true" 
+                  scrolling="no" 
+                  frameborder="0"
+                  sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts allow-popups">
+                </iframe>
+              </div>`;
+          } else if (videoUrl) {
+            // Generic video URL or other embed
+            if (videoUrl.match(/\.(mp4|webm|ogg)(\?|$)/i)) {
+              playerHtml = `
+                <div class="detail-video-wrap">
+                  <video controls preload="metadata" src="${videoUrl}">您的浏览器不支持视频播放</video>
+                </div>`;
+            } else {
+              playerHtml = `
+                <div class="detail-video-wrap">
+                  <iframe src="${videoUrl}" allowfullscreen style="width:100%;height:480px;border:none;"></iframe>
+                </div>`;
+            }
+          } else {
+            playerHtml = '<p class="detail-empty">暂无视频资源</p>';
+          }
 
           document.getElementById('detail-body').innerHTML = `
-            <!-- 嵌入可播放的视频 -->
+            <!-- 视频播放 -->
             <section class="detail-section">
               <h2 class="detail-section-title">视频播放</h2>
               <div class="detail-section-content">
-                ${item.videoUrl || item.url
-                  ? `<div class="detail-iframe-wrap">
-                       <iframe src="${item.videoUrl || item.url}" allowfullscreen style="width:100%;height:480px;border:none;border-radius:12px;"></iframe>
-                     </div>`
-                  : '<p class="detail-empty">暂无视频资源</p>'}
+                ${playerHtml}
               </div>
             </section>
 
-            <!-- 主要内容描述 -->
+            <!-- 内容描述 -->
+            ${item.description ? `
             <section class="detail-section">
-              <h2 class="detail-section-title">主要内容描述</h2>
+              <h2 class="detail-section-title">内容介绍</h2>
               <div class="detail-section-content">
-                ${item.description
-                  ? `<div class="detail-text">${item.description}</div>`
-                  : '<p class="detail-empty">暂无内容描述</p>'}
+                <div class="detail-text">${item.description.replace(/\n/g, '<br>')}</div>
               </div>
-            </section>
+            </section>` : ''}
 
-            <!-- 视频直接下载链接 -->
+            <!-- 下载/查看原视频 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">📥 视频下载</h2>
+              <h2 class="detail-section-title">查看原视频</h2>
               <div class="detail-section-content">
                 ${item.downloadUrl
-                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">下载视频文件 &darr;</a>`
-                  : '<p class="detail-empty">暂无下载链接</p>'}
+                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-download">下载视频 &darr;</a>`
+                  : pageUrl
+                    ? `<a href="${pageUrl}" target="_blank" rel="noopener" class="detail-action-btn">前往原始页面 &rarr;</a>`
+                    : '<p class="detail-empty">暂无来源链接</p>'}
               </div>
             </section>
           `;
