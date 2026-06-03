@@ -2,7 +2,18 @@
 import Layout from '../../../layouts/Layout.astro';
 
 export async function getStaticPaths() {
-  return [];
+  // 在构建时获取所有法规slug，生成静态页面
+  try {
+    const res = await fetch('http://strapi.hser.ren:1337/api/regulations?pagination[pageSize]=100&fields[0]=slug');
+    const json = await res.json();
+    const items = json.data || [];
+    return items.map(item => ({
+      params: { slug: item.slug || String(item.id) }
+    }));
+  } catch (e) {
+    // 构建时Strapi不可用则返回空，页面仍可通过客户端JS加载
+    return [];
+  }
 }
 
 const { slug } = Astro.params;
@@ -45,8 +56,7 @@ const { slug } = Astro.params;
           // 解析 content 中的结构化数据
           let extraInfo = {};
           try {
-            // content 可能是 JSON 格式的结构化数据
-            if (item.content && item.content.startsWith('{')) {
+            if (item.content && item.content.trim().startsWith('{')) {
               extraInfo = JSON.parse(item.content);
             }
           } catch(e) {}
@@ -71,7 +81,7 @@ const { slug } = Astro.params;
           ].filter(([,v]) => v);
 
           // 预览和下载链接
-          const previewUrl = extraInfo.previewUrl || item.previewUrl || '';
+          const previewUrl = extraInfo.previewUrl || '';
           const downloadUrl = extraInfo.downloadUrl || item.downloadUrl || '';
 
           document.getElementById('detail-body').innerHTML = `
@@ -80,7 +90,7 @@ const { slug } = Astro.params;
             <section class="detail-section">
               <h2 class="detail-section-title">标准简介</h2>
               <div class="detail-section-content">
-                <div class="detail-text">${intro}</div>
+                <div class="detail-text">${intro.replace(/\n/g, '<br>')}</div>
               </div>
             </section>` : ''}
 
@@ -97,7 +107,7 @@ const { slug } = Astro.params;
             </section>
 
             <!-- 全文内容 -->
-            ${(item.content && !item.content.startsWith('{')) ? `
+            ${(item.content && !item.content.trim().startsWith('{')) ? `
             <section class="detail-section">
               <h2 class="detail-section-title">法规全文</h2>
               <div class="detail-section-content">
