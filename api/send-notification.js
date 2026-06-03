@@ -1,12 +1,9 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
-// SMTP config from environment variables
 const SMTP_HOST = 'smtp.qq.com';
 const SMTP_PORT = 465;
 const SMTP_USER = process.env.SMTP_USER || 'csdsq@qq.com';
 const SMTP_PASS = process.env.SMTP_PASS;
-
-// Verify admin key
 const ADMIN_KEY = process.env.ADMIN_KEY || 'ehs2026';
 
 const transporter = nodemailer.createTransport({
@@ -26,7 +23,6 @@ export default async function handler(req, res) {
 
   const { adminKey, toEmail, toName, messageTitle, replyContent, messageUrl } = req.body;
 
-  // Verify admin key
   if (adminKey !== ADMIN_KEY) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -49,17 +45,14 @@ export default async function handler(req, res) {
             <div style="padding:28px 32px;">
               <p style="margin:0 0 8px;color:#666;font-size:14px;">你好${toName ? '，' + toName : ''}：</p>
               <p style="margin:0 0 20px;color:#333;font-size:15px;line-height:1.6;">你在 EHS信息站 留言板发表的留言收到了管理员回复。</p>
-              
               <div style="background:#f8f9fa;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
                 <div style="font-size:13px;color:#888;margin-bottom:6px;">原留言标题</div>
                 <div style="font-size:15px;color:#333;font-weight:500;">${messageTitle}</div>
               </div>
-
               <div style="background:#e8f5f3;border-radius:8px;padding:16px 20px;margin-bottom:24px;border-left:4px solid #2a9d8f;">
                 <div style="font-size:13px;color:#2a9d8f;margin-bottom:6px;font-weight:500;">🛡 管理员回复</div>
                 <div style="font-size:15px;color:#333;line-height:1.7;">${replyContent}</div>
               </div>
-
               <a href="${messageUrl}" style="display:inline-block;background:#2a9d8f;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;">查看详情</a>
             </div>
             <div style="background:#f8f9fa;padding:16px 32px;text-align:center;">
