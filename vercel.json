@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/uploads/:path*",
-      "destination": "http://strapi.hser.ren:1337/uploads/:path*"
+      "destination": "https://api.hser.ren/uploads/:path*"
     }
   ]
 }
