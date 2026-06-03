@@ -192,6 +192,12 @@ a:hover { color: var(--primary); }
   text-decoration: none;
   color: inherit;
 }
+.section-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--primary);
+}
 .section-title:hover {
   color: var(--primary);
 }
