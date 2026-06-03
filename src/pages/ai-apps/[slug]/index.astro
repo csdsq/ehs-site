@@ -29,7 +29,7 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = '/api';
+    const API = 'https://api.hser.ren';
     async function loadDetail() {
       try {
         let res = await fetch(`${API}/ai-apps?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
@@ -46,17 +46,11 @@ const { slug } = Astro.params;
             item.category ? `<span>${item.category}</span>` : '',
           ].filter(Boolean).join(' ');
 
-          // 应用简介（优先features，其次description）
           const intro = item.features || item.description || '';
-
-          // 应用图片
           const imageHtml = item.demoContent || '';
-
-          // 应用链接
           const appUrl = item.appUrl || item.url || '';
 
           document.getElementById('detail-body').innerHTML = `
-            <!-- 应用简介 -->
             ${intro ? `
             <section class="detail-section">
               <h2 class="detail-section-title">应用简介</h2>
@@ -65,7 +59,6 @@ const { slug } = Astro.params;
               </div>
             </section>` : ''}
 
-            <!-- 应用展示 -->
             ${imageHtml ? `
             <section class="detail-section">
               <h2 class="detail-section-title">应用展示</h2>
@@ -74,7 +67,6 @@ const { slug } = Astro.params;
               </div>
             </section>` : ''}
 
-            <!-- 访问应用 -->
             ${appUrl ? `
             <section class="detail-section">
               <h2 class="detail-section-title">访问应用</h2>
