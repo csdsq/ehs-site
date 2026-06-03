@@ -172,15 +172,15 @@ a:hover { color: var(--primary); }
 }
 
 /* ===== Section ===== */
-.section { padding: 48px 0; }
+.section { padding: 24px 0; }
 .section-alt { background: var(--bg); }
 .section-white { background: #fff; }
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
   border-bottom: 2px solid var(--border);
 }
 .section-title {
