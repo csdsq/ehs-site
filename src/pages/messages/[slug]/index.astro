@@ -157,7 +157,7 @@ const { slug } = Astro.params;
 
             try {
               // 获取当前message的最新数据
-              const freshRes = await fetch(`${API}/messages?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+              const freshRes = await fetch(`${API}/messages?filters[slug][$eq]=${slug}&pagination[pageSize]=1&populate=*`);
               const freshJson = await freshRes.json();
               const freshItem = freshJson.data?.[0];
               if (!freshItem) throw new Error('留言不存在');
@@ -194,6 +194,27 @@ const { slug } = Astro.params;
                 document.getElementById('reply-status').textContent = '回复成功！';
                 document.getElementById('reply-status').style.color = '#2a9d8f';
                 document.getElementById('reply-content').value = '';
+
+                // If admin reply and message has email, send notification
+                if (replyType === 'admin' && freshItem.email) {
+                  try {
+                    await fetch('/api/send-notification', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        adminKey: document.getElementById('admin-key').value.trim(),
+                        toEmail: freshItem.email,
+                        toName: freshItem.author || '',
+                        messageTitle: freshItem.title || '',
+                        replyContent: content,
+                        messageUrl: window.location.href
+                      })
+                    });
+                  } catch (emailErr) {
+                    console.warn('Email notification failed:', emailErr);
+                  }
+                }
+
                 setTimeout(() => loadDetail(), 800);
               } else {
                 const err = await updateRes.json();

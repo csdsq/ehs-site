@@ -30,8 +30,9 @@ import Layout from '../../layouts/Layout.astro';
               <option value="其他">其他</option>
             </select>
           </div>
-          <div class="msg-form-row">
-            <input type="text" id="msg-title" placeholder="留言标题" class="msg-input" />
+          <div class="msg-form-row" style="display:flex;gap:12px;">
+            <input type="text" id="msg-title" placeholder="留言标题" class="msg-input" style="flex:1;" />
+            <input type="email" id="msg-email" placeholder="你的邮箱（必填，用于接收回复通知）" class="msg-input" style="flex:1;" />
           </div>
           <div class="msg-form-row">
             <textarea id="msg-content" placeholder="输入你的留言内容..." class="msg-textarea" rows="4"></textarea>
@@ -108,9 +109,15 @@ import Layout from '../../layouts/Layout.astro';
       const category = (document.getElementById('msg-category') as HTMLSelectElement).value;
       const title = (document.getElementById('msg-title') as HTMLInputElement).value.trim();
       const content = (document.getElementById('msg-content') as HTMLTextAreaElement).value.trim();
+      const email = (document.getElementById('msg-email') as HTMLInputElement).value.trim();
 
       if (!title || !content) {
         document.getElementById('msg-status')!.textContent = '请填写标题和内容';
+        document.getElementById('msg-status')!.style.color = '#e63946';
+        return;
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        document.getElementById('msg-status')!.textContent = '请填写有效的邮箱地址';
         document.getElementById('msg-status')!.style.color = '#e63946';
         return;
       }
@@ -119,7 +126,7 @@ import Layout from '../../layouts/Layout.astro';
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            data: { author, category, title, content, slug: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), publishDate: new Date().toISOString().split('T')[0] }
+            data: { author, email, category, title, content, slug: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), publishDate: new Date().toISOString().split('T')[0] }
           })
         });
         if (res.ok) {
@@ -128,6 +135,7 @@ import Layout from '../../layouts/Layout.astro';
           (document.getElementById('msg-title') as HTMLInputElement).value = '';
           (document.getElementById('msg-content') as HTMLTextAreaElement).value = '';
           (document.getElementById('msg-category') as HTMLSelectElement).value = '';
+          (document.getElementById('msg-email') as HTMLInputElement).value = '';
           setTimeout(() => loadItems(), 500);
         } else {
           const err = await res.json();
