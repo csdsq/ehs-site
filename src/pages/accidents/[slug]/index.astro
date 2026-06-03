@@ -43,10 +43,9 @@ const { slug } = Astro.params;
         if (item) {
           document.getElementById('detail-title').textContent = item.title || '';
           document.getElementById('detail-meta').innerHTML = [
+            item.date ? `<span>发生日期：${item.date}</span>` : '',
             item.category ? `<span>事故类型：${item.category}</span>` : '',
             item.severity ? `<span>事故等级：${item.severity}</span>` : '',
-            item.date ? `<span>日期：${item.date}</span>` : '',
-            item.casualties ? `<span>伤亡：${item.casualties}</span>` : '',
           ].filter(Boolean).join('');
 
           // 基本信息表格
