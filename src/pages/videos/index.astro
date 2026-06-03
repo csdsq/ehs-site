@@ -14,7 +14,7 @@ import Layout from '../../layouts/Layout.astro';
       </div>
 
       <div id="vid-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
-      <div class="list-grid" id="vid-list">
+      <div class="video-grid video-grid-3col" id="vid-list">
         <div class="empty">加载中...</div>
       </div>
     </div>
@@ -23,6 +23,43 @@ import Layout from '../../layouts/Layout.astro';
   <script>
     const API = '/api';
     let allItems: any[] = [];
+
+    function renderVideoCard(item: any) {
+      const title = item.title || '';
+      const desc = item.description || '';
+      const videoUrl = item.videoUrl || item.url || '';
+      const duration = item.duration || '';
+      const category = item.category || '';
+      
+      let thumbSrc = '';
+      if (videoUrl.includes('bilibili.com/video/')) {
+        const bv = videoUrl.match(/BV[a-zA-Z0-9]+/);
+        thumbSrc = bv ? `https://i0.hdslb.com/bfs/archive/${bv[0]}s.jpg` : '';
+      } else if (videoUrl.includes('youtube.com/watch')) {
+        const vid = new URL(videoUrl).searchParams.get('v');
+        thumbSrc = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
+      }
+
+      return `
+        <a href="/videos/${item.slug || item.id}" class="video-card">
+          <div class="video-card-thumb">
+            ${thumbSrc 
+              ? `<img src="${thumbSrc}" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                 <div class="video-card-placeholder" style="display:none"><svg width="48" height="48" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>`
+              : `<div class="video-card-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>`
+            }
+            ${duration ? `<span class="video-card-duration">${duration}</span>` : ''}
+            <div class="video-card-play">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+          <div class="video-card-info">
+            <div class="video-card-title">${title}</div>
+            ${category ? `<span class="card-tag tag-video">${category}</span>` : ''}
+            ${desc ? `<div class="video-card-desc">${desc.length > 80 ? desc.slice(0,80) + '...' : desc}</div>` : ''}
+          </div>
+        </a>`;
+    }
 
     async function loadItems() {
       try {
@@ -41,14 +78,7 @@ import Layout from '../../layouts/Layout.astro';
       const el = document.getElementById('vid-list');
       if (!el) return;
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无视频</div>'; return; }
-      el.innerHTML = items.map(item => `
-        <a href="/videos/${item.slug || item.id}" class="list-item">
-          <div class="list-item-body">
-            <div class="list-item-title">${item.title}</div>
-            ${item.description || `${item.category || ""} ${item.duration ? "· " + item.duration : ""}`.trim() ? `<div class="list-item-desc">${item.description || `${item.category || ""} ${item.duration ? "· " + item.duration : ""}`.trim()}</div>` : ""}
-          </div>
-          <div class="list-item-arrow">&rarr;</div>
-        </a>`).join('');
+      el.innerHTML = items.map(item => renderVideoCard(item)).join('');
     }
 
     function doSearch() {

@@ -22,7 +22,7 @@ import Layout from '../layouts/Layout.astro';
         <h2 class="section-title">最新AI应用</h2>
         <a href="/ai-apps/" class="section-more">查看全部 &rarr;</a>
       </div>
-      <div class="list-grid" id="home-ai-list">
+      <div class="list-grid list-grid-2col" id="home-ai-list">
         <div class="empty">加载中...</div>
       </div>
     </div>
@@ -35,7 +35,7 @@ import Layout from '../layouts/Layout.astro';
         <h2 class="section-title">最新法律法规</h2>
         <a href="/regulations/" class="section-more">查看全部 &rarr;</a>
       </div>
-      <div class="list-grid" id="home-laws-list">
+      <div class="list-grid list-grid-2col" id="home-laws-list">
         <div class="empty">加载中...</div>
       </div>
     </div>
@@ -48,7 +48,7 @@ import Layout from '../layouts/Layout.astro';
         <h2 class="section-title">最新规范文件</h2>
         <a href="/standards/" class="section-more">查看全部 &rarr;</a>
       </div>
-      <div class="list-grid" id="home-standards-list">
+      <div class="list-grid list-grid-2col" id="home-standards-list">
         <div class="empty">加载中...</div>
       </div>
     </div>
@@ -61,7 +61,7 @@ import Layout from '../layouts/Layout.astro';
         <h2 class="section-title">最新事故报告</h2>
         <a href="/accidents/" class="section-more">查看全部 &rarr;</a>
       </div>
-      <div class="list-grid" id="home-accs-list">
+      <div class="list-grid list-grid-2col" id="home-accs-list">
         <div class="empty">加载中...</div>
       </div>
     </div>
@@ -74,7 +74,7 @@ import Layout from '../layouts/Layout.astro';
         <h2 class="section-title">最新视频课堂</h2>
         <a href="/videos/" class="section-more">查看全部 &rarr;</a>
       </div>
-      <div class="list-grid" id="home-videos-list">
+      <div class="video-grid video-grid-3col" id="home-videos-list">
         <div class="empty">加载中...</div>
       </div>
     </div>
@@ -87,7 +87,7 @@ import Layout from '../layouts/Layout.astro';
         <h2 class="section-title">最新资料中心</h2>
         <a href="/documents/" class="section-more">查看全部 &rarr;</a>
       </div>
-      <div class="list-grid" id="home-docs-list">
+      <div class="list-grid list-grid-2col" id="home-docs-list">
         <div class="empty">加载中...</div>
       </div>
     </div>
@@ -114,20 +114,56 @@ import Layout from '../layouts/Layout.astro';
         <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
           <div class="list-item-body">
             <div class="list-item-title">${title}</div>
-            ${desc ? `<div class="list-item-desc">${desc}</div>` : ''}
+            ${desc ? `<div class="list-item-desc">${desc.length > 80 ? desc.slice(0,80) + '...' : desc}</div>` : ''}
           </div>
           <div class="list-item-arrow">&rarr;</div>
         </a>`;
     }
 
+    function renderVideoCard(item) {
+      const title = item.title || '';
+      const desc = item.description || '';
+      const videoUrl = item.videoUrl || item.url || '';
+      const duration = item.duration || '';
+      
+      // Extract YouTube/Bilibili thumbnail or use placeholder
+      let thumbSrc = '';
+      if (videoUrl.includes('bilibili.com/video/')) {
+        const bv = videoUrl.match(/BV[a-zA-Z0-9]+/);
+        thumbSrc = bv ? `https://i0.hdslb.com/bfs/archive/${bv[0]}s.jpg` : '';
+      } else if (videoUrl.includes('youtube.com/watch')) {
+        const vid = new URL(videoUrl).searchParams.get('v');
+        thumbSrc = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
+      }
+
+      return `
+        <a href="/videos/${item.slug || item.id}" class="video-card">
+          <div class="video-card-thumb">
+            ${thumbSrc 
+              ? `<img src="${thumbSrc}" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                 <div class="video-card-placeholder" style="display:none"><svg width="48" height="48" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>`
+              : `<div class="video-card-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>`
+            }
+            ${duration ? `<span class="video-card-duration">${duration}</span>` : ''}
+            <div class="video-card-play">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+          <div class="video-card-info">
+            <div class="video-card-title">${title}</div>
+            ${desc ? `<div class="video-card-desc">${desc.length > 60 ? desc.slice(0,60) + '...' : desc}</div>` : ''}
+          </div>
+        </a>`;
+    }
+
     async function loadAll() {
       const [aiApps, regs, standards, accs, videos, docs] = await Promise.all([
-        safeFetch(`${API}/ai-apps?pagination[pageSize]=5&sort=createdAt:desc`),
-        safeFetch(`${API}/regulations?pagination[pageSize]=5&sort=publishDate:desc`),
-        safeFetch(`${API}/standards?pagination[pageSize]=5&sort=publishDate:desc`),
-        safeFetch(`${API}/accidents?pagination[pageSize]=5&sort=date:desc`),
-        safeFetch(`${API}/videos?pagination[pageSize]=5&sort=createdAt:desc`),
-        safeFetch(`${API}/documents?pagination[pageSize]=5&sort=createdAt:desc`),
+        safeFetch(`${API}/ai-apps?pagination[pageSize]=6&sort=createdAt:desc`),
+        safeFetch(`${API}/regulations?pagination[pageSize]=6&sort=publishDate:desc`),
+        safeFetch(`${API}/standards?pagination[pageSize]=6&sort=publishDate:desc`),
+        safeFetch(`${API}/accidents?pagination[pageSize]=6&sort=date:desc`),
+        safeFetch(`${API}/videos?pagination[pageSize]=6&sort=createdAt:desc`),
+        safeFetch(`${API}/documents?pagination[pageSize]=6&sort=createdAt:desc`),
       ]);
 
       // Stats
@@ -139,22 +175,30 @@ import Layout from '../layouts/Layout.astro';
       s('stat-videos', videos);
       s('stat-docs', docs);
 
-      // Render lists
-      const render = (elId, data, iconClass, icon, href) => {
+      // Render lists (non-video modules)
+      const renderList = (elId, data, href) => {
         const el = document.getElementById(elId);
         if (!el) return;
         const items = data?.data ?? [];
         el.innerHTML = items.length === 0
           ? '<div class="empty">暂无数据</div>'
-          : items.map(item => renderListItem(item, iconClass, icon, href)).join('');
+          : items.map(item => renderListItem(item, href)).join('');
       };
 
-      render('home-ai-list', aiApps, '/ai-apps/');
-      render('home-laws-list', regs, '/regulations/');
-      render('home-standards-list', standards, '/standards/');
-      render('home-accs-list', accs, '/accidents/');
-      render('home-videos-list', videos, '/videos/');
-      render('home-docs-list', docs, '/documents/');
+      renderList('home-ai-list', aiApps, '/ai-apps/');
+      renderList('home-laws-list', regs, '/regulations/');
+      renderList('home-standards-list', standards, '/standards/');
+      renderList('home-accs-list', accs, '/accidents/');
+      renderList('home-docs-list', docs, '/documents/');
+
+      // Render video cards
+      const videoEl = document.getElementById('home-videos-list');
+      if (videoEl) {
+        const videoItems = videos?.data ?? [];
+        videoEl.innerHTML = videoItems.length === 0
+          ? '<div class="empty">暂无视频</div>'
+          : videoItems.map(item => renderVideoCard(item)).join('');
+      }
     }
 
     loadAll();
