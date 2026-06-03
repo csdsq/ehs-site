@@ -46,9 +46,9 @@ import Layout from '../../layouts/Layout.astro';
           <div class="list-item-body">
             <div class="list-item-title">${item.title}</div>
             <div class="list-item-meta-row">
-              ${item.category ? `<span>${item.category}</span>` : ''}
-              ${item.severity ? `<span>${item.severity}</span>` : ''}
-              ${item.date ? `<span>${item.date}</span>` : ''}
+              ${item.date ? `<span>发生日期：${item.date}</span>` : ''}
+              ${item.category ? `<span>事故类型：${item.category}</span>` : ''}
+              ${item.severity ? `<span>事故等级：${item.severity}</span>` : ''}
             </div>
           </div>
           <div class="list-item-arrow">&rarr;</div>
