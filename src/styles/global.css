@@ -155,7 +155,9 @@ a:hover { color: var(--primary); }
 .stats-grid-6 {
   grid-template-columns: repeat(6, 1fr);
 }
-.stat-item { text-align: center; }
+.stat-item { text-align: center; text-decoration: none; color: inherit; display: block; transition: transform 0.15s; }
+.stat-item:hover { transform: translateY(-2px); }
+.stat-item:active { transform: translateY(0); }
 .stat-value {
   font-size: 30px;
   font-weight: 800;
