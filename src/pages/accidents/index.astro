@@ -5,7 +5,7 @@ import Layout from '../../layouts/Layout.astro';
 
   <div class="page-layout">
     <div class="container">
-      <h1 class="page-title">⚠️ 事故报告</h1>
+      <h1 class="page-title">事故报告</h1>
       <p class="page-description">收录各类生产安全事故调查报告，分析事故原因，总结经验教训，预防同类事故。</p>
 
       <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
@@ -43,10 +43,9 @@ import Layout from '../../layouts/Layout.astro';
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
       el.innerHTML = items.map(item => `
         <a href="/accidents/${item.slug || item.id}" class="list-item">
-          <div class="list-item-icon icon-accident">${item.icon || '⚠️'}</div>
           <div class="list-item-body">
             <div class="list-item-title">${item.title}</div>
-            <div class="list-item-desc">${item.description || `${item.severity || ''} ${item.location || ''} ${item.date || ''}`.trim()}</div>
+            ${item.description || `${item.severity || ""} ${item.location || ""} ${item.date || ""}`.trim() ? `<div class="list-item-desc">${item.description || `${item.severity || ""} ${item.location || ""} ${item.date || ""}`.trim()}</div>` : ""}
           </div>
           <div class="list-item-arrow">&rarr;</div>
         </a>`).join('');

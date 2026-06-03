@@ -5,7 +5,7 @@ import Layout from '../../layouts/Layout.astro';
 
   <div class="page-layout">
     <div class="container">
-      <h1 class="page-title">🎬 视频课堂</h1>
+      <h1 class="page-title">视频课堂</h1>
       <p class="page-description">安全培训、应急处置、事故案例分析等视频资源，助力安全意识与技能提升。</p>
 
       <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
@@ -43,10 +43,9 @@ import Layout from '../../layouts/Layout.astro';
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无视频</div>'; return; }
       el.innerHTML = items.map(item => `
         <a href="/videos/${item.slug || item.id}" class="list-item">
-          <div class="list-item-icon icon-video">${item.icon || '🎬'}</div>
           <div class="list-item-body">
             <div class="list-item-title">${item.title}</div>
-            <div class="list-item-desc">${item.description || `${item.category || ''} ${item.duration ? '· ' + item.duration : ''}`.trim()}</div>
+            ${item.description || `${item.category || ""} ${item.duration ? "· " + item.duration : ""}`.trim() ? `<div class="list-item-desc">${item.description || `${item.category || ""} ${item.duration ? "· " + item.duration : ""}`.trim()}</div>` : ""}
           </div>
           <div class="list-item-arrow">&rarr;</div>
         </a>`).join('');

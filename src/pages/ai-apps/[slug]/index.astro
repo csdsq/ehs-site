@@ -44,7 +44,7 @@ const { slug } = Astro.params;
           document.getElementById('detail-body').innerHTML = `
             <!-- 主要功能说明 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">🤖 主要功能说明</h2>
+              <h2 class="detail-section-title">主要功能说明</h2>
               <div class="detail-section-content">
                 ${item.features || item.description
                   ? `<p>${item.features || item.description}</p>`
@@ -54,7 +54,7 @@ const { slug } = Astro.params;
 
             <!-- 应用演示 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">🎬 应用演示</h2>
+              <h2 class="detail-section-title">应用演示</h2>
               <div class="detail-section-content">
                 ${item.demoUrl
                   ? `<div class="detail-iframe-wrap">
@@ -68,7 +68,7 @@ const { slug } = Astro.params;
 
             <!-- 应用使用链接 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">🔗 应用使用链接</h2>
+              <h2 class="detail-section-title">应用使用链接</h2>
               <div class="detail-section-content">
                 ${item.appUrl || item.url
                   ? `<a href="${item.appUrl || item.url}" target="_blank" rel="noopener" class="detail-action-btn">立即使用 &rarr;</a>`

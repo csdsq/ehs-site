@@ -58,7 +58,7 @@ const { slug } = Astro.params;
           document.getElementById('detail-body').innerHTML = `
             <!-- 法规基础信息 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">📋 法规基础信息</h2>
+              <h2 class="detail-section-title">法规基础信息</h2>
               <div class="detail-section-content">
                 ${infoRows.length > 0
                   ? `<table class="detail-info-table">
@@ -70,7 +70,7 @@ const { slug } = Astro.params;
 
             <!-- 大概内容描述 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">📄 大概内容描述</h2>
+              <h2 class="detail-section-title">大概内容描述</h2>
               <div class="detail-section-content">
                 ${item.description || item.content || item.summary
                   ? `<div class="detail-text">${item.description || item.summary || ''}</div>

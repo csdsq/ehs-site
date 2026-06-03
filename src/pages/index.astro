@@ -19,7 +19,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">🤖 最新AI应用</h2>
+        <h2 class="section-title">最新AI应用</h2>
         <a href="/ai-apps/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid" id="home-ai-list">
@@ -32,7 +32,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section section-alt">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">⚖️ 最新法律法规</h2>
+        <h2 class="section-title">最新法律法规</h2>
         <a href="/regulations/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid" id="home-laws-list">
@@ -45,7 +45,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">📋 最新规范文件</h2>
+        <h2 class="section-title">最新规范文件</h2>
         <a href="/standards/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid" id="home-standards-list">
@@ -58,7 +58,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section section-alt">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">⚠️ 最新事故报告</h2>
+        <h2 class="section-title">最新事故报告</h2>
         <a href="/accidents/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid" id="home-accs-list">
@@ -71,7 +71,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">🎬 最新视频课堂</h2>
+        <h2 class="section-title">最新视频课堂</h2>
         <a href="/videos/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid" id="home-videos-list">
@@ -84,7 +84,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="section section-alt">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">📁 最新资料中心</h2>
+        <h2 class="section-title">最新资料中心</h2>
         <a href="/documents/" class="section-more">查看全部 &rarr;</a>
       </div>
       <div class="list-grid" id="home-docs-list">
@@ -107,14 +107,14 @@ import Layout from '../layouts/Layout.astro';
       }
     }
 
-    function renderListItem(item, iconClass, defaultIcon, hrefPrefix) {
-      const desc = item.description || item.summary || item.content?.slice(0, 60) || '';
+    function renderListItem(item, hrefPrefix) {
+      const title = item.title || '';
+      const desc = item.description || item.summary || '';
       return `
         <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
-          <div class="list-item-icon ${iconClass}">${item.icon || defaultIcon}</div>
           <div class="list-item-body">
-            <div class="list-item-title">${item.title || item.question || ''}</div>
-            <div class="list-item-desc">${desc}</div>
+            <div class="list-item-title">${title}</div>
+            ${desc ? `<div class="list-item-desc">${desc}</div>` : ''}
           </div>
           <div class="list-item-arrow">&rarr;</div>
         </a>`;
@@ -149,12 +149,12 @@ import Layout from '../layouts/Layout.astro';
           : items.map(item => renderListItem(item, iconClass, icon, href)).join('');
       };
 
-      render('home-ai-list', aiApps, 'icon-ai', '🤖', '/ai-apps/');
-      render('home-laws-list', regs, 'icon-law', '⚖️', '/regulations/');
-      render('home-standards-list', standards, 'icon-standard', '📋', '/standards/');
-      render('home-accs-list', accs, 'icon-accident', '⚠️', '/accidents/');
-      render('home-videos-list', videos, 'icon-video', '🎬', '/videos/');
-      render('home-docs-list', docs, 'icon-doc', '📁', '/documents/');
+      render('home-ai-list', aiApps, '/ai-apps/');
+      render('home-laws-list', regs, '/regulations/');
+      render('home-standards-list', standards, '/standards/');
+      render('home-accs-list', accs, '/accidents/');
+      render('home-videos-list', videos, '/videos/');
+      render('home-docs-list', docs, '/documents/');
     }
 
     loadAll();

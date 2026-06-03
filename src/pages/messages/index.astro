@@ -5,7 +5,7 @@ import Layout from '../../layouts/Layout.astro';
 
   <div class="page-layout">
     <div class="container">
-      <h1 class="page-title">💬 留言板</h1>
+      <h1 class="page-title">留言板</h1>
       <p class="page-description">交流讨论、经验分享、问题反馈，EHS从业者互助社区。</p>
 
       <!-- 提交留言 -->
@@ -74,10 +74,9 @@ import Layout from '../../layouts/Layout.astro';
         const hasReply = replies.length > 0;
         return `
         <a href="/messages/${item.slug || item.id}" class="list-item">
-          <div class="list-item-icon ${hasReply ? 'icon-accident' : 'icon-msg'}">${hasReply ? '✅' : '💬'}</div>
           <div class="list-item-body">
-            <div class="list-item-title">${item.title}</div>
-            <div class="list-item-desc">${item.author || '游客'} · ${item.category || ''} · ${item.publishDate || ''} ${hasReply ? '· 已回复' : ''}</div>
+            <div class="list-item-title">${item.title || "无标题"}</div>
+            <div class="list-item-desc">${item.author || "游客"} · ${item.category || ""} · ${item.publishDate || ""} ${hasReply ? "· 已回复" : ""}</div>
           </div>
           <div class="list-item-arrow">&rarr;</div>
         </a>`;

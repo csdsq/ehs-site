@@ -45,7 +45,7 @@ const { slug } = Astro.params;
           document.getElementById('detail-body').innerHTML = `
             <!-- 嵌入可播放的视频 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">🎬 视频播放</h2>
+              <h2 class="detail-section-title">视频播放</h2>
               <div class="detail-section-content">
                 ${item.videoUrl || item.url
                   ? `<div class="detail-iframe-wrap">
@@ -57,7 +57,7 @@ const { slug } = Astro.params;
 
             <!-- 主要内容描述 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">📄 主要内容描述</h2>
+              <h2 class="detail-section-title">主要内容描述</h2>
               <div class="detail-section-content">
                 ${item.description
                   ? `<div class="detail-text">${item.description}</div>`
