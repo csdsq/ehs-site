@@ -840,6 +840,16 @@ a:hover { color: var(--primary); }
   background: #059669;
 }
 
+/* App image in detail */
+.detail-app-image {
+  text-align: center;
+}
+.detail-app-image img {
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
 /* Iframe wrap */
 .detail-iframe-wrap {
   border-radius: var(--radius-lg);
