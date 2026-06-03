@@ -12,6 +12,7 @@ import Layout from '../layouts/Layout.astro';
       <a href="/accidents/" class="stat-item"><span class="stat-value" id="stat-accs">--</span><span class="stat-label">事故报告</span></a>
       <!-- <a href="/videos/" class="stat-item"><span class="stat-value" id="stat-videos">--</span><span class="stat-label">视频课堂</span></a> <!-- 暂时隐藏 -->
       <a href="/documents/" class="stat-item"><span class="stat-value" id="stat-docs">--</span><span class="stat-label">资料中心</span></a>
+      <a href="/messages/" class="stat-item"><span class="stat-value" id="stat-msgs">--</span><span class="stat-label">留言板</span></a>
     </div>
   </div>
 
@@ -215,13 +216,14 @@ import Layout from '../layouts/Layout.astro';
     }
 
     async function loadAll() {
-      const [aiApps, regs, standards, accs, videos, docs] = await Promise.all([
+      const [aiApps, regs, standards, accs, videos, docs, msgs] = await Promise.all([
         safeFetch(`${API}/ai-apps?pagination[pageSize]=6&sort=createdAt:desc`),
         safeFetch(`${API}/regulations?pagination[pageSize]=6&sort=publishDate:desc`),
         safeFetch(`${API}/standards?pagination[pageSize]=6&sort=publishDate:desc`),
         safeFetch(`${API}/accidents?pagination[pageSize]=6&sort=date:desc`),
         safeFetch(`${API}/videos?pagination[pageSize]=3&sort=createdAt:desc`),
         safeFetch(`${API}/documents?pagination[pageSize]=6&sort=createdAt:desc`),
+        safeFetch(`${API}/messages?pagination[pageSize]=6&sort=publishDate:desc`),
       ]);
 
       // Stats
@@ -232,6 +234,7 @@ import Layout from '../layouts/Layout.astro';
       s('stat-accs', accs);
       s('stat-videos', videos);
       s('stat-docs', docs);
+      s('stat-msgs', msgs);
 
       // Render lists (non-video modules)
       const renderList = (elId, data, href, type) => {
