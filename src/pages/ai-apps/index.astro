@@ -30,19 +30,31 @@ import Layout from '../../layouts/Layout.astro';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
+    function getThumbUrl(item: any): string {
+      // 从demoContent提取图片URL，或用icon字段
+      const demo = item.demoContent || '';
+      const imgMatch = demo.match(/src=["']([^"']+)["']/);
+      if (imgMatch) return imgMatch[1];
+      if (item.icon) return item.icon;
+      return '';
+    }
+
     function renderItems(items: any[]) {
       const el = document.getElementById('ai-list');
       if (!el) return;
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无AI应用</div>'; return; }
       el.innerHTML = items.map(item => {
         const desc = item.description || '';
+        const thumbUrl = getThumbUrl(item);
+        const category = item.category || '';
         return `
-        <a href="/ai-apps/${item.slug || item.id}" class="list-item">
-          <div class="list-item-body">
-            <div class="list-item-title">${item.title}</div>
-            ${desc ? `<div class="list-item-desc">${desc.length > 80 ? desc.slice(0,80) + '...' : desc}</div>` : ''}
+        <a href="/ai-apps/${item.slug || item.id}" class="ai-card">
+          ${thumbUrl ? `<div class="ai-card-thumb"><img src="${thumbUrl}" alt="${item.title}" loading="lazy" /></div>` : `<div class="ai-card-icon icon-ai">🤖</div>`}
+          <div class="ai-card-body">
+            <div class="ai-card-title">${item.title}</div>
+            ${category ? `<div class="ai-card-category">${category}</div>` : ''}
+            ${desc ? `<div class="ai-card-desc">${desc.length > 100 ? desc.slice(0,100) + '...' : desc}</div>` : ''}
           </div>
-          <div class="list-item-arrow">&rarr;</div>
         </a>`;
       }).join('');
     }
