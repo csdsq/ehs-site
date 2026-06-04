@@ -40,7 +40,7 @@ const { slug } = Astro.params;
           document.getElementById('detail-title').textContent = item.title || '';
 
           // 映射标签
-          const severityMap = { major: '特别重大', larger: '较大', general: '一般', minor: '较小' };
+          const severityMap = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
           const categoryMap = {
             suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
             traffic: '交通', poisoning_suffocation: '中毒窒息',

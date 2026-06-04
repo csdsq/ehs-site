@@ -13,24 +13,30 @@ import Layout from '../../layouts/Layout.astro';
           <label class="filter-select-label" for="severity-select">等级</label>
           <select id="severity-select" class="filter-select">
             <option value="">全部</option>
-            <option value="major">特别重大</option>
-            <option value="larger">较大</option>
-            <option value="general">一般</option>
-            <option value="minor">较小</option>
+            <option value="major">特大</option>
+            <option value="larger">重大</option>
+            <option value="general">较大</option>
+            <option value="minor">一般</option>
           </select>
         </div>
         <div class="filter-select-group">
           <label class="filter-select-label" for="category-select">类别</label>
           <select id="category-select" class="filter-select">
             <option value="">全部</option>
-            <option value="suffocation">窒息</option>
+            <option value="fire">火灾</option>
+            <option value="explosion">爆炸</option>
+            <option value="collapse">坍塌</option>
             <option value="fall">高处坠落</option>
+            <option value="falling_object">物体打击</option>
+            <option value="crane">起重伤害</option>
+            <option value="electric_shock">触电</option>
+            <option value="mechanical">机械伤害</option>
+            <option value="poisoning_suffocation">中毒窒息</option>
+            <option value="suffocation">窒息</option>
+            <option value="drowning">淹溺</option>
             <option value="gas_leak">燃气泄漏</option>
             <option value="traffic">交通</option>
-            <option value="poisoning_suffocation">中毒窒息</option>
-            <option value="collapse">坍塌</option>
-            <option value="fire">火灾</option>
-            <option value="other">其他</option>
+            <option value="other_injury">其他伤害</option>
           </select>
         </div>
         <div class="filter-select-group">
@@ -57,7 +63,7 @@ import Layout from '../../layouts/Layout.astro';
 
   <script>
     const API = 'https://api.hser.ren';
-    const severityMap: Record<string,string> = { major: '特别重大', larger: '较大', general: '一般', minor: '较小' };
+    const severityMap: Record<string,string> = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
     const categoryMap: Record<string,string> = {
       suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
       traffic: '交通', poisoning_suffocation: '中毒窒息',
@@ -183,13 +189,7 @@ import Layout from '../../layouts/Layout.astro';
       const q = (document.getElementById('acc-search') as HTMLInputElement).value.trim().toLowerCase();
       filteredItems = allItems.filter(item => {
         if (activeSeverity && item.severity !== activeSeverity) return false;
-        if (activeCategory) {
-          // "其他"类别匹配所有非主要类别
-          if (activeCategory === 'other') {
-            const mainCats = ['suffocation', 'fall', 'gas_leak', 'traffic', 'poisoning_suffocation', 'collapse', 'fire'];
-            if (mainCats.includes(item.category)) return false;
-          } else if (item.category !== activeCategory) return false;
-        }
+        if (activeCategory && item.category !== activeCategory) return false;
         if (activeProvince && item.province !== activeProvince) return false;
         if (q) {
           const text = `${item.title ?? ''} ${item.location ?? ''} ${item.province ?? ''} ${item.casualties ?? ''}`.toLowerCase();
