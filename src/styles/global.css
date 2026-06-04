@@ -494,6 +494,11 @@ a:hover { color: var(--primary); }
   border-color: var(--primary) !important;
   font-weight: 500;
 }
+.filter-tags-collapsible {
+  max-height: 34px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
 
 /* ===== Standard Tags ===== */
 

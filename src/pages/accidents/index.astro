@@ -234,6 +234,7 @@ import Layout from '../../layouts/Layout.astro';
     function buildCategoryFilters() {
       const container = document.getElementById('category-tags')!;
       container.innerHTML = '';
+      container.classList.add('filter-tags-collapsible');
       const types = Object.entries(categoryMap) as [string, string][];
       // "全部" button
       const allBtn = document.createElement('button');
@@ -246,14 +247,10 @@ import Layout from '../../layouts/Layout.astro';
         applyFilters();
       });
       container.appendChild(allBtn);
-      const MAX_VISIBLE = 8;
-      let expanded = false;
-      const allBtns: HTMLButtonElement[] = [];
       for (const [val, label] of types) {
         const btn = document.createElement('button');
         btn.className = 'filter-tag';
         btn.textContent = label;
-        if (allBtns.length >= MAX_VISIBLE) btn.style.display = 'none';
         btn.addEventListener('click', () => {
           activeCategory = val;
           container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
@@ -261,27 +258,33 @@ import Layout from '../../layouts/Layout.astro';
           applyFilters();
         });
         container.appendChild(btn);
-        allBtns.push(btn);
       }
-      // "更多" toggle if needed
-      if (allBtns.length > MAX_VISIBLE) {
-        const moreBtn = document.createElement('button');
-        moreBtn.className = 'filter-tag filter-more-btn';
-        moreBtn.textContent = '更多 ▼';
-        moreBtn.addEventListener('click', () => {
-          expanded = !expanded;
-          for (let i = MAX_VISIBLE; i < allBtns.length; i++) {
-            allBtns[i].style.display = expanded ? '' : 'none';
-          }
-          moreBtn.textContent = expanded ? '收起 ▲' : '更多 ▼';
-        });
-        container.appendChild(moreBtn);
-      }
+      // "更多" toggle - check if content overflows
+      requestAnimationFrame(() => {
+        if (container.scrollHeight > container.clientHeight + 2) {
+          const moreBtn = document.createElement('button');
+          moreBtn.className = 'filter-tag filter-more-btn';
+          moreBtn.textContent = '更多 ▼';
+          let expanded = false;
+          moreBtn.addEventListener('click', () => {
+            expanded = !expanded;
+            if (expanded) {
+              container.style.maxHeight = 'none';
+              moreBtn.textContent = '收起 ▲';
+            } else {
+              container.style.maxHeight = '';
+              moreBtn.textContent = '更多 ▼';
+            }
+          });
+          container.appendChild(moreBtn);
+        }
+      });
     }
 
     function buildProvinceFilters() {
       const container = document.getElementById('province-tags')!;
       container.innerHTML = '';
+      container.classList.add('filter-tags-collapsible');
       const provinces = [...new Set(allItems.map(i => i.province).filter(Boolean))].sort() as string[];
       // "全部" button
       const allBtn = document.createElement('button');
@@ -294,14 +297,10 @@ import Layout from '../../layouts/Layout.astro';
         applyFilters();
       });
       container.appendChild(allBtn);
-      const MAX_VISIBLE = 6;
-      let expanded = false;
-      const allBtns: HTMLButtonElement[] = [];
       for (const prov of provinces) {
         const btn = document.createElement('button');
         btn.className = 'filter-tag';
         btn.textContent = prov;
-        if (allBtns.length >= MAX_VISIBLE) btn.style.display = 'none';
         btn.addEventListener('click', () => {
           activeProvince = prov;
           container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
@@ -309,22 +308,27 @@ import Layout from '../../layouts/Layout.astro';
           applyFilters();
         });
         container.appendChild(btn);
-        allBtns.push(btn);
       }
-      // "更多" toggle if needed
-      if (allBtns.length > MAX_VISIBLE) {
-        const moreBtn = document.createElement('button');
-        moreBtn.className = 'filter-tag filter-more-btn';
-        moreBtn.textContent = '更多 ▼';
-        moreBtn.addEventListener('click', () => {
-          expanded = !expanded;
-          for (let i = MAX_VISIBLE; i < allBtns.length; i++) {
-            allBtns[i].style.display = expanded ? '' : 'none';
-          }
-          moreBtn.textContent = expanded ? '收起 ▲' : '更多 ▼';
-        });
-        container.appendChild(moreBtn);
-      }
+      // "更多" toggle - check if content overflows
+      requestAnimationFrame(() => {
+        if (container.scrollHeight > container.clientHeight + 2) {
+          const moreBtn = document.createElement('button');
+          moreBtn.className = 'filter-tag filter-more-btn';
+          moreBtn.textContent = '更多 ▼';
+          let expanded = false;
+          moreBtn.addEventListener('click', () => {
+            expanded = !expanded;
+            if (expanded) {
+              container.style.maxHeight = 'none';
+              moreBtn.textContent = '收起 ▲';
+            } else {
+              container.style.maxHeight = '';
+              moreBtn.textContent = '更多 ▼';
+            }
+          });
+          container.appendChild(moreBtn);
+        }
+      });
     }
 
     document.getElementById('acc-search')!.addEventListener('input', applyFilters);
