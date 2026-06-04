@@ -22,7 +22,7 @@ import Layout from '../../layouts/Layout.astro';
           <span class="filter-label">地区</span>
           <div class="filter-tags" id="region-filters">
             <button class="filter-tag active" data-value="">全部</button>
-            <button class="filter-tag" data-value="national">国家</button>
+            <button class="filter-tag" data-value="national">全国</button>
             <button class="filter-tag" data-value="北京">北京</button>
             <button class="filter-tag" data-value="天津">天津</button>
             <button class="filter-tag" data-value="上海">上海</button>
@@ -111,7 +111,7 @@ import Layout from '../../layouts/Layout.astro';
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
     function getRegionLabel(item: any): string {
-      if (item.regionLevel === 'national') return '国家';
+      if (item.regionLevel === 'national') return '全国';
       const region = extractRegion(item.title);
       return region || '地方';
     }
