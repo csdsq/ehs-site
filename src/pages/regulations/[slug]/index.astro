@@ -116,9 +116,9 @@ const { slug } = Astro.params;
               </div>
             </section>` : ''}
 
-            <!-- 法规信息 -->
+            <!-- 标准信息 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">法规信息</h2>
+              <h2 class="detail-section-title">标准信息</h2>
               <div class="detail-section-content">
                 ${infoRows.length > 0
                   ? `<div class="info-card-list">
@@ -128,7 +128,7 @@ const { slug } = Astro.params;
                            <span class="info-card-value">${v}</span>
                          </div>`).join('')}
                      </div>`
-                  : '<p class="detail-empty">暂无法规信息</p>'}
+                  : '<p class="detail-empty">暂无标准信息</p>'}
               </div>
             </section>
 
