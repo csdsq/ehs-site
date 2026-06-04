@@ -447,13 +447,22 @@ a:hover { color: var(--primary); }
 }
 .filter-bar.filter-bar-row {
   flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
   gap: 72px;
+}
+.filter-bar.filter-bar-row .filter-group {
+  flex-shrink: 0;
+}
+.filter-bar.filter-bar-row .filter-group:last-child {
+  flex: 1;
+  min-width: 0;
 }
 .filter-group {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .filter-label {
   font-size: 13px;
@@ -498,6 +507,9 @@ a:hover { color: var(--primary); }
   max-height: 34px;
   overflow: hidden;
   transition: max-height 0.3s ease;
+}
+.filter-tags-collapsible.expanded {
+  max-height: none;
 }
 
 /* ===== Standard Tags ===== */
@@ -932,12 +944,6 @@ a:hover { color: var(--primary); }
 /* ===== Utility ===== */
 .empty { color: var(--text-light); text-align: center; padding: 40px; }
 .loading { color: var(--text-light); text-align: center; padding: 40px; }
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
 .filter-btn {
   padding: 8px 20px;
   border-radius: 20px;

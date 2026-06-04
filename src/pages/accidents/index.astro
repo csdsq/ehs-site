@@ -269,10 +269,10 @@ import Layout from '../../layouts/Layout.astro';
           moreBtn.addEventListener('click', () => {
             expanded = !expanded;
             if (expanded) {
-              container.style.maxHeight = 'none';
+              container.classList.add('expanded');
               moreBtn.textContent = '收起 ▲';
             } else {
-              container.style.maxHeight = '';
+              container.classList.remove('expanded');
               moreBtn.textContent = '更多 ▼';
             }
           });
@@ -319,10 +319,10 @@ import Layout from '../../layouts/Layout.astro';
           moreBtn.addEventListener('click', () => {
             expanded = !expanded;
             if (expanded) {
-              container.style.maxHeight = 'none';
+              container.classList.add('expanded');
               moreBtn.textContent = '收起 ▲';
             } else {
-              container.style.maxHeight = '';
+              container.classList.remove('expanded');
               moreBtn.textContent = '更多 ▼';
             }
           });
