@@ -56,7 +56,7 @@ export interface Regulation {
 }
 export const getRegulations = () => fetchStrapi<Regulation>('regulations');
 
-// 规范文件
+// 法规文件
 export interface Standard {
   id: number;
   title: string;
