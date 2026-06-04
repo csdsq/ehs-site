@@ -8,7 +8,29 @@ import Layout from '../../layouts/Layout.astro';
       <h1 class="page-title">规范文件</h1>
       <p class="page-description">收录国家标准、行业标准、技术规范，为EHS合规管理提供标准依据。</p>
 
-      <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+      <!-- 筛选标签区 -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">类别</span>
+          <div class="filter-tags" id="category-filters">
+            <button class="filter-tag active" data-value="">全部</button>
+            <button class="filter-tag" data-value="safety">安全</button>
+            <button class="filter-tag" data-value="environment">环保</button>
+            <button class="filter-tag" data-value="occupational_health">职业健康</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">级别</span>
+          <div class="filter-tags" id="region-filters">
+            <button class="filter-tag active" data-value="">全部</button>
+            <button class="filter-tag" data-value="national">国家</button>
+            <button class="filter-tag" data-value="provincial">省</button>
+            <button class="filter-tag" data-value="municipal">市</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-box" style="margin-bottom: 24px; max-width: 100%;">
         <input type="text" id="std-search" placeholder="搜索规范名称、标准号..." />
         <button id="std-search-btn">搜索</button>
       </div>
@@ -23,10 +45,15 @@ import Layout from '../../layouts/Layout.astro';
 
   <script>
     const API = 'https://api.hser.ren';
+    const categoryMap: Record<string,string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+    const regionMap: Record<string,string> = { national: '国家', provincial: '省', municipal: '市' };
+
     let allItems: any[] = [];
     let filteredItems: any[] = [];
     let currentPage = 1;
     let pageSize = 10;
+    let activeCategory = '';
+    let activeRegion = '';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
@@ -36,6 +63,13 @@ import Layout from '../../layouts/Layout.astro';
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
       el.innerHTML = items.map(item => {
         const metaParts = [];
+        // 类别+级别标签
+        const catLabel = categoryMap[item.category] || '';
+        const regLabel = regionMap[item.regionLevel] || '';
+        const tagParts = [];
+        if (catLabel) tagParts.push(`<span class="std-tag std-tag-${item.category}">${catLabel}</span>`);
+        if (regLabel) tagParts.push(`<span class="std-tag std-tag-region">${regLabel}</span>`);
+
         if (item.source) metaParts.push(`<span>发文机构：${item.source}</span>`);
         if (item.standardNo) metaParts.push(`<span>发文号：${item.standardNo}</span>`);
         const dateLabel = item.effectiveDate ? '实施日期' : '发文日期';
@@ -45,7 +79,10 @@ import Layout from '../../layouts/Layout.astro';
           <a href="/standards/${item.slug || item.id}" class="list-item">
             <div class="list-item-body">
               <div class="list-item-title">${item.title}</div>
-              ${metaParts.length > 0 ? `<div class="list-item-meta-row">${metaParts.join('')}</div>` : ''}
+              <div class="list-item-meta-row">
+                ${tagParts.length > 0 ? tagParts.join('') : ''}
+                ${metaParts.join('')}
+              </div>
             </div>
             <div class="list-item-arrow">&rarr;</div>
           </a>`;
@@ -112,10 +149,27 @@ import Layout from '../../layouts/Layout.astro';
       });
     }
 
+    function applyFilters() {
+      const q = (document.getElementById('std-search') as HTMLInputElement).value.trim().toLowerCase();
+      filteredItems = allItems.filter(item => {
+        if (activeCategory && item.category !== activeCategory) return false;
+        if (activeRegion && item.regionLevel !== activeRegion) return false;
+        if (q) {
+          const text = `${item.title ?? ''} ${item.standardNo ?? ''} ${item.category ?? ''} ${item.source ?? ''}`.toLowerCase();
+          if (!text.includes(q)) return false;
+        }
+        return true;
+      });
+      currentPage = 1;
+      updateView();
+    }
+
     function updateView() {
       const start = (currentPage - 1) * pageSize;
       renderItems(filteredItems.slice(start, start + pageSize));
       renderPagination();
+      // 更新计数
+      document.getElementById('std-count')!.textContent = `共 ${filteredItems.length} 项${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 项）` : ''}`;
     }
 
     async function loadItems() {
@@ -132,21 +186,24 @@ import Layout from '../../layouts/Layout.astro';
       }
     }
 
-    function doSearch() {
-      const q = (document.getElementById('std-search') as HTMLInputElement).value.trim().toLowerCase();
-      if (!q) { filteredItems = [...allItems]; } else {
-        filteredItems = allItems.filter(item =>
-          (item.title ?? '').toLowerCase().includes(q) ||
-          (item.standardNo ?? '').toLowerCase().includes(q) ||
-          (item.category ?? '').toLowerCase().includes(q)
-        );
-      }
-      currentPage = 1;
-      updateView();
-    }
+    // 筛选标签事件
+    document.getElementById('category-filters')!.addEventListener('click', (e: any) => {
+      if (!e.target.classList.contains('filter-tag')) return;
+      document.querySelectorAll('#category-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeCategory = e.target.dataset.value || '';
+      applyFilters();
+    });
+    document.getElementById('region-filters')!.addEventListener('click', (e: any) => {
+      if (!e.target.classList.contains('filter-tag')) return;
+      document.querySelectorAll('#region-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeRegion = e.target.dataset.value || '';
+      applyFilters();
+    });
 
-    document.getElementById('std-search')!.addEventListener('input', doSearch);
-    document.getElementById('std-search-btn')!.addEventListener('click', doSearch);
+    document.getElementById('std-search')!.addEventListener('input', applyFilters);
+    document.getElementById('std-search-btn')!.addEventListener('click', applyFilters);
 
     loadItems();
   </script>

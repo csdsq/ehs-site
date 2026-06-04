@@ -18,6 +18,7 @@ const { slug } = Astro.params;
       <a href="/">首页</a> / <a href="/standards/">规范文件</a> / 详情
     </div>
     <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
+    <div id="detail-tags" style="margin-bottom: 16px;"></div>
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
@@ -37,9 +38,22 @@ const { slug } = Astro.params;
         }
         if (item) {
           document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-tags').innerHTML = tagHtml;
+
+          // 类别+级别标签映射
+          const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+          const regionMap = { national: '国家', provincial: '省', municipal: '市' };
+          const catLabel = categoryMap[item.category] || '';
+          const regLabel = regionMap[item.regionLevel] || '';
+          const tagHtml = [
+            catLabel ? `<span class="std-tag std-tag-${item.category}">${catLabel}</span>` : '',
+            regLabel ? `<span class="std-tag std-tag-region">${regLabel}</span>` : '',
+          ].filter(Boolean).join(' ');
 
           // 基本信息：发文机构、发文号、实施日期（没有实施日期就写发文日期）
           const infoRows = [
+            ['类别', catLabel || '-'],
+            ['级别', regLabel || '-'],
             ['发文机构', item.source],
             ['发文号', item.standardNo],
             item.effectiveDate
@@ -47,7 +61,7 @@ const { slug } = Astro.params;
               : item.publishDate
                 ? ['发文日期', item.publishDate]
                 : null,
-          ].filter(Boolean).filter(([,v]) => v);
+          ].filter(Boolean).filter(([,v]) => v && v !== '-');
 
           document.getElementById('detail-body').innerHTML = `
             <!-- 基本信息 -->

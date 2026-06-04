@@ -438,6 +438,79 @@ a:hover { color: var(--primary); }
   }
 }
 
+/* ===== Filter Bar ===== */
+.filter-bar {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 36px;
+}
+.filter-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.filter-tag {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.filter-tag:hover {
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+.filter-tag.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* ===== Standard Tags ===== */
+.std-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-right: 6px;
+  font-weight: 500;
+  line-height: 18px;
+}
+.std-tag-safety {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.std-tag-environment {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.std-tag-occupational_health {
+  background: #fef3c7;
+  color: #d97706;
+}
+.std-tag-region {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
 /* ===== List Grid ===== */
 .list-grid {
   display: grid;
