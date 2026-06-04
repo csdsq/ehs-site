@@ -447,7 +447,7 @@ a:hover { color: var(--primary); }
 }
 .filter-bar.filter-bar-row {
   flex-direction: row;
-  gap: 36px;
+  gap: 72px;
 }
 .filter-group {
   display: flex;
