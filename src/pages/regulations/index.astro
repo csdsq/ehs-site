@@ -6,11 +6,9 @@ import Layout from '../../layouts/Layout.astro';
   <div class="page-layout">
     <div class="container">
       <h1 class="page-title">GB国家标准</h1>
-      <p class="page-description">收录国家及地方GB国家标准，覆盖消防安全、职业健康、环境保护等EHS核心领域。</p>
 
       <!-- ICS分类筛选 -->
       <div class="filter-bar" id="reg-filter-bar">
-        <span class="filter-label">类型</span>
         <!-- 动态生成 -->
       </div>
 
@@ -127,40 +125,52 @@ import Layout from '../../layouts/Layout.astro';
       const start = (currentPage - 1) * pageSize;
       renderItems(filteredItems.slice(start, start + pageSize));
       renderPagination();
+      document.getElementById('reg-count')!.textContent = `共 ${filteredItems.length} 项${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 项）` : ''}`;
     }
 
     function buildCategoryFilters() {
       const categories = [...new Set(allItems.map(i => i.category).filter(Boolean))] as string[];
       const filterBar = document.getElementById('reg-filter-bar')!;
-      // Keep the label
-      const label = filterBar.querySelector('.filter-label')!;
       filterBar.innerHTML = '';
-      filterBar.appendChild(label);
       
+      const group = document.createElement('div');
+      group.className = 'filter-group';
+      
+      const label = document.createElement('span');
+      label.className = 'filter-label';
+      label.textContent = '类型';
+      group.appendChild(label);
+      
+      const tags = document.createElement('div');
+      tags.className = 'filter-tags';
+
       // All button
       const allBtn = document.createElement('button');
-      allBtn.className = 'filter-btn active';
+      allBtn.className = 'filter-tag active';
       allBtn.textContent = '全部';
       allBtn.addEventListener('click', () => {
         activeCategory = '';
-        filterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        tags.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
         allBtn.classList.add('active');
         applyFilters();
       });
-      filterBar.appendChild(allBtn);
+      tags.appendChild(allBtn);
 
       for (const cat of categories.sort()) {
         const btn = document.createElement('button');
-        btn.className = 'filter-btn';
+        btn.className = 'filter-tag';
         btn.textContent = cat;
         btn.addEventListener('click', () => {
           activeCategory = cat;
-          filterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          tags.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           applyFilters();
         });
-        filterBar.appendChild(btn);
+        tags.appendChild(btn);
       }
+
+      group.appendChild(tags);
+      filterBar.appendChild(group);
     }
 
     function applyFilters() {
