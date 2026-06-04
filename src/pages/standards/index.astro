@@ -7,6 +7,29 @@ import Layout from '../../layouts/Layout.astro';
     <div class="container">
       <h1 class="page-title">法规文件</h1>
 
+      <style>
+        .filter-group-region {
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-width: 0;
+        }
+        .filter-group-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          width: 100%;
+          flex-wrap: wrap;
+        }
+        .filter-group-region .filter-tags-collapsible {
+          flex: 1;
+          min-width: 0;
+        }
+        /* 展开时标签占整行 */
+        .filter-group-region .filter-tags-collapsible.expanded {
+          flex-basis: calc(100% - 46px);
+        }
+      </style>
+
       <!-- 筛选标签区 -->
       <div class="filter-bar filter-bar-row">
         <div class="filter-group">
@@ -18,42 +41,39 @@ import Layout from '../../layouts/Layout.astro';
             <button class="filter-tag" data-value="occupational_health">职业健康</button>
           </div>
         </div>
-        <div class="filter-group">
-          <span class="filter-label">地区</span>
-          <div class="filter-tags filter-tags-collapsible" id="region-filters">
-            <button class="filter-tag active" data-value="">全部</button>
-            <button class="filter-tag" data-value="national">国家</button>
-            <button class="filter-tag" data-value="北京">北京</button>
-            <button class="filter-tag" data-value="天津">天津</button>
-            <button class="filter-tag" data-value="上海">上海</button>
-            <button class="filter-tag" data-value="重庆">重庆</button>
-            <button class="filter-tag" data-value="河北">河北</button>
-            <button class="filter-tag" data-value="山西">山西</button>
-            <button class="filter-tag" data-value="辽宁">辽宁</button>
-            <button class="filter-tag" data-value="吉林">吉林</button>
-            <button class="filter-tag" data-value="黑龙江">黑龙江</button>
-            <button class="filter-tag" data-value="江苏">江苏</button>
-            <button class="filter-tag" data-value="浙江">浙江</button>
-            <button class="filter-tag" data-value="安徽">安徽</button>
-            <button class="filter-tag" data-value="福建">福建</button>
-            <button class="filter-tag" data-value="江西">江西</button>
-            <button class="filter-tag" data-value="山东">山东</button>
-            <button class="filter-tag" data-value="河南">河南</button>
-            <button class="filter-tag" data-value="湖北">湖北</button>
-            <button class="filter-tag" data-value="湖南">湖南</button>
-            <button class="filter-tag" data-value="广东">广东</button>
-            <button class="filter-tag" data-value="海南">海南</button>
-            <button class="filter-tag" data-value="四川">四川</button>
-            <button class="filter-tag" data-value="贵州">贵州</button>
-            <button class="filter-tag" data-value="云南">云南</button>
-            <button class="filter-tag" data-value="陕西">陕西</button>
-            <button class="filter-tag" data-value="甘肃">甘肃</button>
-            <button class="filter-tag" data-value="青海">青海</button>
-            <button class="filter-tag" data-value="内蒙古">内蒙古</button>
-            <button class="filter-tag" data-value="广西">广西</button>
-            <button class="filter-tag" data-value="西藏">西藏</button>
-            <button class="filter-tag" data-value="宁夏">宁夏</button>
-            <button class="filter-tag" data-value="新疆">新疆</button>
+        <div class="filter-group filter-group-region">
+          <div class="filter-group-header">
+            <span class="filter-label">地区</span>
+            <div class="filter-tags filter-tags-collapsible" id="region-filters">
+              <button class="filter-tag active" data-value="">全部</button>
+              <button class="filter-tag" data-value="national">国家</button>
+              <button class="filter-tag" data-value="北京">北京</button>
+              <button class="filter-tag" data-value="天津">天津</button>
+              <button class="filter-tag" data-value="上海">上海</button>
+              <button class="filter-tag" data-value="重庆">重庆</button>
+              <button class="filter-tag" data-value="河北">河北</button>
+              <button class="filter-tag" data-value="山西">山西</button>
+              <button class="filter-tag" data-value="辽宁">辽宁</button>
+              <button class="filter-tag" data-value="吉林">吉林</button>
+              <button class="filter-tag" data-value="黑龙江">黑龙江</button>
+              <button class="filter-tag" data-value="江苏">江苏</button>
+              <button class="filter-tag" data-value="浙江">浙江</button>
+              <button class="filter-tag" data-value="安徽">安徽</button>
+              <button class="filter-tag" data-value="福建">福建</button>
+              <button class="filter-tag" data-value="江西">江西</button>
+              <button class="filter-tag" data-value="山东">山东</button>
+              <button class="filter-tag" data-value="河南">河南</button>
+              <button class="filter-tag" data-value="湖北">湖北</button>
+              <button class="filter-tag" data-value="湖南">湖南</button>
+              <button class="filter-tag" data-value="广东">广东</button>
+              <button class="filter-tag" data-value="海南">海南</button>
+              <button class="filter-tag" data-value="四川">四川</button>
+              <button class="filter-tag" data-value="贵州">贵州</button>
+              <button class="filter-tag" data-value="云南">云南</button>
+              <button class="filter-tag" data-value="陕西">陕西</button>
+              <button class="filter-tag" data-value="广西">广西</button>
+              <button class="filter-tag" data-value="__other">其他</button>
+            </div>
           </div>
         </div>
       </div>
@@ -84,16 +104,19 @@ import Layout from '../../layouts/Layout.astro';
       '济南': '山东', '青岛': '山东', '烟台': '山东',
     };
 
+    // 归入"其他"的省份/地区
+    const otherRegions = ['甘肃','青海','内蒙古','西藏','宁夏','新疆'];
+
     function extractRegion(title: string): string {
       if (!title) return '';
       // 先查城市→省份映射
       for (const [city, prov] of Object.entries(cityProvinceMap)) {
         if (title.includes(city)) return prov;
       }
-      // 再查省份名（含省/不含省）
+      // 再查省份名
       const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江',
         '江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南',
-        '四川','贵州','云南','陕西','甘肃','青海','内蒙古','广西','西藏','宁夏','新疆'];
+        '四川','贵州','云南','陕西','内蒙古','广西','西藏','宁夏','新疆','甘肃','青海'];
       for (const p of provinces) {
         if (title.includes(p)) return p;
       }
@@ -214,6 +237,10 @@ import Layout from '../../layouts/Layout.astro';
         if (activeRegion) {
           if (activeRegion === 'national') {
             if (item.regionLevel !== 'national') return false;
+          } else if (activeRegion === '__other') {
+            // "其他"：匹配甘肃/青海/内蒙古/西藏/宁夏/新疆
+            const region = extractRegion(item.title);
+            if (!otherRegions.includes(region)) return false;
           } else {
             // 选了某个省/直辖市：匹配标题包含该省名，或城市归到该省
             const region = extractRegion(item.title);
@@ -242,21 +269,25 @@ import Layout from '../../layouts/Layout.astro';
       const container = document.getElementById('region-filters');
       if (!container) return;
       // 检测是否溢出
-      if (container.scrollHeight > container.clientHeight) {
-        const btn = document.createElement('button');
-        btn.className = 'filter-tag filter-more-btn';
-        btn.textContent = '更多';
-        btn.addEventListener('click', () => {
-          if (container.classList.contains('expanded')) {
-            container.classList.remove('expanded');
-            btn.textContent = '更多';
-          } else {
-            container.classList.add('expanded');
-            btn.textContent = '收起';
-          }
-        });
-        container.parentNode!.appendChild(btn);
-      }
+      requestAnimationFrame(() => {
+        if (container.scrollHeight > container.clientHeight + 2) {
+          const btn = document.createElement('button');
+          btn.className = 'filter-tag filter-more-btn';
+          btn.textContent = '更多';
+          btn.addEventListener('click', () => {
+            if (container.classList.contains('expanded')) {
+              container.classList.remove('expanded');
+              btn.textContent = '更多';
+            } else {
+              container.classList.add('expanded');
+              btn.textContent = '收起';
+            }
+          });
+          // 插入到 filter-group-header 中，紧跟在 filter-tags 后面
+          const header = container.closest('.filter-group-header');
+          if (header) header.appendChild(btn);
+        }
+      });
     }
 
     async function loadItems() {
