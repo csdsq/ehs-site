@@ -6,7 +6,13 @@ import Layout from '../../layouts/Layout.astro';
   <div class="page-layout">
     <div class="container">
       <h1 class="page-title">GB国家标准</h1>
-      <p class="page-description">收录国家及地方法律、行政法规，覆盖消防安全、职业健康、环境保护等EHS核心领域。</p>
+      <p class="page-description">收录国家及地方GB国家标准，覆盖消防安全、职业健康、环境保护等EHS核心领域。</p>
+
+      <!-- ICS分类筛选 -->
+      <div class="filter-bar" id="reg-filter-bar">
+        <span class="filter-label">类型</span>
+        <!-- 动态生成 -->
+      </div>
 
       <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
         <input type="text" id="reg-search" placeholder="搜索GB国家标准名称、来源..." />
@@ -27,6 +33,7 @@ import Layout from '../../layouts/Layout.astro';
     let filteredItems: any[] = [];
     let currentPage = 1;
     let pageSize = 10;
+    let activeCategory = '';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
@@ -122,6 +129,54 @@ import Layout from '../../layouts/Layout.astro';
       renderPagination();
     }
 
+    function buildCategoryFilters() {
+      const categories = [...new Set(allItems.map(i => i.category).filter(Boolean))] as string[];
+      const filterBar = document.getElementById('reg-filter-bar')!;
+      // Keep the label
+      const label = filterBar.querySelector('.filter-label')!;
+      filterBar.innerHTML = '';
+      filterBar.appendChild(label);
+      
+      // All button
+      const allBtn = document.createElement('button');
+      allBtn.className = 'filter-btn active';
+      allBtn.textContent = '全部';
+      allBtn.addEventListener('click', () => {
+        activeCategory = '';
+        filterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        applyFilters();
+      });
+      filterBar.appendChild(allBtn);
+
+      for (const cat of categories.sort()) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.textContent = cat;
+        btn.addEventListener('click', () => {
+          activeCategory = cat;
+          filterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilters();
+        });
+        filterBar.appendChild(btn);
+      }
+    }
+
+    function applyFilters() {
+      const q = (document.getElementById('reg-search') as HTMLInputElement).value.trim().toLowerCase();
+      filteredItems = allItems.filter(item => {
+        if (activeCategory && item.category !== activeCategory) return false;
+        if (q) {
+          const text = `${item.title ?? ''} ${item.source ?? ''} ${item.category ?? ''} ${item.standardNo ?? ''}`.toLowerCase();
+          if (!text.includes(q)) return false;
+        }
+        return true;
+      });
+      currentPage = 1;
+      updateView();
+    }
+
     async function loadItems() {
       try {
         const res = await fetch(`${API}/regulations?pagination[pageSize]=200&sort=publishDate:desc`);
@@ -130,27 +185,15 @@ import Layout from '../../layouts/Layout.astro';
         filteredItems = [...allItems];
         const total = json.meta?.pagination?.total ?? 0;
         document.getElementById('reg-count')!.textContent = `共 ${total} 项`;
+        buildCategoryFilters();
         updateView();
       } catch (e) {
         document.getElementById('reg-list')!.innerHTML = '<div class="empty">加载失败</div>';
       }
     }
 
-    function doSearch() {
-      const q = (document.getElementById('reg-search') as HTMLInputElement).value.trim().toLowerCase();
-      if (!q) { filteredItems = [...allItems]; } else {
-        filteredItems = allItems.filter(item =>
-          (item.title ?? '').toLowerCase().includes(q) ||
-          (item.source ?? '').toLowerCase().includes(q) ||
-          (item.category ?? '').toLowerCase().includes(q)
-        );
-      }
-      currentPage = 1;
-      updateView();
-    }
-
-    document.getElementById('reg-search')!.addEventListener('input', doSearch);
-    document.getElementById('reg-search-btn')!.addEventListener('click', doSearch);
+    document.getElementById('reg-search')!.addEventListener('input', applyFilters);
+    document.getElementById('reg-search-btn')!.addEventListener('click', applyFilters);
 
     loadItems();
   </script>
