@@ -151,9 +151,17 @@ import Layout from '../layouts/Layout.astro';
       }
 
 // 事故类型：标题下小字显示发生日期、事故类型、事故等级
+      const accSeverityMap: Record<string,string> = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
+      const accCategoryMap: Record<string,string> = {
+        suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
+        traffic: '交通', poisoning_suffocation: '中毒窒息',
+        falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害',
+        other_injury: '其他伤害', fire: '火灾', explosion: '爆炸',
+        electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺'
+      };
       if (type === 'accident') {
-        const category = item.category || '';
-        const severity = item.severity || '';
+        const category = accCategoryMap[item.category] || item.category || '';
+        const severity = accSeverityMap[item.severity] || item.severity || '';
         const date = item.date || '';
         return `
           <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
