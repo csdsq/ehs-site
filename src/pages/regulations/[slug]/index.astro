@@ -46,38 +46,65 @@ const { slug } = Astro.params;
             item.standardNo ? `<span>${item.standardNo}</span>` : '',
           ].filter(Boolean).join(' ');
 
-          // 解析 content 中的结构化数据
-          let extraInfo = {};
-          try {
-            if (item.content && item.content.trim().startsWith('{')) {
-              extraInfo = JSON.parse(item.content);
-            }
-          } catch(e) {}
+          // 清理 description：去掉末尾的"状态：xxx"
+          let intro = (item.description || '').replace(/\s*状态[：:].+$/, '').trim();
 
-          // 标准简介
-          const intro = item.description || extraInfo.intro || '';
+          // 解析 content 中的结构化数据（支持 JSON 和 HTML 表格两种格式）
+          let infoRows = [];
+          const content = (item.content || '').trim();
 
-          // 法规信息表
-          const infoRows = [
-            ['英文名称', extraInfo.englishName],
-            ['标准编号', item.standardNo],
-            ['替代情况', extraInfo.replacement],
-            ['中标分类', extraInfo.ccs],
-            ['ICS分类', extraInfo.ics],
-            ['发布部门', item.source || extraInfo.publisher],
-            ['发布日期', item.publishDate],
-            ['实施日期', item.effectiveDate],
-            ['提出单位', extraInfo.proposingOrg],
-            ['归口单位', extraInfo.managingOrg],
-            ['页数', extraInfo.pages],
-            ['出版社', extraInfo.publishingHouse],
-          ].filter(([,v]) => v);
+          if (content.startsWith('{')) {
+            // JSON 格式（旧批次数据）
+            try {
+              const extraInfo = JSON.parse(content);
+              if (extraInfo.intro && !intro) intro = extraInfo.intro;
+              infoRows = [
+                ['英文名称', extraInfo.englishName],
+                ['标准编号', item.standardNo],
+                ['替代情况', extraInfo.replacement],
+                ['中标分类', extraInfo.ccs],
+                ['ICS分类', extraInfo.ics],
+                ['发布部门', item.source || extraInfo.publisher],
+                ['发布日期', item.publishDate],
+                ['实施日期', item.effectiveDate],
+                ['提出单位', extraInfo.proposingOrg],
+                ['归口单位', extraInfo.managingOrg],
+                ['页数', extraInfo.pages],
+                ['出版社', extraInfo.publishingHouse],
+              ].filter(([,v]) => v);
+            } catch(e) {}
+          } else if (content.includes('<table')) {
+            // HTML 表格格式（工标网数据）：解析 th/td 提取键值对
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, 'text/html');
+            const rows = doc.querySelectorAll('tr');
+            rows.forEach(row => {
+              const th = row.querySelector('th');
+              const td = row.querySelector('td');
+              if (th && td) {
+                const key = th.textContent.trim();
+                let val = td.textContent.trim();
+                // 清理值中的状态信息（如"2027-05-01 即将实施 距离实施日期还有330天"→"2027-05-01"）
+                val = val.replace(/\s*即将实施.*$/, '').replace(/\s*现行.*$/, '').replace(/\s*废止.*$/, '').trim();
+                // 清理"状态"行
+                if (key === '标准状态') return;
+                if (key && val) infoRows.push([key, val]);
+              }
+            });
+          }
 
-          // 标准查阅链接：优先 hcno 构造 openstd 信息页，否则用 downloadUrl
-          const hcno = extraInfo.hcno || '';
-          const stdPageUrl = hcno
-            ? `https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=${hcno}`
-            : (item.downloadUrl || '');
+          // 如果 content 解析不到信息，从字段兜底
+          if (infoRows.length === 0) {
+            infoRows = [
+              ['标准编号', item.standardNo],
+              ['发布部门', item.source],
+              ['发布日期', item.publishDate],
+              ['实施日期', item.effectiveDate],
+            ].filter(([,v]) => v);
+          }
+
+          // 标准查阅链接
+          const stdPageUrl = item.downloadUrl || '';
 
           document.getElementById('detail-body').innerHTML = `
             <!-- 标准简介 -->
@@ -94,21 +121,16 @@ const { slug } = Astro.params;
               <h2 class="detail-section-title">法规信息</h2>
               <div class="detail-section-content">
                 ${infoRows.length > 0
-                  ? `<table class="detail-info-table">
-                       ${infoRows.map(([k,v]) => `<tr><td class="info-label">${k}</td><td class="info-value">${v}</td></tr>`).join('')}
-                     </table>`
+                  ? `<div class="info-card-list">
+                       ${infoRows.map(([k,v]) => `
+                         <div class="info-card-item">
+                           <span class="info-card-label">${k}</span>
+                           <span class="info-card-value">${v}</span>
+                         </div>`).join('')}
+                     </div>`
                   : '<p class="detail-empty">暂无法规信息</p>'}
               </div>
             </section>
-
-            <!-- 全文内容 -->
-            ${(item.content && !item.content.trim().startsWith('{')) ? `
-            <section class="detail-section">
-              <h2 class="detail-section-title">法规全文</h2>
-              <div class="detail-section-content">
-                <div class="detail-text">${item.content}</div>
-              </div>
-            </section>` : ''}
 
             <!-- 标准查阅 -->
             ${stdPageUrl ? `

@@ -1020,6 +1020,36 @@ a:hover { color: var(--primary); }
   padding: 10px 0;
 }
 
+/* Info card list (non-table, GB标准详情页) */
+.info-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 14px;
+}
+.info-card-item {
+  display: flex;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  line-height: 1.7;
+}
+.info-card-item:last-child {
+  border-bottom: none;
+}
+.info-card-label {
+  flex-shrink: 0;
+  width: 120px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.info-card-value {
+  color: var(--text);
+  flex: 1;
+  word-break: break-all;
+}
+
 /* Expand/collapse */
 .detail-expand {
   margin-top: 16px;
