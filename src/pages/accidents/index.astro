@@ -75,18 +75,18 @@ import Layout from '../../layouts/Layout.astro';
         const sevLabel = severityMap[item.severity] || '';
         const catLabel = categoryMap[item.category] || item.category || '';
         const provLabel = item.province || '';
-        const tags = [];
-        if (sevLabel) tags.push(`<span class="acc-tag ${getSeverityClass(item.severity)}">${sevLabel}</span>`);
-        if (catLabel) tags.push(`<span class="acc-tag acc-tag-cat">${catLabel}</span>`);
-        if (provLabel) tags.push(`<span class="acc-tag acc-tag-prov">${provLabel}</span>`);
+        const metaItems = [];
+        if (item.date) metaItems.push(`<span>发生日期：${item.date}</span>`);
+        if (provLabel) metaItems.push(`<span class="acc-tag acc-tag-prov">${provLabel}</span>`);
+        if (sevLabel) metaItems.push(`<span class="acc-tag ${getSeverityClass(item.severity)}">${sevLabel}</span>`);
+        if (catLabel) metaItems.push(`<span class="acc-tag acc-tag-cat">${catLabel}</span>`);
+        if (item.casualties) metaItems.push(`<span>伤亡：${item.casualties}</span>`);
         return `
           <a href="/accidents/${item.slug || item.id}" class="list-item">
             <div class="list-item-body">
               <div class="list-item-title">${item.title}</div>
               <div class="list-item-meta-row">
-                ${tags.join('')}
-                ${item.date ? `<span>发生日期：${item.date}</span>` : ''}
-                ${item.casualties ? `<span>伤亡：${item.casualties}</span>` : ''}
+                ${metaItems.join('')}
               </div>
             </div>
             <div class="list-item-arrow">&rarr;</div>
