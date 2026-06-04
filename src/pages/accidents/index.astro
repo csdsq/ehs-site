@@ -6,40 +6,39 @@ import Layout from '../../layouts/Layout.astro';
   <div class="page-layout">
     <div class="container">
       <h1 class="page-title">事故报告</h1>
-      <p class="page-description">收录各类生产安全事故调查报告，分析事故原因，总结经验教训，预防同类事故。</p>
 
-      <!-- 筛选标签区 -->
-      <div class="filter-bar">
-        <div class="filter-group">
-          <span class="filter-label">等级</span>
-          <div class="filter-tags" id="severity-filters">
-            <button class="filter-tag active" data-value="">全部</button>
-            <button class="filter-tag" data-value="major">特别重大</button>
-            <button class="filter-tag" data-value="larger">较大</button>
-            <button class="filter-tag" data-value="general">一般</button>
-            <button class="filter-tag" data-value="minor">较小</button>
-          </div>
+      <!-- 筛选下拉区 -->
+      <div class="filter-select-bar">
+        <div class="filter-select-group">
+          <label class="filter-select-label" for="severity-select">等级</label>
+          <select id="severity-select" class="filter-select">
+            <option value="">全部</option>
+            <option value="major">特别重大</option>
+            <option value="larger">较大</option>
+            <option value="general">一般</option>
+            <option value="minor">较小</option>
+          </select>
         </div>
-        <div class="filter-group">
-          <span class="filter-label">类别</span>
-          <div class="filter-tags" id="category-filters">
-            <button class="filter-tag active" data-value="">全部</button>
-            <button class="filter-tag" data-value="suffocation">窒息</button>
-            <button class="filter-tag" data-value="fall">高处坠落</button>
-            <button class="filter-tag" data-value="gas_leak">燃气泄漏</button>
-            <button class="filter-tag" data-value="traffic">交通</button>
-            <button class="filter-tag" data-value="poisoning_suffocation">中毒窒息</button>
-            <button class="filter-tag" data-value="collapse">坍塌</button>
-            <button class="filter-tag" data-value="fire">火灾</button>
-            <button class="filter-tag" data-value="other">其他</button>
-          </div>
+        <div class="filter-select-group">
+          <label class="filter-select-label" for="category-select">类别</label>
+          <select id="category-select" class="filter-select">
+            <option value="">全部</option>
+            <option value="suffocation">窒息</option>
+            <option value="fall">高处坠落</option>
+            <option value="gas_leak">燃气泄漏</option>
+            <option value="traffic">交通</option>
+            <option value="poisoning_suffocation">中毒窒息</option>
+            <option value="collapse">坍塌</option>
+            <option value="fire">火灾</option>
+            <option value="other">其他</option>
+          </select>
         </div>
-        <div class="filter-group">
-          <span class="filter-label">省份</span>
-          <div class="filter-tags" id="province-filters">
-            <button class="filter-tag active" data-value="">全部</button>
+        <div class="filter-select-group">
+          <label class="filter-select-label" for="province-select">省份</label>
+          <select id="province-select" class="filter-select">
+            <option value="">全部</option>
             <!-- 动态生成 -->
-          </div>
+          </select>
         </div>
       </div>
 
@@ -171,16 +170,12 @@ import Layout from '../../layouts/Layout.astro';
 
     function buildProvinceFilters() {
       const provinces = [...new Set(allItems.map(i => i.province).filter(Boolean))].sort();
-      const container = document.getElementById('province-filters')!;
-      const allBtn = container.querySelector('[data-value=""]')!;
-      container.innerHTML = '';
-      container.appendChild(allBtn);
+      const select = document.getElementById('province-select') as HTMLSelectElement;
       for (const prov of provinces) {
-        const btn = document.createElement('button');
-        btn.className = 'filter-tag';
-        btn.dataset.value = prov;
-        btn.textContent = prov;
-        container.appendChild(btn);
+        const opt = document.createElement('option');
+        opt.value = prov;
+        opt.textContent = prov;
+        select.appendChild(opt);
       }
     }
 
@@ -228,26 +223,17 @@ import Layout from '../../layouts/Layout.astro';
       }
     }
 
-    // 筛选标签事件
-    document.getElementById('severity-filters')!.addEventListener('click', (e: any) => {
-      if (!e.target.classList.contains('filter-tag')) return;
-      document.querySelectorAll('#severity-filters .filter-tag').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-      activeSeverity = e.target.dataset.value || '';
+    // 筛选下拉事件
+    document.getElementById('severity-select')!.addEventListener('change', (e: any) => {
+      activeSeverity = e.target.value;
       applyFilters();
     });
-    document.getElementById('category-filters')!.addEventListener('click', (e: any) => {
-      if (!e.target.classList.contains('filter-tag')) return;
-      document.querySelectorAll('#category-filters .filter-tag').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-      activeCategory = e.target.dataset.value || '';
+    document.getElementById('category-select')!.addEventListener('change', (e: any) => {
+      activeCategory = e.target.value;
       applyFilters();
     });
-    document.getElementById('province-filters')!.addEventListener('click', (e: any) => {
-      if (!e.target.classList.contains('filter-tag')) return;
-      document.querySelectorAll('#province-filters .filter-tag').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-      activeProvince = e.target.dataset.value || '';
+    document.getElementById('province-select')!.addEventListener('change', (e: any) => {
+      activeProvince = e.target.value;
       applyFilters();
     });
 

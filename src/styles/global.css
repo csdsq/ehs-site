@@ -485,6 +485,51 @@ a:hover { color: var(--primary); }
 }
 
 /* ===== Standard Tags ===== */
+
+/* ===== Filter Select Bar (下拉筛选) ===== */
+.filter-select-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.filter-select-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.filter-select-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.filter-select {
+  padding: 5px 28px 5px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  appearance: auto;
+  min-width: 80px;
+}
+.filter-select:hover {
+  border-color: var(--primary-light);
+}
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+@media (max-width: 768px) {
+  .filter-select-bar { gap: 10px; }
+  .filter-select { min-width: 70px; font-size: 12px; }
+}
+
 .std-tag {
   display: inline-block;
   font-size: 11px;
