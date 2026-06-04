@@ -149,6 +149,8 @@ import Layout from '../../layouts/Layout.astro';
         );
       }
       currentPage = 1;
+      const countEl = document.getElementById('ai-count')!;
+      countEl.textContent = `共 ${filteredItems.length} 个应用${q ? `（筛选自 ${allItems.length} 个）` : ''}`;
       updateView();
     }
 
