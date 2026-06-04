@@ -1261,3 +1261,20 @@ a:hover { color: var(--primary); }
     text-align: center;
   }
 }
+
+/* ===== Accident Tags ===== */
+.acc-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-right: 6px;
+  font-weight: 500;
+  line-height: 18px;
+}
+.acc-sev-major { background: #7f1d1d; color: #fff; }
+.acc-sev-larger { background: #ef4444; color: #fff; }
+.acc-sev-general { background: #fee2e2; color: #dc2626; }
+.acc-sev-minor { background: #fef3c7; color: #d97706; }
+.acc-tag-cat { background: #ede9fe; color: #7c3aed; }
+.acc-tag-prov { background: #f3f4f6; color: #6b7280; }

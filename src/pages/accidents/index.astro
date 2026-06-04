@@ -8,7 +8,42 @@ import Layout from '../../layouts/Layout.astro';
       <h1 class="page-title">事故报告</h1>
       <p class="page-description">收录各类生产安全事故调查报告，分析事故原因，总结经验教训，预防同类事故。</p>
 
-      <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+      <!-- 筛选标签区 -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">等级</span>
+          <div class="filter-tags" id="severity-filters">
+            <button class="filter-tag active" data-value="">全部</button>
+            <button class="filter-tag" data-value="major">特别重大</button>
+            <button class="filter-tag" data-value="larger">较大</button>
+            <button class="filter-tag" data-value="general">一般</button>
+            <button class="filter-tag" data-value="minor">较小</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">类别</span>
+          <div class="filter-tags" id="category-filters">
+            <button class="filter-tag active" data-value="">全部</button>
+            <button class="filter-tag" data-value="suffocation">窒息</button>
+            <button class="filter-tag" data-value="fall">高处坠落</button>
+            <button class="filter-tag" data-value="gas_leak">燃气泄漏</button>
+            <button class="filter-tag" data-value="traffic">交通</button>
+            <button class="filter-tag" data-value="poisoning_suffocation">中毒窒息</button>
+            <button class="filter-tag" data-value="collapse">坍塌</button>
+            <button class="filter-tag" data-value="fire">火灾</button>
+            <button class="filter-tag" data-value="other">其他</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">省份</span>
+          <div class="filter-tags" id="province-filters">
+            <button class="filter-tag active" data-value="">全部</button>
+            <!-- 动态生成 -->
+          </div>
+        </div>
+      </div>
+
+      <div class="search-box" style="margin-bottom: 24px; max-width: 100%;">
         <input type="text" id="acc-search" placeholder="搜索事故名称、地点..." />
         <button id="acc-search-btn">搜索</button>
       </div>
@@ -23,29 +58,55 @@ import Layout from '../../layouts/Layout.astro';
 
   <script>
     const API = 'https://api.hser.ren';
+    const severityMap: Record<string,string> = { major: '特别重大', larger: '较大', general: '一般', minor: '较小' };
+    const categoryMap: Record<string,string> = {
+      suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
+      traffic: '交通', poisoning_suffocation: '中毒窒息',
+      falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害',
+      other_injury: '其他伤害', fire: '火灾', explosion: '爆炸',
+      electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺'
+    };
+
     let allItems: any[] = [];
     let filteredItems: any[] = [];
     let currentPage = 1;
     let pageSize = 10;
+    let activeSeverity = '';
+    let activeCategory = '';
+    let activeProvince = '';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
+
+    function getSeverityClass(sev: string): string {
+      const map: Record<string,string> = { major: 'acc-sev-major', larger: 'acc-sev-larger', general: 'acc-sev-general', minor: 'acc-sev-minor' };
+      return map[sev] || 'acc-sev-general';
+    }
 
     function renderItems(items: any[]) {
       const el = document.getElementById('acc-list');
       if (!el) return;
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
-      el.innerHTML = items.map(item => `
-        <a href="/accidents/${item.slug || item.id}" class="list-item">
-          <div class="list-item-body">
-            <div class="list-item-title">${item.title}</div>
-            <div class="list-item-meta-row">
-              ${item.date ? `<span>发生日期：${item.date}</span>` : ''}
-              ${item.category ? `<span>事故类型：${item.category}</span>` : ''}
-              ${item.severity ? `<span>事故等级：${item.severity}</span>` : ''}
+      el.innerHTML = items.map(item => {
+        const sevLabel = severityMap[item.severity] || '';
+        const catLabel = categoryMap[item.category] || item.category || '';
+        const provLabel = item.province || '';
+        const tags = [];
+        if (sevLabel) tags.push(`<span class="acc-tag ${getSeverityClass(item.severity)}">${sevLabel}</span>`);
+        if (catLabel) tags.push(`<span class="acc-tag acc-tag-cat">${catLabel}</span>`);
+        if (provLabel) tags.push(`<span class="acc-tag acc-tag-prov">${provLabel}</span>`);
+        return `
+          <a href="/accidents/${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${item.title}</div>
+              <div class="list-item-meta-row">
+                ${tags.join('')}
+                ${item.date ? `<span>发生日期：${item.date}</span>` : ''}
+                ${item.casualties ? `<span>伤亡：${item.casualties}</span>` : ''}
+              </div>
             </div>
-          </div>
-          <div class="list-item-arrow">&rarr;</div>
-        </a>`).join('');
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }).join('');
     }
 
     function renderPagination() {
@@ -108,10 +169,48 @@ import Layout from '../../layouts/Layout.astro';
       });
     }
 
+    function buildProvinceFilters() {
+      const provinces = [...new Set(allItems.map(i => i.province).filter(Boolean))].sort();
+      const container = document.getElementById('province-filters')!;
+      const allBtn = container.querySelector('[data-value=""]')!;
+      container.innerHTML = '';
+      container.appendChild(allBtn);
+      for (const prov of provinces) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-tag';
+        btn.dataset.value = prov;
+        btn.textContent = prov;
+        container.appendChild(btn);
+      }
+    }
+
+    function applyFilters() {
+      const q = (document.getElementById('acc-search') as HTMLInputElement).value.trim().toLowerCase();
+      filteredItems = allItems.filter(item => {
+        if (activeSeverity && item.severity !== activeSeverity) return false;
+        if (activeCategory) {
+          // "其他"类别匹配所有非主要类别
+          if (activeCategory === 'other') {
+            const mainCats = ['suffocation', 'fall', 'gas_leak', 'traffic', 'poisoning_suffocation', 'collapse', 'fire'];
+            if (mainCats.includes(item.category)) return false;
+          } else if (item.category !== activeCategory) return false;
+        }
+        if (activeProvince && item.province !== activeProvince) return false;
+        if (q) {
+          const text = `${item.title ?? ''} ${item.location ?? ''} ${item.province ?? ''} ${item.casualties ?? ''}`.toLowerCase();
+          if (!text.includes(q)) return false;
+        }
+        return true;
+      });
+      currentPage = 1;
+      updateView();
+    }
+
     function updateView() {
       const start = (currentPage - 1) * pageSize;
       renderItems(filteredItems.slice(start, start + pageSize));
       renderPagination();
+      document.getElementById('acc-count')!.textContent = `共 ${filteredItems.length} 项${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 项）` : ''}`;
     }
 
     async function loadItems() {
@@ -122,27 +221,38 @@ import Layout from '../../layouts/Layout.astro';
         filteredItems = [...allItems];
         const total = json.meta?.pagination?.total ?? 0;
         document.getElementById('acc-count')!.textContent = `共 ${total} 项`;
+        buildProvinceFilters();
         updateView();
       } catch (e) {
         document.getElementById('acc-list')!.innerHTML = '<div class="empty">加载失败</div>';
       }
     }
 
-    function doSearch() {
-      const q = (document.getElementById('acc-search') as HTMLInputElement).value.trim().toLowerCase();
-      if (!q) { filteredItems = [...allItems]; } else {
-        filteredItems = allItems.filter(item =>
-          (item.title ?? '').toLowerCase().includes(q) ||
-          (item.location ?? '').toLowerCase().includes(q) ||
-          (item.severity ?? '').toLowerCase().includes(q)
-        );
-      }
-      currentPage = 1;
-      updateView();
-    }
+    // 筛选标签事件
+    document.getElementById('severity-filters')!.addEventListener('click', (e: any) => {
+      if (!e.target.classList.contains('filter-tag')) return;
+      document.querySelectorAll('#severity-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeSeverity = e.target.dataset.value || '';
+      applyFilters();
+    });
+    document.getElementById('category-filters')!.addEventListener('click', (e: any) => {
+      if (!e.target.classList.contains('filter-tag')) return;
+      document.querySelectorAll('#category-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeCategory = e.target.dataset.value || '';
+      applyFilters();
+    });
+    document.getElementById('province-filters')!.addEventListener('click', (e: any) => {
+      if (!e.target.classList.contains('filter-tag')) return;
+      document.querySelectorAll('#province-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeProvince = e.target.dataset.value || '';
+      applyFilters();
+    });
 
-    document.getElementById('acc-search')!.addEventListener('input', doSearch);
-    document.getElementById('acc-search-btn')!.addEventListener('click', doSearch);
+    document.getElementById('acc-search')!.addEventListener('input', applyFilters);
+    document.getElementById('acc-search-btn')!.addEventListener('click', applyFilters);
 
     loadItems();
   </script>
