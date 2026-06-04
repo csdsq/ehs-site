@@ -7,44 +7,24 @@ import Layout from '../../layouts/Layout.astro';
     <div class="container">
       <h1 class="page-title">事故报告</h1>
 
-      <!-- 筛选下拉区 -->
-      <div class="filter-select-bar">
-        <div class="filter-select-group">
-          <label class="filter-select-label" for="severity-select">等级</label>
-          <select id="severity-select" class="filter-select">
-            <option value="">全部</option>
-            <option value="major">特大</option>
-            <option value="larger">重大</option>
-            <option value="general">较大</option>
-            <option value="minor">一般</option>
-          </select>
+      <!-- 筛选区 -->
+      <div class="filter-bar filter-bar-row" id="acc-filter-row1">
+        <!-- 事故等级 -->
+        <div class="filter-group">
+          <span class="filter-label">等级</span>
+          <div class="filter-tags" id="severity-tags"></div>
         </div>
-        <div class="filter-select-group">
-          <label class="filter-select-label" for="category-select">类别</label>
-          <select id="category-select" class="filter-select">
-            <option value="">全部</option>
-            <option value="fire">火灾</option>
-            <option value="explosion">爆炸</option>
-            <option value="collapse">坍塌</option>
-            <option value="fall">高处坠落</option>
-            <option value="falling_object">物体打击</option>
-            <option value="crane">起重伤害</option>
-            <option value="electric_shock">触电</option>
-            <option value="mechanical">机械伤害</option>
-            <option value="poisoning_suffocation">中毒窒息</option>
-            <option value="suffocation">窒息</option>
-            <option value="drowning">淹溺</option>
-            <option value="gas_leak">燃气泄漏</option>
-            <option value="traffic">交通</option>
-            <option value="other_injury">其他伤害</option>
-          </select>
+        <!-- 省份 -->
+        <div class="filter-group" id="province-group">
+          <span class="filter-label">省份</span>
+          <div class="filter-tags" id="province-tags"></div>
         </div>
-        <div class="filter-select-group">
-          <label class="filter-select-label" for="province-select">省份</label>
-          <select id="province-select" class="filter-select">
-            <option value="">全部</option>
-            <!-- 动态生成 -->
-          </select>
+      </div>
+      <div class="filter-bar" id="acc-filter-row2">
+        <!-- 事故类型 -->
+        <div class="filter-group">
+          <span class="filter-label">类型</span>
+          <div class="filter-tags" id="category-tags"></div>
         </div>
       </div>
 
@@ -174,16 +154,7 @@ import Layout from '../../layouts/Layout.astro';
       });
     }
 
-    function buildProvinceFilters() {
-      const provinces = [...new Set(allItems.map(i => i.province).filter(Boolean))].sort();
-      const select = document.getElementById('province-select') as HTMLSelectElement;
-      for (const prov of provinces) {
-        const opt = document.createElement('option');
-        opt.value = prov;
-        opt.textContent = prov;
-        select.appendChild(opt);
-      }
-    }
+
 
     function applyFilters() {
       const q = (document.getElementById('acc-search') as HTMLInputElement).value.trim().toLowerCase();
@@ -216,6 +187,8 @@ import Layout from '../../layouts/Layout.astro';
         filteredItems = [...allItems];
         const total = json.meta?.pagination?.total ?? 0;
         document.getElementById('acc-count')!.textContent = `共 ${total} 项`;
+        buildSeverityFilters();
+        buildCategoryFilters();
         buildProvinceFilters();
         updateView();
       } catch (e) {
@@ -223,19 +196,136 @@ import Layout from '../../layouts/Layout.astro';
       }
     }
 
-    // 筛选下拉事件
-    document.getElementById('severity-select')!.addEventListener('change', (e: any) => {
-      activeSeverity = e.target.value;
-      applyFilters();
-    });
-    document.getElementById('category-select')!.addEventListener('change', (e: any) => {
-      activeCategory = e.target.value;
-      applyFilters();
-    });
-    document.getElementById('province-select')!.addEventListener('change', (e: any) => {
-      activeProvince = e.target.value;
-      applyFilters();
-    });
+
+    function buildSeverityFilters() {
+      const container = document.getElementById('severity-tags')!;
+      container.innerHTML = '';
+      const levels = [
+        { value: 'major', label: '特大' },
+        { value: 'larger', label: '重大' },
+        { value: 'general', label: '较大' },
+        { value: 'minor', label: '一般' },
+      ];
+      // "全部" button
+      const allBtn = document.createElement('button');
+      allBtn.className = 'filter-tag active';
+      allBtn.textContent = '全部';
+      allBtn.addEventListener('click', () => {
+        activeSeverity = '';
+        container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        applyFilters();
+      });
+      container.appendChild(allBtn);
+      for (const lv of levels) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-tag';
+        btn.textContent = lv.label;
+        btn.addEventListener('click', () => {
+          activeSeverity = lv.value;
+          container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilters();
+        });
+        container.appendChild(btn);
+      }
+    }
+
+    function buildCategoryFilters() {
+      const container = document.getElementById('category-tags')!;
+      container.innerHTML = '';
+      const types = Object.entries(categoryMap) as [string, string][];
+      // "全部" button
+      const allBtn = document.createElement('button');
+      allBtn.className = 'filter-tag active';
+      allBtn.textContent = '全部';
+      allBtn.addEventListener('click', () => {
+        activeCategory = '';
+        container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        applyFilters();
+      });
+      container.appendChild(allBtn);
+      const MAX_VISIBLE = 8;
+      let expanded = false;
+      const allBtns: HTMLButtonElement[] = [];
+      for (const [val, label] of types) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-tag';
+        btn.textContent = label;
+        if (allBtns.length >= MAX_VISIBLE) btn.style.display = 'none';
+        btn.addEventListener('click', () => {
+          activeCategory = val;
+          container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilters();
+        });
+        container.appendChild(btn);
+        allBtns.push(btn);
+      }
+      // "更多" toggle if needed
+      if (allBtns.length > MAX_VISIBLE) {
+        const moreBtn = document.createElement('button');
+        moreBtn.className = 'filter-tag filter-more-btn';
+        moreBtn.textContent = '更多 ▼';
+        moreBtn.addEventListener('click', () => {
+          expanded = !expanded;
+          for (let i = MAX_VISIBLE; i < allBtns.length; i++) {
+            allBtns[i].style.display = expanded ? '' : 'none';
+          }
+          moreBtn.textContent = expanded ? '收起 ▲' : '更多 ▼';
+        });
+        container.appendChild(moreBtn);
+      }
+    }
+
+    function buildProvinceFilters() {
+      const container = document.getElementById('province-tags')!;
+      container.innerHTML = '';
+      const provinces = [...new Set(allItems.map(i => i.province).filter(Boolean))].sort() as string[];
+      // "全部" button
+      const allBtn = document.createElement('button');
+      allBtn.className = 'filter-tag active';
+      allBtn.textContent = '全部';
+      allBtn.addEventListener('click', () => {
+        activeProvince = '';
+        container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        applyFilters();
+      });
+      container.appendChild(allBtn);
+      const MAX_VISIBLE = 6;
+      let expanded = false;
+      const allBtns: HTMLButtonElement[] = [];
+      for (const prov of provinces) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-tag';
+        btn.textContent = prov;
+        if (allBtns.length >= MAX_VISIBLE) btn.style.display = 'none';
+        btn.addEventListener('click', () => {
+          activeProvince = prov;
+          container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilters();
+        });
+        container.appendChild(btn);
+        allBtns.push(btn);
+      }
+      // "更多" toggle if needed
+      if (allBtns.length > MAX_VISIBLE) {
+        const moreBtn = document.createElement('button');
+        moreBtn.className = 'filter-tag filter-more-btn';
+        moreBtn.textContent = '更多 ▼';
+        moreBtn.addEventListener('click', () => {
+          expanded = !expanded;
+          for (let i = MAX_VISIBLE; i < allBtns.length; i++) {
+            allBtns[i].style.display = expanded ? '' : 'none';
+          }
+          moreBtn.textContent = expanded ? '收起 ▲' : '更多 ▼';
+        });
+        container.appendChild(moreBtn);
+      }
+    }
 
     document.getElementById('acc-search')!.addEventListener('input', applyFilters);
     document.getElementById('acc-search-btn')!.addEventListener('click', applyFilters);

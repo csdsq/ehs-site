@@ -488,6 +488,13 @@ a:hover { color: var(--primary); }
   border-color: var(--primary);
 }
 
+.filter-more-btn {
+  background: transparent !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  font-weight: 500;
+}
+
 /* ===== Standard Tags ===== */
 
 /* ===== Filter Select Bar (下拉筛选) ===== */
