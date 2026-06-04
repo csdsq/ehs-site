@@ -445,6 +445,10 @@ a:hover { color: var(--primary); }
   flex-direction: column;
   gap: 12px;
 }
+.filter-bar.filter-bar-row {
+  flex-direction: row;
+  gap: 20px;
+}
 .filter-group {
   display: flex;
   align-items: center;
