@@ -6,9 +6,33 @@ import Layout from '../../layouts/Layout.astro';
   <div class="page-layout">
     <div class="container">
       <h1 class="page-title">资料文档</h1>
-      <p class="page-description">PPT、PDF、Word模板、检查表等EHS实用资料，即下即用。</p>
 
-      <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+      <!-- 筛选标签区 -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">专业</span>
+          <div class="filter-tags" id="specialty-filters">
+            <button class="filter-tag active" data-value="">全部</button>
+            <button class="filter-tag" data-value="安全">安全</button>
+            <button class="filter-tag" data-value="环保">环保</button>
+            <button class="filter-tag" data-value="职业健康">职业健康</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">行业</span>
+          <div class="filter-tags" id="industry-filters">
+            <button class="filter-tag active" data-value="">全部</button>
+            <button class="filter-tag" data-value="交通">交通</button>
+            <button class="filter-tag" data-value="化工">化工</button>
+            <button class="filter-tag" data-value="工贸">工贸</button>
+            <button class="filter-tag" data-value="建筑">建筑</button>
+            <button class="filter-tag" data-value="矿山">矿山</button>
+            <button class="filter-tag" data-value="通用">通用</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-box" style="margin-bottom: 24px; max-width: 100%;">
         <input type="text" id="doc-search" placeholder="搜索资料名称..." />
         <button id="doc-search-btn">搜索</button>
       </div>
@@ -23,10 +47,52 @@ import Layout from '../../layouts/Layout.astro';
 
   <script>
     const API = 'https://api.hser.ren';
+
+    // 根据标题和描述推导专业标签
+    const specialtyRules: [string[], string][] = [
+      [['消防','火灾','防爆','安全培训','安全检查','隐患','事故','应急','安全规章','安全操作','安全生产','四防','监控'], '安全'],
+      [['环保','环境','生态','污染','废物','排污','水污染','大气','噪声','土壤'], '环保'],
+      [['职业健康','职业卫生','职业病','防护用品','工效学','辐射'], '职业健康'],
+    ];
+
+    // 根据标题和描述推导行业标签
+    const industryRules: [string[], string][] = [
+      [['道路','运输','旅客','货运','客运','车辆','危险货物','动态监控'], '交通'],
+      [['化工','危化','危险化学品','储运'], '化工'],
+      [['工贸','冶金','机械','轻工','纺织','建材'], '工贸'],
+      [['建筑','施工','工地','脚手架','坍塌'], '建筑'],
+      [['矿山','煤矿','非煤矿','矿井'], '矿山'],
+    ];
+
+    function extractSpecialty(title: string, desc: string): string {
+      const text = title + desc;
+      for (const [keywords, label] of specialtyRules) {
+        if (keywords.some(k => text.includes(k))) return label;
+      }
+      return '安全'; // 默认归安全
+    }
+
+    function extractIndustry(title: string, desc: string): string {
+      const text = title + desc;
+      for (const [keywords, label] of industryRules) {
+        if (keywords.some(k => text.includes(k))) return label;
+      }
+      return '通用'; // 默认归通用
+    }
+
+    // 专业标签颜色映射
+    const specialtyColorMap: Record<string,string> = {
+      '安全': 'safety',
+      '环保': 'environment',
+      '职业健康': 'occupational_health',
+    };
+
     let allItems: any[] = [];
     let filteredItems: any[] = [];
     let currentPage = 1;
     let pageSize = 10;
+    let activeSpecialty = '';
+    let activeIndustry = '';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
@@ -35,17 +101,24 @@ import Layout from '../../layouts/Layout.astro';
       if (!el) return;
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无资料</div>'; return; }
       el.innerHTML = items.map(item => {
-        const fileType = item.fileType ? item.fileType.toUpperCase() : '';
-        const fileSize = item.fileSize || '';
-        const typeSizeTag = (fileType || fileSize) ? ` <span class="list-item-no">(${[fileType, fileSize].filter(Boolean).join('，')})</span>` : '';
-        const category = item.category || '';
+        const spec = extractSpecialty(item.title || '', item.description || '');
+        const ind = extractIndustry(item.title || '', item.description || '');
+        const specClass = specialtyColorMap[spec] || 'safety';
+        const tagParts = [];
+        tagParts.push(`<span class="std-tag std-tag-${specClass}">${spec}</span>`);
+        if (ind !== '通用') tagParts.push(`<span class="std-tag std-tag-region">${ind}</span>`);
+
+        const metaParts = [];
+        if (item.fileType) metaParts.push(`<span>${item.fileType.toUpperCase()}</span>`);
+        if (item.publishDate) metaParts.push(`<span>${item.publishDate}</span>`);
+
         return `
         <a href="/documents/${item.slug || item.id}" class="list-item">
           <div class="list-item-body">
-            <div class="list-item-title">${item.title}${typeSizeTag}</div>
+            <div class="list-item-title">${item.title}</div>
             <div class="list-item-meta-row">
-              ${category ? `<span>分类：${category}</span>` : ''}
-              ${item.publishDate ? `<span>${item.publishDate}</span>` : ''}
+              ${tagParts.join('')}
+              ${metaParts.join('')}
             </div>
           </div>
           <div class="list-item-arrow">&rarr;</div>
@@ -113,10 +186,32 @@ import Layout from '../../layouts/Layout.astro';
       });
     }
 
+    function applyFilters() {
+      const q = (document.getElementById('doc-search') as HTMLInputElement).value.trim().toLowerCase();
+      filteredItems = allItems.filter(item => {
+        if (activeSpecialty) {
+          const spec = extractSpecialty(item.title || '', item.description || '');
+          if (spec !== activeSpecialty) return false;
+        }
+        if (activeIndustry) {
+          const ind = extractIndustry(item.title || '', item.description || '');
+          if (ind !== activeIndustry) return false;
+        }
+        if (q) {
+          const text = `${item.title ?? ''} ${item.category ?? ''} ${item.fileType ?? ''}`.toLowerCase();
+          if (!text.includes(q)) return false;
+        }
+        return true;
+      });
+      currentPage = 1;
+      updateView();
+    }
+
     function updateView() {
       const start = (currentPage - 1) * pageSize;
       renderItems(filteredItems.slice(start, start + pageSize));
       renderPagination();
+      document.getElementById('doc-count')!.textContent = `共 ${filteredItems.length} 份资料${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 份）` : ''}`;
     }
 
     async function loadItems() {
@@ -133,21 +228,24 @@ import Layout from '../../layouts/Layout.astro';
       }
     }
 
-    function doSearch() {
-      const q = (document.getElementById('doc-search') as HTMLInputElement).value.trim().toLowerCase();
-      if (!q) { filteredItems = [...allItems]; } else {
-        filteredItems = allItems.filter(item =>
-          (item.title ?? '').toLowerCase().includes(q) ||
-          (item.category ?? '').toLowerCase().includes(q) ||
-          (item.fileType ?? '').toLowerCase().includes(q)
-        );
-      }
-      currentPage = 1;
-      updateView();
-    }
+    // 筛选标签事件
+    document.getElementById('specialty-filters')!.addEventListener('click', (e: any) => {
+      if (!e.target.classList.contains('filter-tag')) return;
+      document.querySelectorAll('#specialty-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeSpecialty = e.target.dataset.value || '';
+      applyFilters();
+    });
+    document.getElementById('industry-filters')!.addEventListener('click', (e: any) => {
+      if (!e.target.classList.contains('filter-tag')) return;
+      document.querySelectorAll('#industry-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeIndustry = e.target.dataset.value || '';
+      applyFilters();
+    });
 
-    document.getElementById('doc-search')!.addEventListener('input', doSearch);
-    document.getElementById('doc-search-btn')!.addEventListener('click', doSearch);
+    document.getElementById('doc-search')!.addEventListener('input', applyFilters);
+    document.getElementById('doc-search-btn')!.addEventListener('click', applyFilters);
 
     loadItems();
   </script>
