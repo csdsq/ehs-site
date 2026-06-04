@@ -19,12 +19,41 @@ import Layout from '../../layouts/Layout.astro';
           </div>
         </div>
         <div class="filter-group">
-          <span class="filter-label">级别</span>
-          <div class="filter-tags" id="region-filters">
+          <span class="filter-label">地区</span>
+          <div class="filter-tags filter-tags-collapsible" id="region-filters">
             <button class="filter-tag active" data-value="">全部</button>
             <button class="filter-tag" data-value="national">国家</button>
-            <button class="filter-tag" data-value="provincial">省</button>
-            <button class="filter-tag" data-value="municipal">市</button>
+            <button class="filter-tag" data-value="北京">北京</button>
+            <button class="filter-tag" data-value="天津">天津</button>
+            <button class="filter-tag" data-value="上海">上海</button>
+            <button class="filter-tag" data-value="重庆">重庆</button>
+            <button class="filter-tag" data-value="河北">河北</button>
+            <button class="filter-tag" data-value="山西">山西</button>
+            <button class="filter-tag" data-value="辽宁">辽宁</button>
+            <button class="filter-tag" data-value="吉林">吉林</button>
+            <button class="filter-tag" data-value="黑龙江">黑龙江</button>
+            <button class="filter-tag" data-value="江苏">江苏</button>
+            <button class="filter-tag" data-value="浙江">浙江</button>
+            <button class="filter-tag" data-value="安徽">安徽</button>
+            <button class="filter-tag" data-value="福建">福建</button>
+            <button class="filter-tag" data-value="江西">江西</button>
+            <button class="filter-tag" data-value="山东">山东</button>
+            <button class="filter-tag" data-value="河南">河南</button>
+            <button class="filter-tag" data-value="湖北">湖北</button>
+            <button class="filter-tag" data-value="湖南">湖南</button>
+            <button class="filter-tag" data-value="广东">广东</button>
+            <button class="filter-tag" data-value="海南">海南</button>
+            <button class="filter-tag" data-value="四川">四川</button>
+            <button class="filter-tag" data-value="贵州">贵州</button>
+            <button class="filter-tag" data-value="云南">云南</button>
+            <button class="filter-tag" data-value="陕西">陕西</button>
+            <button class="filter-tag" data-value="甘肃">甘肃</button>
+            <button class="filter-tag" data-value="青海">青海</button>
+            <button class="filter-tag" data-value="内蒙古">内蒙古</button>
+            <button class="filter-tag" data-value="广西">广西</button>
+            <button class="filter-tag" data-value="西藏">西藏</button>
+            <button class="filter-tag" data-value="宁夏">宁夏</button>
+            <button class="filter-tag" data-value="新疆">新疆</button>
           </div>
         </div>
       </div>
@@ -45,7 +74,31 @@ import Layout from '../../layouts/Layout.astro';
   <script>
     const API = 'https://api.hser.ren';
     const categoryMap: Record<string,string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
-    const regionMap: Record<string,string> = { national: '国家', provincial: '省', municipal: '市' };
+
+    // 直辖市映射：标题中可能出现"深圳市""广州市"等，需归到对应省/直辖市
+    const cityProvinceMap: Record<string,string> = {
+      '深圳': '广东', '广州': '广东', '珠海': '广东', '佛山': '广东', '东莞': '广东',
+      '南京': '江苏', '苏州': '江苏', '无锡': '江苏', '常州': '江苏', '南通': '江苏',
+      '成都': '四川', '绵阳': '四川', '德阳': '四川',
+      '杭州': '浙江', '宁波': '浙江', '温州': '浙江',
+      '济南': '山东', '青岛': '山东', '烟台': '山东',
+    };
+
+    function extractRegion(title: string): string {
+      if (!title) return '';
+      // 先查城市→省份映射
+      for (const [city, prov] of Object.entries(cityProvinceMap)) {
+        if (title.includes(city)) return prov;
+      }
+      // 再查省份名（含省/不含省）
+      const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江',
+        '江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南',
+        '四川','贵州','云南','陕西','甘肃','青海','内蒙古','广西','西藏','宁夏','新疆'];
+      for (const p of provinces) {
+        if (title.includes(p)) return p;
+      }
+      return '';
+    }
 
     let allItems: any[] = [];
     let filteredItems: any[] = [];
@@ -56,15 +109,20 @@ import Layout from '../../layouts/Layout.astro';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
+    function getRegionLabel(item: any): string {
+      if (item.regionLevel === 'national') return '国家';
+      const region = extractRegion(item.title);
+      return region || '地方';
+    }
+
     function renderItems(items: any[]) {
       const el = document.getElementById('std-list');
       if (!el) return;
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
       el.innerHTML = items.map(item => {
         const metaParts = [];
-        // 类别+级别标签
         const catLabel = categoryMap[item.category] || '';
-        const regLabel = regionMap[item.regionLevel] || '';
+        const regLabel = getRegionLabel(item);
         const tagParts = [];
         if (catLabel) tagParts.push(`<span class="std-tag std-tag-${item.category}">${catLabel}</span>`);
         if (regLabel) tagParts.push(`<span class="std-tag std-tag-region">${regLabel}</span>`);
@@ -152,7 +210,16 @@ import Layout from '../../layouts/Layout.astro';
       const q = (document.getElementById('std-search') as HTMLInputElement).value.trim().toLowerCase();
       filteredItems = allItems.filter(item => {
         if (activeCategory && item.category !== activeCategory) return false;
-        if (activeRegion && item.regionLevel !== activeRegion) return false;
+        // 地区筛选
+        if (activeRegion) {
+          if (activeRegion === 'national') {
+            if (item.regionLevel !== 'national') return false;
+          } else {
+            // 选了某个省/直辖市：匹配标题包含该省名，或城市归到该省
+            const region = extractRegion(item.title);
+            if (region !== activeRegion) return false;
+          }
+        }
         if (q) {
           const text = `${item.title ?? ''} ${item.standardNo ?? ''} ${item.category ?? ''} ${item.source ?? ''}`.toLowerCase();
           if (!text.includes(q)) return false;
@@ -167,8 +234,29 @@ import Layout from '../../layouts/Layout.astro';
       const start = (currentPage - 1) * pageSize;
       renderItems(filteredItems.slice(start, start + pageSize));
       renderPagination();
-      // 更新计数
       document.getElementById('std-count')!.textContent = `共 ${filteredItems.length} 项${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 项）` : ''}`;
+    }
+
+    // 展开/收起地区筛选
+    function initRegionCollapsible() {
+      const container = document.getElementById('region-filters');
+      if (!container) return;
+      // 检测是否溢出
+      if (container.scrollHeight > container.clientHeight) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-tag filter-more-btn';
+        btn.textContent = '更多';
+        btn.addEventListener('click', () => {
+          if (container.classList.contains('expanded')) {
+            container.classList.remove('expanded');
+            btn.textContent = '更多';
+          } else {
+            container.classList.add('expanded');
+            btn.textContent = '收起';
+          }
+        });
+        container.parentNode!.appendChild(btn);
+      }
     }
 
     async function loadItems() {
@@ -180,6 +268,7 @@ import Layout from '../../layouts/Layout.astro';
         const total = json.meta?.pagination?.total ?? 0;
         document.getElementById('std-count')!.textContent = `共 ${total} 项`;
         updateView();
+        initRegionCollapsible();
       } catch (e) {
         document.getElementById('std-list')!.innerHTML = '<div class="empty">加载失败</div>';
       }
