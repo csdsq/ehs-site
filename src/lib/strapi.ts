@@ -43,7 +43,7 @@ export interface AiApp {
 }
 export const getAiApps = () => fetchStrapi<AiApp>('ai-apps');
 
-// GB国家标准
+// 国标地标
 export interface Regulation {
   id: number;
   title: string;
