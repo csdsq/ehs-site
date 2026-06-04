@@ -87,7 +87,7 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     function getRegionLabel(item: any): string {
-      if (isNational(item)) return '国标';
+      if (isNational(item)) return '全国';
       const region = extractRegion(item);
       return region ? `地标·${region}` : '地标';
     }
@@ -249,7 +249,7 @@ import Layout from '../../layouts/Layout.astro';
         '四川', '贵州', '云南', '陕西',
         '广西', '甘肃', '青海', '内蒙古', '西藏', '宁夏', '新疆'
       ];
-      const labels: Record<string, string> = { '': '全部', 'national': '国标' };
+      const labels: Record<string, string> = { '': '全部', 'national': '全国' };
 
       for (const p of provinces) {
         const btn = document.createElement('button');
