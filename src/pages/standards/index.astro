@@ -48,7 +48,12 @@ import Layout from '../../layouts/Layout.astro';
             <button class="filter-tag" data-value="云南">云南</button>
             <button class="filter-tag" data-value="陕西">陕西</button>
             <button class="filter-tag" data-value="广西">广西</button>
-            <button class="filter-tag" data-value="__other">其他</button>
+            <button class="filter-tag" data-value="甘肃">甘肃</button>
+            <button class="filter-tag" data-value="青海">青海</button>
+            <button class="filter-tag" data-value="内蒙古">内蒙古</button>
+            <button class="filter-tag" data-value="西藏">西藏</button>
+            <button class="filter-tag" data-value="宁夏">宁夏</button>
+            <button class="filter-tag" data-value="新疆">新疆</button>
           </div>
         </div>
       </div>
@@ -209,9 +214,6 @@ import Layout from '../../layouts/Layout.astro';
         if (activeRegion) {
           if (activeRegion === 'national') {
             if (item.regionLevel !== 'national') return false;
-          } else if (activeRegion === '__other') {
-            const region = extractRegion(item.title);
-            if (!otherRegions.includes(region)) return false;
           } else {
             const region = extractRegion(item.title);
             if (region !== activeRegion) return false;
