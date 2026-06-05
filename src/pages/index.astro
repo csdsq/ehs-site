@@ -243,7 +243,7 @@ import Layout from '../layouts/Layout.astro';
     }
 
     async function loadAll() {
-      const [aiApps, regs, standards, accs, videos, docs, msgs] = await Promise.all([
+      const [aiApps, regs, standards, accs, videos, docs, msgs, allStandards] = await Promise.all([
         safeFetch(`${API}/ai-apps?pagination[pageSize]=6&sort=createdAt:desc`),
         safeFetch(`${API}/regulations?pagination[pageSize]=6&sort=publishDate:desc`),
         safeFetch(`${API}/standards?pagination[pageSize]=6&sort=publishDate:desc`),
@@ -251,6 +251,7 @@ import Layout from '../layouts/Layout.astro';
         safeFetch(`${API}/videos?pagination[pageSize]=3&sort=createdAt:desc`),
         safeFetch(`${API}/documents?pagination[pageSize]=6&sort=createdAt:desc`),
         safeFetch(`${API}/messages?pagination[pageSize]=6&sort=publishDate:desc`),
+        safeFetch(`${API}/standards?pagination[pageSize]=200&fields[0]=standardNo`),
       ]);
 
       // Stats
@@ -265,11 +266,12 @@ import Layout from '../layouts/Layout.astro';
       const regStdItems = (regs?.data ?? []).filter(isStandard);
       const stdStdItems = (standards?.data ?? []).filter(isStandard);
       const allStdItems = [...regStdItems, ...stdStdItems].sort((a: any, b: any) => (b.publishDate || '').localeCompare(a.publishDate || ''));
-      const totalStd = (regs?.meta?.pagination?.total ?? 0) + (standards?.data ?? []).filter(isStandard).length;
+      const totalStdInStandards = (allStandards?.data ?? []).filter(isStandard).length;
+      const totalStd = (regs?.meta?.pagination?.total ?? 0) + totalStdInStandards;
 
       // 法规文件：standards 中编号不以标准前缀开头的
       const regItems = (standards?.data ?? []).filter(isRegulation);
-      const totalReg = (standards?.data ?? []).filter(isRegulation).length;
+      const totalReg = (allStandards?.data ?? []).filter(isRegulation).length;
 
       s('stat-laws', { meta: { pagination: { total: totalStd } } });
       s('stat-standards', { meta: { pagination: { total: totalReg } } });
