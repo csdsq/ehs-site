@@ -104,7 +104,7 @@ import Layout from '../../layouts/Layout.astro';
         if (item.category) tagParts.push(`<span class="std-tag std-tag-category">${item.category}</span>`);
         if (regLabel) tagParts.push(`<span class="std-tag std-tag-region">${regLabel}</span>`);
         return `
-        <a href="/regulations/${item.slug || item.id}" class="list-item">
+        <a href="/standards/${item.slug || item.id}" class="list-item">
           <div class="list-item-body">
             <div class="list-item-title">${item.title}${item.standardNo ? ` <span class="list-item-no">${item.standardNo}</span>` : ''}</div>
             <div class="list-item-meta-row">
@@ -305,7 +305,7 @@ import Layout from '../../layouts/Layout.astro';
 
     async function loadItems() {
       try {
-        const res = await fetch(`${API}/regulations?pagination[pageSize]=200&sort=publishDate:desc`);
+        const res = await fetch(`${API}/standards?pagination[pageSize]=200&sort=publishDate:desc`);
         const json = await res.json();
         allItems = json.data ?? [];
         filteredItems = [...allItems];

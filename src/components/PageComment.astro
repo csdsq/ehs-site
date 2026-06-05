@@ -243,7 +243,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   }
   .comment-submit-btn {
     padding: 8px 24px;
-    background: var(--primary);
+    background: var(--primary-light);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -251,7 +251,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     cursor: pointer;
     transition: var(--transition);
   }
-  .comment-submit-btn:hover { opacity: 0.9; }
+  .comment-submit-btn:hover { background: var(--primary); }
   .comment-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .comment-cancel-btn {
     padding: 8px 16px;
