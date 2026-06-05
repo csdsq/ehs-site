@@ -55,18 +55,18 @@ import Layout from '../../layouts/Layout.astro';
     };
 
     // 判断标准级别类型
-    function getStdType(item: any): string {
+    function getStdType(item: any): string | null {
       const no = (item.standardNo || '').toUpperCase().trim();
       if (/^GB/.test(no)) return 'gb';           // 国标
       if (/^DB/.test(no)) return 'local';          // 地标
       if (/^(AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/.test(no)) return 'industry'; // 行标
       if (item.regionLevel === 'provincial' || item.regionLevel === 'municipal') return 'local';
-      return 'gb';
+      return null; // 无法识别为标准类型，属于法规文件，不显示在国标地标页
     }
 
-    function getStdTypeLabel(type: string): string {
+    function getStdTypeLabel(type: string | null): string {
       const map: Record<string, string> = { gb: '国标', industry: '行标', local: '地标' };
-      return map[type] || '国标';
+      return map[type || ''] || '其他';
     }
 
     // 判断是否为国标（非地方标准）
@@ -378,7 +378,9 @@ import Layout from '../../layouts/Layout.astro';
         const [regJson, stdJson] = await Promise.all([regRes.json(), stdRes.json()]);
         const regItems = (regJson.data ?? []).map((item: any) => ({ ...item, _source: 'regulations' }));
         const stdItems = (stdJson.data ?? []).map((item: any) => ({ ...item, _source: 'standards' }));
-        allItems = [...regItems, ...stdItems];
+        const merged = [...regItems, ...stdItems];
+        // 过滤掉无法识别为标准类型的法规文件
+        allItems = merged.filter((item: any) => getStdType(item) !== null);
 
         // 按发布日期降序排序
         allItems.sort((a: any, b: any) => {
