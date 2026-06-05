@@ -1,5 +1,6 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
+import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
@@ -118,4 +119,5 @@ const { slug } = Astro.params;
     }
     loadDetail();
   </script>
+<PageComment pageUrl={`/documents/${slug}`} />
 </Layout>
