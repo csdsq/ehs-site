@@ -4,7 +4,7 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    const res = await fetch('http://strapi.hser.ren:1337/api/standards?pagination[pageSize]=100&fields[0]=slug');
+    const res = await fetch('https://api.hser.ren/regulations?pagination[pageSize]=100&fields[0]=slug');
     const json = await res.json();
     const items = json.data || [];
     return items.map(item => ({ params: { slug: item.slug || String(item.id) } }));
@@ -23,24 +23,22 @@ const { slug } = Astro.params;
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
+    <PageComment pageUrl={`/regulations/${slug}`} />
   </div>
 
   <script define:vars={{ slug }}>
     const API = 'https://api.hser.ren';
     async function loadDetail() {
       try {
-        let res = await fetch(`${API}/standards?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        let res = await fetch(`${API}/regulations?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
         let json = await res.json();
         let item = json.data?.[0];
         if (!item) {
-          res = await fetch(`${API}/standards/${slug}`);
+          res = await fetch(`${API}/regulations/${slug}`);
           json = await res.json();
           item = json.data;
         }
         if (item) {
-          document.getElementById('detail-title').textContent = item.title || '';
-          document.getElementById('detail-tags').innerHTML = tagHtml;
-
           // 类别+级别标签映射
           const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
           const regionMap = { national: '国家', provincial: '省', municipal: '市' };
@@ -50,6 +48,9 @@ const { slug } = Astro.params;
             catLabel ? `<span class="std-tag std-tag-${item.category}">${catLabel}</span>` : '',
             regLabel ? `<span class="std-tag std-tag-region">${regLabel}</span>` : '',
           ].filter(Boolean).join(' ');
+
+          document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-tags').innerHTML = tagHtml;
 
           // 基本信息：发文机构、发文号、实施日期（没有实施日期就写发文日期）
           const infoRows = [
@@ -106,5 +107,4 @@ const { slug } = Astro.params;
     }
     loadDetail();
   </script>
-<PageComment pageUrl={`/regulations/${slug}`} />
 </Layout>

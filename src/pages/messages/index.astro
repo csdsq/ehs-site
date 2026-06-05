@@ -21,17 +21,6 @@ import Layout from '../../layouts/Layout.astro';
         <form id="msg-form" class="msg-form">
           <div class="msg-form-row" style="display:flex;gap:12px;">
             <input type="text" id="msg-author" placeholder="你的昵称（选填）" class="msg-input" style="flex:1;" />
-            <select id="msg-category" class="msg-input" style="flex:1;">
-              <option value="">选择分类</option>
-              <option value="咨询">咨询</option>
-              <option value="建议">建议</option>
-              <option value="求助">求助</option>
-              <option value="分享">分享</option>
-              <option value="其他">其他</option>
-            </select>
-          </div>
-          <div class="msg-form-row" style="display:flex;gap:12px;">
-            <input type="text" id="msg-title" placeholder="留言标题" class="msg-input" style="flex:1;" />
             <input type="email" id="msg-email" placeholder="你的邮箱（必填，用于接收回复通知）" class="msg-input" style="flex:1;" />
           </div>
           <div class="msg-form-row">
@@ -82,7 +71,7 @@ import Layout from '../../layouts/Layout.astro';
         <a href="/messages/${item.slug || item.id}" class="list-item">
           <div class="list-item-body">
             <div class="list-item-title">${item.title || "无标题"}</div>
-            <div class="list-item-desc">${item.author || "游客"} · ${item.category || ""} · ${item.publishDate || ""} ${hasReply ? "· 已回复" : ""}</div>
+            <div class="list-item-desc">${item.author || "游客"} · ${item.publishDate || ""} ${hasReply ? "· 已回复" : ""}</div>
           </div>
           <div class="list-item-arrow">&rarr;</div>
         </a>`;
@@ -106,13 +95,11 @@ import Layout from '../../layouts/Layout.astro';
     document.getElementById('msg-form')!.addEventListener('submit', async (e) => {
       e.preventDefault();
       const author = (document.getElementById('msg-author') as HTMLInputElement).value.trim() || '游客';
-      const category = (document.getElementById('msg-category') as HTMLSelectElement).value;
-      const title = (document.getElementById('msg-title') as HTMLInputElement).value.trim();
       const content = (document.getElementById('msg-content') as HTMLTextAreaElement).value.trim();
       const email = (document.getElementById('msg-email') as HTMLInputElement).value.trim();
 
-      if (!title || !content) {
-        document.getElementById('msg-status')!.textContent = '请填写标题和内容';
+      if (!content) {
+        document.getElementById('msg-status')!.textContent = '请填写留言内容';
         document.getElementById('msg-status')!.style.color = '#e63946';
         return;
       }
@@ -126,15 +113,13 @@ import Layout from '../../layouts/Layout.astro';
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            data: { author, email, category, title, content, slug: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), publishDate: new Date().toISOString().split('T')[0] }
+            data: { author, email, title: content.slice(0, 50), content, slug: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), publishDate: new Date().toISOString().split('T')[0] }
           })
         });
         if (res.ok) {
           document.getElementById('msg-status')!.textContent = '留言提交成功！';
           document.getElementById('msg-status')!.style.color = '#2a9d8f';
-          (document.getElementById('msg-title') as HTMLInputElement).value = '';
           (document.getElementById('msg-content') as HTMLTextAreaElement).value = '';
-          (document.getElementById('msg-category') as HTMLSelectElement).value = '';
           (document.getElementById('msg-email') as HTMLInputElement).value = '';
           setTimeout(() => loadItems(), 500);
         } else {

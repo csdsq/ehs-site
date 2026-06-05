@@ -4,7 +4,7 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    const res = await fetch('http://strapi.hser.ren:1337/api/accidents?pagination[pageSize]=100&fields[0]=slug');
+    const res = await fetch('https://api.hser.ren/accidents?pagination[pageSize]=100&fields[0]=slug');
     const json = await res.json();
     const items = json.data || [];
     return items.map(item => ({ params: { slug: item.slug || String(item.id) } }));
@@ -23,6 +23,7 @@ const { slug } = Astro.params;
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
+    <PageComment pageUrl={`/accidents/${slug}`} />
   </div>
 
   <script define:vars={{ slug }}>
@@ -146,5 +147,4 @@ const { slug } = Astro.params;
     }
     loadDetail();
   </script>
-<PageComment pageUrl={`/accidents/${slug}`} />
 </Layout>
