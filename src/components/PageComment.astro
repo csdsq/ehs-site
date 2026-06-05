@@ -44,19 +44,34 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     return div.innerHTML;
   }
 
+  function getAvatarColor(name) {
+    const colors = ['#5B8FF9','#5AD8A6','#F6BD16','#E86452','#6DC8EC','#945FB9','#FF9845','#1E9493','#FF99C3','#269A99'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  }
+
   function renderComment(item, depth = 0) {
     const isAdmin = item.isAdminReply;
     const adminBadge = isAdmin ? '<span class="comment-admin-badge">管理员</span>' : '';
     const replyClass = depth > 0 ? 'comment-item-reply' : '';
+    const initial = escapeHtml(item.nickname).charAt(0).toUpperCase();
+    const avatarColor = getAvatarColor(item.nickname);
+    const avatarHtml = `<div class="comment-avatar" style="background:${avatarColor}">${initial}</div>`;
     return `
       <div class="comment-item ${replyClass}" data-id="${item.id}">
-        <div class="comment-header">
-          <span class="comment-nickname">${escapeHtml(item.nickname)}${adminBadge}</span>
-          <span class="comment-time">${timeAgo(item.createdAt)}</span>
-        </div>
-        <div class="comment-content">${escapeHtml(item.content)}</div>
-        <div class="comment-actions">
-          <button class="comment-reply-btn" data-id="${item.id}" data-nickname="${escapeHtml(item.nickname)}">回复</button>
+        <div class="comment-main">
+          ${avatarHtml}
+          <div class="comment-body">
+            <div class="comment-header">
+              <span class="comment-nickname">${escapeHtml(item.nickname)}${adminBadge}</span>
+              <span class="comment-time">${timeAgo(item.createdAt)}</span>
+            </div>
+            <div class="comment-content">${escapeHtml(item.content)}</div>
+            <div class="comment-actions">
+              <button class="comment-reply-btn" data-id="${item.id}" data-nickname="${escapeHtml(item.nickname)}">💬 回复</button>
+            </div>
+          </div>
         </div>
         <div class="comment-reply-form" id="reply-form-${item.id}" style="display:none;">
           <input type="text" class="comment-input reply-nickname" placeholder="昵称（必填）" />
@@ -202,7 +217,11 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     border-top: 1px solid var(--border);
   }
   .comment-form {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
+    padding: 20px;
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
   }
   .comment-form-row {
     display: flex;
@@ -215,7 +234,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     border: 1px solid var(--border);
     border-radius: 8px;
     font-size: 14px;
-    background: var(--card);
+    background: var(--bg);
     color: var(--text);
     transition: var(--transition);
   }
@@ -235,7 +254,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     font-size: 14px;
     resize: vertical;
     min-height: 80px;
-    background: var(--card);
+    background: var(--bg);
     color: var(--text);
     font-family: inherit;
     margin-bottom: 12px;
@@ -243,16 +262,17 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   }
   .comment-submit-btn {
     padding: 8px 24px;
-    background: var(--primary-light);
+    background: var(--primary);
     color: #fff;
     border: none;
     border-radius: 8px;
     font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
   }
-  .comment-submit-btn:hover { background: var(--primary); }
-  .comment-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .comment-submit-btn:hover { background: var(--primary-light); transform: translateY(-1px); }
+  .comment-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
   .comment-cancel-btn {
     padding: 8px 16px;
     background: transparent;
@@ -262,6 +282,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     font-size: 13px;
     cursor: pointer;
     margin-left: 8px;
+    transition: var(--transition);
   }
   .comment-cancel-btn:hover { border-color: var(--text-secondary); }
 
@@ -269,22 +290,53 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   .comment-item {
     padding: 16px;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    margin-bottom: 12px;
+    border-radius: 12px;
+    margin-bottom: 14px;
     background: var(--card);
-    transition: var(--transition);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
-  .comment-item:hover { border-color: var(--primary-light); }
+  .comment-item:hover { 
+    border-color: var(--primary-light); 
+    box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+  }
   .comment-item-reply {
-    margin-left: 32px;
+    margin-left: 40px;
     margin-top: -4px;
     background: rgba(37, 99, 235, 0.02);
+    border-color: rgba(37, 99, 235, 0.1);
+  }
+  .comment-main {
+    display: flex;
+    gap: 12px;
+  }
+  .comment-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 600;
+    font-size: 15px;
+    flex-shrink: 0;
+    letter-spacing: -0.5px;
+  }
+  .comment-item-reply .comment-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+  .comment-body {
+    flex: 1;
+    min-width: 0;
   }
   .comment-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .comment-nickname {
     font-weight: 600;
@@ -294,7 +346,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   .comment-admin-badge {
     display: inline-block;
     padding: 1px 8px;
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
     color: #fff;
     font-size: 11px;
     border-radius: 10px;
@@ -304,6 +356,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   .comment-time {
     font-size: 12px;
     color: var(--text-light);
+    margin-left: auto;
   }
   .comment-content {
     font-size: 14px;
@@ -311,23 +364,29 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     color: var(--text);
     white-space: pre-wrap;
     word-break: break-word;
+    margin-bottom: 4px;
   }
   .comment-actions {
-    margin-top: 8px;
+    margin-top: 4px;
   }
   .comment-reply-btn {
     background: none;
     border: none;
-    color: var(--primary);
+    color: var(--text-light);
     font-size: 13px;
     cursor: pointer;
-    padding: 2px 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: var(--transition);
   }
-  .comment-reply-btn:hover { text-decoration: underline; }
+  .comment-reply-btn:hover { color: var(--primary); background: rgba(37,99,235,0.06); }
   .comment-reply-form {
     margin-top: 12px;
-    padding-top: 12px;
+    margin-left: 48px;
+    padding: 14px;
     border-top: 1px dashed var(--border);
+    background: rgba(37,99,235,0.01);
+    border-radius: 8px;
   }
   .comment-reply-form .comment-input,
   .comment-reply-form .comment-textarea {
@@ -347,18 +406,37 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   }
   .comment-empty, .comment-loading {
     text-align: center;
-    padding: 24px;
+    padding: 32px;
     color: var(--text-light);
     font-size: 14px;
   }
 
   @media (max-width: 768px) {
+    .comment-form {
+      padding: 14px;
+    }
     .comment-form-row {
       flex-direction: column;
       gap: 8px;
     }
+    .comment-item {
+      padding: 12px;
+    }
     .comment-item-reply {
-      margin-left: 16px;
+      margin-left: 20px;
+    }
+    .comment-reply-form {
+      margin-left: 20px;
+    }
+    .comment-avatar {
+      width: 32px;
+      height: 32px;
+      font-size: 14px;
+    }
+    .comment-item-reply .comment-avatar {
+      width: 26px;
+      height: 26px;
+      font-size: 12px;
     }
   }
 </style>
