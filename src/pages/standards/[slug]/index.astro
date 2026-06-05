@@ -4,12 +4,26 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    const res = await fetch('https://api.hser.ren/standards?pagination[pageSize]=100&fields[0]=slug');
-    const json = await res.json();
-    const items = json.data || [];
-    return items.map(item => ({
-      params: { slug: item.slug || String(item.id) }
-    }));
+    // 从两个集合获取所有 slug
+    const [regRes, stdRes] = await Promise.all([
+      fetch('https://api.hser.ren/regulations?pagination[pageSize]=200&fields[0]=slug'),
+      fetch('https://api.hser.ren/standards?pagination[pageSize]=200&fields[0]=slug')
+    ]);
+    const [regJson, stdJson] = await Promise.all([regRes.json(), stdRes.json()]);
+    const regItems = regJson.data || [];
+    const stdItems = stdJson.data || [];
+    const allItems = [...regItems, ...stdItems];
+    // 用 Set 去重
+    const slugSet = new Set<string>();
+    const paths: { params: { slug: string } }[] = [];
+    for (const item of allItems) {
+      const s = item.slug || String(item.id);
+      if (!slugSet.has(s)) {
+        slugSet.add(s);
+        paths.push({ params: { slug: s } });
+      }
+    }
+    return paths;
   } catch (e) {
     return [];
   }
@@ -23,7 +37,7 @@ const { slug } = Astro.params;
       <a href="/">首页</a> / <a href="/standards/">国标地标</a> / 详情
     </div>
     <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
-    <div class="detail-meta-flat" id="detail-meta"></div>
+    <div id="detail-tags" style="margin-bottom: 16px;"></div>
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
@@ -32,23 +46,46 @@ const { slug } = Astro.params;
 
   <script define:vars={{ slug }}>
     const API = 'https://api.hser.ren';
+
+    const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+    const regionLevelMap = { national: '国家', provincial: '省', municipal: '市' };
+
+    function getStdTypeLabel(item) {
+      const no = (item.standardNo || '').toUpperCase().trim();
+      if (/^GB/.test(no)) return '国标';
+      if (/^DB/.test(no)) return '地标';
+      if (/^(AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/.test(no)) return '行标';
+      if (item.regionLevel === 'provincial' || item.regionLevel === 'municipal') return '地标';
+      return '国标';
+    }
+
     async function loadDetail() {
       try {
-        let res = await fetch(`${API}/standards?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
-        let json = await res.json();
-        let item = json.data?.[0];
-        if (!item) {
-          res = await fetch(`${API}/standards/${slug}`);
-          json = await res.json();
-          item = json.data;
+        // 先从 standards 查，再从 regulations 查
+        let item = null;
+        for (const endpoint of ['standards', 'regulations']) {
+          const res = await fetch(`${API}/${endpoint}?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+          const json = await res.json();
+          if (json.data?.[0]) {
+            item = json.data[0];
+            break;
+          }
         }
+
         if (item) {
-          document.getElementById('detail-title').textContent = item.title || '';
-          document.getElementById('detail-meta').innerHTML = [
-            item.standardNo ? `<span>${item.standardNo}</span>` : '',
+          const stdTypeLabel = getStdTypeLabel(item);
+          const catLabel = categoryMap[item.category] || '';
+          const regLevelLabel = regionLevelMap[item.regionLevel] || '';
+          const tagHtml = [
+            `<span class="std-tag std-tag-type">${stdTypeLabel}</span>`,
+            catLabel ? `<span class="std-tag std-tag-${item.category}">${catLabel}</span>` : '',
+            regLevelLabel ? `<span class="std-tag std-tag-region">${regLevelLabel}</span>` : '',
           ].filter(Boolean).join(' ');
 
-          // 清理 description：去掉末尾的"状态：xxx"
+          document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-tags').innerHTML = tagHtml;
+
+          // 标准简介（从 description 提取）
           let intro = (item.description || '').replace(/\s*状态[：:].+$/, '').trim();
 
           // 解析 content 中的结构化数据（支持 JSON 和 HTML 表格两种格式）
@@ -56,7 +93,6 @@ const { slug } = Astro.params;
           const content = (item.content || '').trim();
 
           if (content.startsWith('{')) {
-            // JSON 格式（旧批次数据）
             try {
               const extraInfo = JSON.parse(content);
               if (extraInfo.intro && !intro) intro = extraInfo.intro;
@@ -76,7 +112,6 @@ const { slug } = Astro.params;
               ].filter(([,v]) => v);
             } catch(e) {}
           } else if (content.includes('<table')) {
-            // HTML 表格格式（工标网数据）：解析 th/td 提取键值对
             const parser = new DOMParser();
             const doc = parser.parseFromString(content, 'text/html');
             const rows = doc.querySelectorAll('tr');
@@ -86,9 +121,7 @@ const { slug } = Astro.params;
               if (th && td) {
                 const key = th.textContent.trim();
                 let val = td.textContent.trim();
-                // 清理值中的状态信息（如"2027-05-01 即将实施 距离实施日期还有330天"→"2027-05-01"）
                 val = val.replace(/\s*即将实施.*$/, '').replace(/\s*现行.*$/, '').replace(/\s*废止.*$/, '').trim();
-                // 清理"状态"行
                 if (key === '标准状态') return;
                 if (key && val) infoRows.push([key, val]);
               }
@@ -106,7 +139,7 @@ const { slug } = Astro.params;
           }
 
           // 标准查阅链接
-          const stdPageUrl = item.downloadUrl || '';
+          const stdPageUrl = item.downloadUrl || item.sourceUrl || '';
 
           document.getElementById('detail-body').innerHTML = `
             <!-- 标准简介 -->
@@ -149,7 +182,7 @@ const { slug } = Astro.params;
             </section>` : ''}
           `;
         } else {
-          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该法规</div>';
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该标准</div>';
         }
       } catch (e) {
         document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';

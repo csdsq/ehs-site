@@ -33,6 +33,7 @@ import Layout from '../../layouts/Layout.astro';
     let pageSize = 10;
     let activeCategory = '';
     let activeRegion = '';
+    let activeStdType = '';  // 级别筛选：gb/industry/local
 
     // 地方标准编号前缀→省份映射 (DB## = 地方标准)
     const dbCodeProvinceMap: Record<string, string> = {
@@ -53,26 +54,33 @@ import Layout from '../../layouts/Layout.astro';
       '济南': '山东', '青岛': '山东', '烟台': '山东',
     };
 
+    // 判断标准级别类型
+    function getStdType(item: any): string {
+      const no = (item.standardNo || '').toUpperCase().trim();
+      if (/^GB/.test(no)) return 'gb';           // 国标
+      if (/^DB/.test(no)) return 'local';          // 地标
+      if (/^(AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/.test(no)) return 'industry'; // 行标
+      if (item.regionLevel === 'provincial' || item.regionLevel === 'municipal') return 'local';
+      return 'gb';
+    }
+
+    function getStdTypeLabel(type: string): string {
+      const map: Record<string, string> = { gb: '国标', industry: '行标', local: '地标' };
+      return map[type] || '国标';
+    }
+
     // 判断是否为国标（非地方标准）
     function isNational(item: any): boolean {
-      const no = (item.standardNo || '').toUpperCase().trim();
-      // GB, GB/T, GB/Z, JT, HJ, AQ, WS, MT, YB, SL, DL, HG, SH 等均为国标/行业标准
-      if (/^(GB|JT|HJ|AQ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|DL|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB)/.test(no)) return true;
-      // DB## 为地方标准
-      if (/^DB/.test(no)) return false;
-      // 默认当国标
-      return true;
+      return getStdType(item) !== 'local';
     }
 
     // 从标准编号或标题中提取地区
     function extractRegion(item: any): string {
-      // 优先从标准编号提取（DB##格式）
       const no = (item.standardNo || '').toUpperCase().trim();
       const dbMatch = no.match(/^DB(\d{2})/);
       if (dbMatch && dbCodeProvinceMap[dbMatch[1]]) {
         return dbCodeProvinceMap[dbMatch[1]];
       }
-      // 其次从标题提取
       const title = item.title || '';
       for (const [city, prov] of Object.entries(cityProvinceMap)) {
         if (title.includes(city)) return prov;
@@ -87,9 +95,17 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     function getRegionLabel(item: any): string {
-      if (isNational(item)) return '全国';
-      const region = extractRegion(item);
-      return region ? `地标·${region}` : '地标';
+      const stdType = getStdType(item);
+      if (stdType === 'local') {
+        const region = extractRegion(item);
+        return region ? `地标·${region}` : '地标';
+      }
+      return getStdTypeLabel(stdType);
+    }
+
+    // 获取详情页链接
+    function getDetailLink(item: any): string {
+      return `/standards/${item.slug || item.id}`;
     }
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
@@ -100,11 +116,16 @@ import Layout from '../../layouts/Layout.astro';
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
       el.innerHTML = items.map(item => {
         const regLabel = getRegionLabel(item);
+        const stdType = getStdType(item);
         const tagParts = [];
-        if (item.category) tagParts.push(`<span class="std-tag std-tag-category">${item.category}</span>`);
-        if (regLabel) tagParts.push(`<span class="std-tag std-tag-region">${regLabel}</span>`);
+        tagParts.push(`<span class="std-tag std-tag-type-${stdType}">${getStdTypeLabel(stdType)}</span>`);
+        if (item.category) {
+          const catMap: Record<string, string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+          tagParts.push(`<span class="std-tag std-tag-category">${catMap[item.category] || item.category}</span>`);
+        }
+        if (stdType === 'local') tagParts.push(`<span class="std-tag std-tag-region">${regLabel}</span>`);
         return `
-        <a href="/standards/${item.slug || item.id}" class="list-item">
+        <a href="${getDetailLink(item)}" class="list-item">
           <div class="list-item-body">
             <div class="list-item-title">${item.title}${item.standardNo ? ` <span class="list-item-no">${item.standardNo}</span>` : ''}</div>
             <div class="list-item-meta-row">
@@ -195,11 +216,40 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     function buildFilters() {
-      const categories = [...new Set(allItems.map(i => i.category).filter(Boolean))] as string[];
       const filterBar = document.getElementById('reg-filter-bar')!;
       filterBar.innerHTML = '';
 
+      // 级别筛选：国标/行标/地标
+      const stdTypeGroup = document.createElement('div');
+      stdTypeGroup.className = 'filter-group';
+
+      const stdTypeLabel = document.createElement('span');
+      stdTypeLabel.className = 'filter-label';
+      stdTypeLabel.textContent = '级别';
+      stdTypeGroup.appendChild(stdTypeLabel);
+
+      const stdTypeTags = document.createElement('div');
+      stdTypeTags.className = 'filter-tags';
+      stdTypeTags.id = 'stdtype-tags';
+
+      const stdTypeOptions = [
+        { value: '', label: '全部' },
+        { value: 'gb', label: '国标' },
+        { value: 'industry', label: '行标' },
+        { value: 'local', label: '地标' },
+      ];
+      for (const opt of stdTypeOptions) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-tag' + (opt.value === '' ? ' active' : '');
+        btn.textContent = opt.label;
+        btn.dataset.value = opt.value;
+        stdTypeTags.appendChild(btn);
+      }
+      stdTypeGroup.appendChild(stdTypeTags);
+      filterBar.appendChild(stdTypeGroup);
+
       // 类型筛选
+      const categories = [...new Set(allItems.map(i => i.category).filter(Boolean))] as string[];
       const catGroup = document.createElement('div');
       catGroup.className = 'filter-group';
 
@@ -218,10 +268,11 @@ import Layout from '../../layouts/Layout.astro';
       allBtn.dataset.value = '';
       catTags.appendChild(allBtn);
 
+      const catNameMap: Record<string, string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
       for (const cat of categories.sort()) {
         const btn = document.createElement('button');
         btn.className = 'filter-tag';
-        btn.textContent = cat;
+        btn.textContent = catNameMap[cat] || cat;
         btn.dataset.value = cat;
         catTags.appendChild(btn);
       }
@@ -261,6 +312,15 @@ import Layout from '../../layouts/Layout.astro';
       regGroup.appendChild(regTags);
       filterBar.appendChild(regGroup);
 
+      // 事件委托 - 级别筛选
+      stdTypeTags.addEventListener('click', (e: any) => {
+        if (!e.target.classList.contains('filter-tag')) return;
+        stdTypeTags.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        activeStdType = e.target.dataset.value || '';
+        applyFilters();
+      });
+
       // 事件委托 - 类型筛选
       catTags.addEventListener('click', (e: any) => {
         if (!e.target.classList.contains('filter-tag')) return;
@@ -283,7 +343,11 @@ import Layout from '../../layouts/Layout.astro';
     function applyFilters() {
       const q = (document.getElementById('reg-search') as HTMLInputElement).value.trim().toLowerCase();
       filteredItems = allItems.filter(item => {
+        // 级别筛选
+        if (activeStdType && getStdType(item) !== activeStdType) return false;
+        // 类型筛选
         if (activeCategory && item.category !== activeCategory) return false;
+        // 地区筛选
         if (activeRegion) {
           if (activeRegion === 'national') {
             if (!isNational(item)) return false;
@@ -293,6 +357,7 @@ import Layout from '../../layouts/Layout.astro';
             if (region !== activeRegion) return false;
           }
         }
+        // 搜索
         if (q) {
           const text = `${item.title ?? ''} ${item.source ?? ''} ${item.category ?? ''} ${item.standardNo ?? ''}`.toLowerCase();
           if (!text.includes(q)) return false;
@@ -305,11 +370,25 @@ import Layout from '../../layouts/Layout.astro';
 
     async function loadItems() {
       try {
-        const res = await fetch(`${API}/standards?pagination[pageSize]=200&sort=publishDate:desc`);
-        const json = await res.json();
-        allItems = json.data ?? [];
+        // 同时从 regulations（GB国标）和 standards（行标/地标）拉取数据
+        const [regRes, stdRes] = await Promise.all([
+          fetch(`${API}/regulations?pagination[pageSize]=200&sort=publishDate:desc`),
+          fetch(`${API}/standards?pagination[pageSize]=200&sort=publishDate:desc`)
+        ]);
+        const [regJson, stdJson] = await Promise.all([regRes.json(), stdRes.json()]);
+        const regItems = (regJson.data ?? []).map((item: any) => ({ ...item, _source: 'regulations' }));
+        const stdItems = (stdJson.data ?? []).map((item: any) => ({ ...item, _source: 'standards' }));
+        allItems = [...regItems, ...stdItems];
+
+        // 按发布日期降序排序
+        allItems.sort((a: any, b: any) => {
+          const da = a.publishDate || '';
+          const db = b.publishDate || '';
+          return db.localeCompare(da);
+        });
+
         filteredItems = [...allItems];
-        const total = json.meta?.pagination?.total ?? 0;
+        const total = allItems.length;
         document.getElementById('reg-count')!.textContent = `共 ${total} 项`;
         buildFilters();
         updateView();

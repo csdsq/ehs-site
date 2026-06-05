@@ -52,6 +52,9 @@ const { slug } = Astro.params;
           document.getElementById('detail-title').textContent = item.title || '';
           document.getElementById('detail-tags').innerHTML = tagHtml;
 
+          // 标准简介（从 description 提取）
+          let intro = (item.description || '').replace(/\s*状态[：:].+$/, '').trim();
+
           // 解析 content：支持 JSON / HTML表格 / 纯文本
           let contentInfoRows = [];
           let contentText = '';
@@ -70,7 +73,7 @@ const { slug } = Astro.params;
                 ['页数', extraInfo.pages],
                 ['出版社', extraInfo.publishingHouse],
               ].filter(([,v]) => v);
-              if (extraInfo.intro) contentText = extraInfo.intro;
+              if (extraInfo.intro && !intro) intro = extraInfo.intro;
             } catch(e) {}
           } else if (content.includes('<table')) {
             // HTML 表格格式：解析 th/td 提取键值对
@@ -104,6 +107,15 @@ const { slug } = Astro.params;
           ].filter(Boolean).filter(([,v]) => v && v !== '-');
 
           document.getElementById('detail-body').innerHTML = `
+            <!-- 标准简介 -->
+            ${intro ? `
+            <section class="detail-section">
+              <h2 class="detail-section-title">标准简介</h2>
+              <div class="detail-section-content">
+                <div class="detail-text">${intro.replace(/\n/g, '<br>')}</div>
+              </div>
+            </section>` : ''}
+
             <!-- 标准信息 -->
             <section class="detail-section">
               <h2 class="detail-section-title">标准信息</h2>
