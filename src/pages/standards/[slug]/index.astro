@@ -74,7 +74,6 @@ const { slug } = Astro.params;
               if (extraInfo.intro && !intro) intro = extraInfo.intro;
               infoRows = [
                 ['英文名称', extraInfo.englishName],
-                ['标准编号', item.standardNo],
                 ['替代情况', extraInfo.replacement],
                 ['中标分类', extraInfo.ccs],
                 ['ICS分类', extraInfo.ics],
@@ -107,11 +106,15 @@ const { slug } = Astro.params;
           // 如果 content 解析不到信息，从字段兜底
           if (infoRows.length === 0) {
             infoRows = [
-              ['标准编号', item.standardNo],
               ['发布部门', item.source],
               ['发布日期', item.publishDate],
               ['实施日期', item.effectiveDate],
             ].filter(([,v]) => v);
+          }
+
+          // 标准编号始终作为第一行
+          if (item.standardNo && !infoRows.some(([k]) => k === '标准编号' || k === '标准号')) {
+            infoRows.unshift(['标准编号', item.standardNo]);
           }
 
           // 标准查阅链接
