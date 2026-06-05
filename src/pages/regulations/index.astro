@@ -238,14 +238,10 @@ import Layout from '../../layouts/Layout.astro';
 
     async function loadItems() {
       try {
-        const res = await fetch(`${API}/standards?pagination[pageSize]=200&sort=publishDate:desc`);
+        // 法规数据现在全在 regulations 集合
+        const res = await fetch(`${API}/regulations?pagination[pageSize]=200&sort=publishDate:desc`);
         const json = await res.json();
-        // 过滤掉标准类型（GB/DB/AQ/HJ/WS等前缀），只保留法规文件
-        const stdPrefixes = /^(GB|DB|AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/i;
-        allItems = (json.data ?? []).filter((item: any) => {
-          const no = (item.standardNo || '').trim();
-          return no && !stdPrefixes.test(no);
-        });
+        allItems = json.data ?? [];
         filteredItems = [...allItems];
         const total = json.meta?.pagination?.total ?? 0;
         document.getElementById('std-count')!.textContent = `共 ${total} 项`;

@@ -4,26 +4,10 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    // 从两个集合获取所有 slug
-    const [regRes, stdRes] = await Promise.all([
-      fetch('https://api.hser.ren/regulations?pagination[pageSize]=200&fields[0]=slug'),
-      fetch('https://api.hser.ren/standards?pagination[pageSize]=200&fields[0]=slug')
-    ]);
-    const [regJson, stdJson] = await Promise.all([regRes.json(), stdRes.json()]);
-    const regItems = regJson.data || [];
-    const stdItems = stdJson.data || [];
-    const allItems = [...regItems, ...stdItems];
-    // 用 Set 去重
-    const slugSet = new Set<string>();
-    const paths: { params: { slug: string } }[] = [];
-    for (const item of allItems) {
-      const s = item.slug || String(item.id);
-      if (!slugSet.has(s)) {
-        slugSet.add(s);
-        paths.push({ params: { slug: s } });
-      }
-    }
-    return paths;
+    const res = await fetch('https://api.hser.ren/standards?pagination[pageSize]=200&fields[0]=slug');
+    const json = await res.json();
+    const items = json.data || [];
+    return items.map(item => ({ params: { slug: item.slug || String(item.id) } }));
   } catch (e) {
     return [];
   }
@@ -54,22 +38,15 @@ const { slug } = Astro.params;
       const no = (item.standardNo || '').toUpperCase().trim();
       if (/^GB/.test(no)) return '国标';
       if (/^DB/.test(no)) return '地标';
-      if (/^(AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/.test(no)) return '行标';
-      return null; // 法规文件，不应出现在此页面
+      return '行标';
     }
 
     async function loadDetail() {
       try {
-        // 先从 standards 查，再从 regulations 查
-        let item = null;
-        for (const endpoint of ['standards', 'regulations']) {
-          const res = await fetch(`${API}/${endpoint}?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
-          const json = await res.json();
-          if (json.data?.[0]) {
-            item = json.data[0];
-            break;
-          }
-        }
+        // 标准数据现在全在 standards 集合
+        const res = await fetch(`${API}/standards?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        const json = await res.json();
+        const item = json.data?.[0];
 
         if (item) {
           const stdTypeLabel = getStdTypeLabel(item);

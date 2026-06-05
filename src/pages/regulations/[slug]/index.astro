@@ -4,14 +4,9 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    // 法规数据在 standards 集合，过滤掉标准类型（GB/DB/AQ/HJ/WS等前缀）
-    const stdPrefixes = /^(GB|DB|AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/i;
-    const res = await fetch('https://api.hser.ren/standards?pagination[pageSize]=200&fields[0]=slug&fields[1]=standardNo');
+    const res = await fetch('https://api.hser.ren/regulations?pagination[pageSize]=200&fields[0]=slug');
     const json = await res.json();
-    const items = (json.data || []).filter((item: any) => {
-      const no = (item.standardNo || '').trim();
-      return no && !stdPrefixes.test(no);
-    });
+    const items = json.data || [];
     return items.map(item => ({ params: { slug: item.slug || String(item.id) } }));
   } catch (e) { return []; }
 }
@@ -35,15 +30,10 @@ const { slug } = Astro.params;
     const API = 'https://api.hser.ren';
     async function loadDetail() {
       try {
-        // 法规数据在 standards 集合
-        let res = await fetch(`${API}/standards?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
-        let json = await res.json();
-        let item = json.data?.[0];
-        if (!item) {
-          res = await fetch(`${API}/standards/${slug}`);
-          json = await res.json();
-          item = json.data;
-        }
+        // 法规数据现在全在 regulations 集合
+        const res = await fetch(`${API}/regulations?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        const json = await res.json();
+        const item = json.data?.[0];
         if (item) {
           // 类别+级别标签映射
           const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
