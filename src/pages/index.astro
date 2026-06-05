@@ -255,9 +255,25 @@ import Layout from '../layouts/Layout.astro';
 
       // Stats
       const s = (el, data) => { const e = document.getElementById(el); if (e) e.textContent = data?.meta?.pagination?.total ?? '0'; };
+
+      // 区分标准和法规：标准编号前缀为 GB/DB/AQ/HJ/WS等的是标准，其余是法规
+      const stdPrefixes = /^(GB|DB|AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/i;
+      const isStandard = (item: any) => stdPrefixes.test((item.standardNo || '').trim());
+      const isRegulation = (item: any) => { const no = (item.standardNo || '').trim(); return no && !stdPrefixes.test(no); };
+
+      // 国标地标：regulations 中的 GB + standards 中的行标/地标
+      const regStdItems = (regs?.data ?? []).filter(isStandard);
+      const stdStdItems = (standards?.data ?? []).filter(isStandard);
+      const allStdItems = [...regStdItems, ...stdStdItems].sort((a: any, b: any) => (b.publishDate || '').localeCompare(a.publishDate || ''));
+      const totalStd = (regs?.meta?.pagination?.total ?? 0) + (standards?.data ?? []).filter(isStandard).length;
+
+      // 法规文件：standards 中编号不以标准前缀开头的
+      const regItems = (standards?.data ?? []).filter(isRegulation);
+      const totalReg = (standards?.data ?? []).filter(isRegulation).length;
+
+      s('stat-laws', { meta: { pagination: { total: totalStd } } });
+      s('stat-standards', { meta: { pagination: { total: totalReg } } });
       s('stat-ai', aiApps);
-      s('stat-laws', regs);
-      s('stat-standards', standards);
       s('stat-accs', accs);
       s('stat-videos', videos);
       s('stat-docs', docs);
@@ -274,8 +290,8 @@ import Layout from '../layouts/Layout.astro';
       };
 
       renderList('home-ai-list', aiApps, '/ai-apps/');
-      renderList('home-laws-list', regs, '/standards/', 'regulation');
-      renderList('home-standards-list', standards, '/regulations/', 'standard');
+      renderList('home-laws-list', { data: allStdItems.slice(0, 6) }, '/standards/', 'regulation');
+      renderList('home-standards-list', { data: regItems.slice(0, 6) }, '/regulations/', 'standard');
       renderList('home-accs-list', accs, '/accidents/', 'accident');
       renderList('home-docs-list', docs, '/documents/', 'document');
 
