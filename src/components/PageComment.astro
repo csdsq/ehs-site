@@ -52,16 +52,11 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     return div.innerHTML;
   }
 
-  function getAvatarGradient(name) {
-    const gradients = [
-      ['#667eea','#764ba2'], ['#f093fb','#f5576c'], ['#4facfe','#00f2fe'],
-      ['#43e97b','#38f9d7'], ['#fa709a','#fee140'], ['#a18cd1','#fbc2eb'],
-      ['#fccb90','#d57eeb'], ['#e0c3fc','#8ec5fc'], ['#f5576c','#ff6a88'],
-      ['#667eea','#43e97b']
-    ];
+  function getAvatarColor(name) {
+    const colors = ['#5B8FF9','#5AD8A6','#F6BD16','#E86452','#6DC8EC','#945FB9','#FF9845','#1E9493','#FF99C3','#269A99'];
     let hash = 0;
     for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return gradients[Math.abs(hash) % gradients.length];
+    return colors[Math.abs(hash) % colors.length];
   }
 
   function renderComment(item, depth = 0) {
@@ -69,8 +64,8 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     const adminBadge = isAdmin ? '<span class="comment-admin-badge">✦ 管理员</span>' : '';
     const replyClass = depth > 0 ? 'comment-item-reply' : '';
     const initial = escapeHtml(item.nickname).charAt(0).toUpperCase();
-    const [c1, c2] = getAvatarGradient(item.nickname);
-    const avatarHtml = `<div class="comment-avatar" style="background:linear-gradient(135deg,${c1},${c2})">${initial}</div>`;
+    const avatarColor = getAvatarColor(item.nickname);
+    const avatarHtml = `<div class="comment-avatar" style="background:${avatarColor}">${initial}</div>`;
     return `
       <div class="comment-item ${replyClass}" data-id="${item.id}">
         <div class="comment-main">
@@ -307,19 +302,17 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   }
   .comment-submit-btn {
     padding: 8px 28px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    background: var(--primary-light);
     color: #fff;
     border: none;
     border-radius: 10px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 6px rgba(37,99,235,0.25);
   }
   .comment-submit-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    background: var(--primary);
   }
   .comment-submit-btn:disabled {
     opacity: 0.5;
