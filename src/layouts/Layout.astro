@@ -25,7 +25,6 @@ const navItems = [
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title} - EHS信息站</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -109,6 +108,17 @@ const navItems = [
         btn.textContent = nav.classList.contains('open') ? '✕' : '☰';
       });
     }
+  </script>
+  <!-- 不蒜子统计延迟加载，不阻塞页面渲染 -->
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
+        document.body.appendChild(s);
+      }, 500);
+    });
   </script>
 </body>
 </html>
