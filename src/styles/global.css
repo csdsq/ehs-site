@@ -988,10 +988,10 @@ a:hover { color: var(--primary); }
   .filter-bar { flex-wrap: wrap; gap: 8px; }
   .filter-bar.filter-bar-row { flex-direction: column; gap: 8px; }
   .filter-group { flex-wrap: nowrap; }
-  .filter-tags { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
-  .filter-tags::-webkit-scrollbar { display: none; }
-  .filter-tag { padding: 3px 10px; font-size: 12px; flex-shrink: 0; }
-  .filter-tags-collapsible { max-height: none; overflow-x: auto; }
+  .filter-tags { flex-wrap: wrap; overflow-x: visible; -webkit-overflow-scrolling: auto; scrollbar-width: auto; padding-bottom: 2px; }
+  .filter-tags::-webkit-scrollbar { display: block; }
+  .filter-tag { padding: 3px 10px; font-size: 12px; flex-shrink: 0; white-space: nowrap; }
+  .filter-tags-collapsible { max-height: none; overflow-x: visible; flex-wrap: wrap; }
   .filter-more-btn { display: none; }
 }
 @media (max-width: 480px) {
