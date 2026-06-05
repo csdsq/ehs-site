@@ -81,7 +81,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
       if (!listEl) return;
 
       if (items.length === 0) {
-        listEl.innerHTML = '<div class="comment-empty">暂无评论，来抢沙发吧 👋</div>';
+        listEl.innerHTML = '';
         return;
       }
 
