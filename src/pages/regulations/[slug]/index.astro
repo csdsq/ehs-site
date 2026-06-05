@@ -4,9 +4,14 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    const res = await fetch('https://api.hser.ren/regulations?pagination[pageSize]=100&fields[0]=slug');
+    // 法规数据在 standards 集合，过滤掉标准类型（GB/DB/AQ/HJ/WS等前缀）
+    const stdPrefixes = /^(GB|DB|AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/i;
+    const res = await fetch('https://api.hser.ren/standards?pagination[pageSize]=200&fields[0]=slug&fields[1]=standardNo');
     const json = await res.json();
-    const items = json.data || [];
+    const items = (json.data || []).filter((item: any) => {
+      const no = (item.standardNo || '').trim();
+      return no && !stdPrefixes.test(no);
+    });
     return items.map(item => ({ params: { slug: item.slug || String(item.id) } }));
   } catch (e) { return []; }
 }
@@ -30,11 +35,12 @@ const { slug } = Astro.params;
     const API = 'https://api.hser.ren';
     async function loadDetail() {
       try {
-        let res = await fetch(`${API}/regulations?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        // 法规数据在 standards 集合
+        let res = await fetch(`${API}/standards?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
         let json = await res.json();
         let item = json.data?.[0];
         if (!item) {
-          res = await fetch(`${API}/regulations/${slug}`);
+          res = await fetch(`${API}/standards/${slug}`);
           json = await res.json();
           item = json.data;
         }
@@ -52,94 +58,43 @@ const { slug } = Astro.params;
           document.getElementById('detail-title').textContent = item.title || '';
           document.getElementById('detail-tags').innerHTML = tagHtml;
 
-          // 标准简介（从 description 提取）
-          let intro = (item.description || '').replace(/\s*状态[：:].+$/, '').trim();
-
-          // 解析 content：支持 JSON / HTML表格 / 纯文本
-          let contentInfoRows = [];
-          let contentText = '';
+          // 法规全文（content 是 HTML 格式全文）
           const content = (item.content || '').trim();
+          const hasFullText = content && !content.startsWith('{') && !content.includes('<table');
 
-          if (content.startsWith('{')) {
-            try {
-              const extraInfo = JSON.parse(content);
-              contentInfoRows = [
-                ['英文名称', extraInfo.englishName],
-                ['替代情况', extraInfo.replacement],
-                ['中标分类', extraInfo.ccs],
-                ['ICS分类', extraInfo.ics],
-                ['提出单位', extraInfo.proposingOrg],
-                ['归口单位', extraInfo.managingOrg],
-                ['页数', extraInfo.pages],
-                ['出版社', extraInfo.publishingHouse],
-              ].filter(([,v]) => v);
-              if (extraInfo.intro && !intro) intro = extraInfo.intro;
-            } catch(e) {}
-          } else if (content.includes('<table')) {
-            // HTML 表格格式：解析 th/td 提取键值对
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(content, 'text/html');
-            const rows = doc.querySelectorAll('tr');
-            rows.forEach(row => {
-              const th = row.querySelector('th');
-              const td = row.querySelector('td');
-              if (th && td) {
-                const key = th.textContent.trim();
-                let val = td.textContent.trim();
-                val = val.replace(/\s*即将实施.*$/, '').replace(/\s*现行.*$/, '').replace(/\s*废止.*$/, '').trim();
-                if (key === '标准状态') return;
-                if (key && val) contentInfoRows.push([key, val]);
-              }
-            });
-          } else if (content) {
-            contentText = content;
-          }
-
-          // 合并基本信息和 content 信息为一个"标准信息"区
-          const allInfoRows = [
-            ['类别', catLabel],
-            ['级别', regLabel],
+          // 基本信息行
+          const infoRows = [
             ['发文机构', item.source],
             ['发文号', item.standardNo],
             item.publishDate ? ['发布日期', item.publishDate] : null,
             item.effectiveDate ? ['实施日期', item.effectiveDate] : null,
-            ...contentInfoRows,
           ].filter(Boolean).filter(([,v]) => v && v !== '-');
 
           document.getElementById('detail-body').innerHTML = `
-            <!-- 标准简介 -->
-            ${intro ? `
+            <!-- 法规全文 -->
+            ${hasFullText ? `
             <section class="detail-section">
-              <h2 class="detail-section-title">标准简介</h2>
+              <h2 class="detail-section-title">法规全文</h2>
               <div class="detail-section-content">
-                <div class="detail-text">${intro.replace(/\n/g, '<br>')}</div>
+                <div class="regulation-full-text">${content}</div>
               </div>
             </section>` : ''}
 
-            <!-- 标准信息 -->
+            <!-- 基本信息 -->
             <section class="detail-section">
-              <h2 class="detail-section-title">标准信息</h2>
+              <h2 class="detail-section-title">基本信息</h2>
               <div class="detail-section-content">
-                ${allInfoRows.length > 0
+                ${infoRows.length > 0
                   ? `<div class="info-card-list">
-                       ${allInfoRows.map(([k,v]) => `
+                       ${infoRows.map(([k,v]) => `
                          <div class="info-card-item">
                            <span class="info-card-label">${k}</span>
                            <span class="info-card-value">${v}</span>
                          </div>`).join('')}
                      </div>`
-                  : '<p class="detail-empty">暂无标准信息</p>'}
+                  : '<p class="detail-empty">暂无基本信息</p>'}
               </div>
             </section>
-
-            ${contentText ? `
-            <!-- 简介/全文 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">${content.startsWith('{') ? '标准简介' : '文本全文'}</h2>
-              <div class="detail-section-content">
-                <div class="detail-text">${contentText.replace(/\n/g, '<br>')}</div>
-              </div>
-            </section>` : ''}
 
             <!-- 查看原文 -->
             <section class="detail-section">

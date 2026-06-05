@@ -55,13 +55,13 @@ import Layout from '../../layouts/Layout.astro';
     };
 
     // 判断标准级别类型
+    // 仅依据标准编号前缀判断，regionLevel 不作为级别依据（省/市级法规不是地标）
     function getStdType(item: any): string | null {
       const no = (item.standardNo || '').toUpperCase().trim();
       if (/^GB/.test(no)) return 'gb';           // 国标
-      if (/^DB/.test(no)) return 'local';          // 地标
+      if (/^DB/.test(no)) return 'local';          // 地标（DB开头）
       if (/^(AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/.test(no)) return 'industry'; // 行标
-      if (item.regionLevel === 'provincial' || item.regionLevel === 'municipal') return 'local';
-      return null; // 无法识别为标准类型，属于法规文件，不显示在国标地标页
+      return null; // 无法识别标准编号前缀，属于法规文件，不显示在国标地标页
     }
 
     function getStdTypeLabel(type: string | null): string {

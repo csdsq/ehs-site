@@ -55,8 +55,7 @@ const { slug } = Astro.params;
       if (/^GB/.test(no)) return '国标';
       if (/^DB/.test(no)) return '地标';
       if (/^(AQ|HJ|WS|MT|YB|SL|DL|HG|SH|CJ|JB|TB|NB|EJ|GY|YS|SY|QX|LD|JG|HY|CH|ZY|GH|BB|DA|DZ|GJB|JT)/.test(no)) return '行标';
-      if (item.regionLevel === 'provincial' || item.regionLevel === 'municipal') return '地标';
-      return '国标';
+      return null; // 法规文件，不应出现在此页面
     }
 
     async function loadDetail() {

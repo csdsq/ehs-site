@@ -1037,6 +1037,30 @@ a:hover { color: var(--primary); }
   color: var(--text);
 }
 
+/* 法规全文样式 */
+.regulation-full-text {
+  font-size: 15px;
+  line-height: 2;
+  color: var(--text);
+}
+.regulation-full-text h2,
+.regulation-full-text h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 1.2em 0 0.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border-light);
+}
+.regulation-full-text p {
+  margin: 0.5em 0;
+  text-indent: 0;
+}
+.regulation-full-text strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
 /* Info table */
 .detail-info-table {
   width: 100%;
