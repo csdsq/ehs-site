@@ -289,8 +289,9 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   }
   .comment-form-footer {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
   }
   .comment-form-hint {
     font-size: 12px;
@@ -307,6 +308,8 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .comment-submit-btn:hover {
     background: var(--primary);
