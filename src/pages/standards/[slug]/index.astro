@@ -4,10 +4,19 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    const res = await fetch('https://api.hser.ren/standards?pagination[pageSize]=200&fields[0]=slug');
-    const json = await res.json();
-    const items = json.data || [];
-    return items.map(item => ({ params: { slug: item.slug || String(item.id) } }));
+    let allItems = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const res = await fetch(`https://api.hser.ren/standards?pagination[pageSize]=100&pagination[page]=${page}&fields[0]=slug`);
+      const json = await res.json();
+      const items = json.data || [];
+      allItems = allItems.concat(items);
+      const totalPages = json.meta?.pagination?.pageCount || 1;
+      hasMore = page < totalPages;
+      page++;
+    }
+    return allItems.map(item => ({ params: { slug: item.slug || String(item.id) } }));
   } catch (e) {
     return [];
   }
