@@ -217,6 +217,10 @@ import Layout from '../../layouts/Layout.astro';
       const filterBar = document.getElementById('reg-filter-bar')!;
       filterBar.innerHTML = '';
 
+      // 级别+类型 同行容器（PC端72px间距，手机端自动换行）
+      const filterRow = document.createElement('div');
+      filterRow.className = 'filter-row';
+
       // 级别筛选：国标/行标/地标
       const stdTypeGroup = document.createElement('div');
       stdTypeGroup.className = 'filter-group';
@@ -244,7 +248,7 @@ import Layout from '../../layouts/Layout.astro';
         stdTypeTags.appendChild(btn);
       }
       stdTypeGroup.appendChild(stdTypeTags);
-      filterBar.appendChild(stdTypeGroup);
+      filterRow.appendChild(stdTypeGroup);
 
       // 类型筛选
       const categories = [...new Set(allItems.map(i => i.category).filter(Boolean))] as string[];
@@ -275,7 +279,9 @@ import Layout from '../../layouts/Layout.astro';
         catTags.appendChild(btn);
       }
       catGroup.appendChild(catTags);
-      filterBar.appendChild(catGroup);
+      filterRow.appendChild(catGroup);
+
+      filterBar.appendChild(filterRow);
 
       // 地区筛选
       const regGroup = document.createElement('div');
