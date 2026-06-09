@@ -1,4 +1,4 @@
-// src/lib/strapi.ts
+﻿// src/lib/strapi.ts
 // Strapi v5 API 数据获取工具
 
 export const STRAPI_URL = ''; // Use Vercel rewrites to proxy to Strapi
@@ -17,14 +17,26 @@ export interface StrapiResponse<T> {
 
 export async function fetchStrapi<T>(endpoint: string): Promise<T[]> {
   try {
-    const url = `${STRAPI_URL}/api/${endpoint}?pagination[pageSize]=100`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.error(`Strapi fetch failed: ${url} - ${res.status}`);
-      return [];
-    }
-    const json: StrapiResponse<T> = await res.json();
-    return json.data ?? [];
+    const pageSize = 100;
+    let page = 1;
+    let pageCount = 1;
+    const all: T[] = [];
+
+    do {
+      const joiner = endpoint.includes('?') ? '&' : '?';
+      const url = `${STRAPI_URL}/api/${endpoint}${joiner}pagination[page]=${page}&pagination[pageSize]=${pageSize}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.error(`Strapi fetch failed: ${url} - ${res.status}`);
+        return all;
+      }
+      const json: StrapiResponse<T> = await res.json();
+      all.push(...(json.data ?? []));
+      pageCount = json.meta?.pagination?.pageCount ?? page;
+      page += 1;
+    } while (page <= pageCount);
+
+    return all;
   } catch (err) {
     console.error(`Strapi fetch error (${endpoint}):`, err);
     return [];
@@ -119,3 +131,4 @@ export interface Message {
   slug: string;
 }
 export const getMessages = () => fetchStrapi<Message>('messages');
+
