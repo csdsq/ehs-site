@@ -239,11 +239,26 @@ import Layout from '../../layouts/Layout.astro';
     async function loadItems() {
       try {
         // 法规数据现在全在 regulations 集合
-        const res = await fetch(`${API}/regulations?pagination[pageSize]=200&sort=publishDate:desc`);
+        let allData: any[] = [];
+        let page = 1;
+        let pageCount = 1;
+        while (page <= pageCount) {
+          const res = await fetch(`${API}/regulations?pagination[pageSize]=100&pagination[page]=${page}&sort=publishDate:desc`);
+          const json = await res.json();
+          if (json.data) allData = allData.concat(json.data);
+          const meta = json.meta?.pagination;
+          if (meta) {
+            pageCount = meta.pageCount;
+          } else {
+            break;
+          }
+          page++;
+        }
+        allItems = allData;
         const json = await res.json();
         allItems = json.data ?? [];
         filteredItems = [...allItems];
-        const total = json.meta?.pagination?.total ?? 0;
+        const total = allItems.length;
         document.getElementById('std-count')!.textContent = `共 ${total} 项`;
         updateView();
       } catch (e) {
