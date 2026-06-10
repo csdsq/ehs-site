@@ -374,10 +374,23 @@ import Layout from '../../layouts/Layout.astro';
 
     async function loadItems() {
       try {
-        // 标准数据现在全在 standards 集合
-        const res = await fetch(`${API}/standards?pagination[pageSize]=200&sort=publishDate:desc`);
-        const json = await res.json();
-        allItems = json.data ?? [];
+        // Strapi v5 单次 pageSize 最大 100，需要翻页取完所有数据
+        let allData: any[] = [];
+        let page = 1;
+        let pageCount = 1;
+        while (page <= pageCount) {
+          const res = await fetch(`${API}/standards?pagination[pageSize]=100&pagination[page]=${page}&sort=publishDate:desc`);
+          const json = await res.json();
+          if (json.data) allData = allData.concat(json.data);
+          const meta = json.meta?.pagination;
+          if (meta) {
+            pageCount = meta.pageCount;
+          } else {
+            break;
+          }
+          page++;
+        }
+        allItems = allData;
 
         filteredItems = [...allItems];
         const total = allItems.length;
