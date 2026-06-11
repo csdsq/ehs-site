@@ -184,25 +184,22 @@ import Layout from '../../layouts/Layout.astro';
       try {
         let allData: any[] = [];
         let page = 1;
-        let pageCount = 1;
-        while (page <= pageCount) {
+        let totalPages = 1;
+        while (page <= totalPages) {
           const res = await fetch(`${API}/accidents?pagination[pageSize]=100&pagination[page]=${page}&sort=date:desc`);
           const json = await res.json();
           if (json.data) allData = allData.concat(json.data);
           const meta = json.meta?.pagination;
           if (meta) {
-            pageCount = meta.pageCount;
+            totalPages = meta.pageCount;
           } else {
             break;
           }
           page++;
         }
         allItems = allData;
-        const json = await res.json();
-        allItems = json.data ?? [];
         filteredItems = [...allItems];
-        const total = allItems.length;
-        document.getElementById('acc-count')!.textContent = `共 ${total} 项`;
+        document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
         buildSeverityFilters();
         buildCategoryFilters();
         buildProvinceFilters();
