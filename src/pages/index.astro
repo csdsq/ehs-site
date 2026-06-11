@@ -1,0 +1,294 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="首页" currentPath="/">
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stats-grid stats-grid-6">
+      <a href="/ai-apps/" class="stat-item"><span class="stat-value" id="stat-ai">--</span><span class="stat-label">AI应用</span></a>
+      <a href="/standards/" class="stat-item"><span class="stat-value" id="stat-laws">--</span><span class="stat-label">国标地标</span></a>
+      <a href="/regulations/" class="stat-item"><span class="stat-value" id="stat-standards">--</span><span class="stat-label">法规文件</span></a>
+      <a href="/accidents/" class="stat-item"><span class="stat-value" id="stat-accs">--</span><span class="stat-label">事故报告</span></a>
+      <!-- <a href="/videos/" class="stat-item"><span class="stat-value" id="stat-videos">--</span><span class="stat-label">视频课堂</span></a> <!-- 暂时隐藏 -->
+      <a href="/documents/" class="stat-item"><span class="stat-value" id="stat-docs">--</span><span class="stat-label">资料文档</span></a>
+      <a href="/messages/" class="stat-item"><span class="stat-value" id="stat-msgs">--</span><span class="stat-label">留言板</span></a>
+    </div>
+  </div>
+
+  <!-- Latest AI Apps -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <a href="/ai-apps/" class="section-title"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z"/><circle cx="19" cy="5" r="1.5" fill="currentColor" stroke="none" opacity="0.6"/><circle cx="21" cy="9" r="1" fill="currentColor" stroke="none" opacity="0.4"/></svg>最新AI应用</a>
+        <a href="/ai-apps/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid list-grid-2col" id="home-ai-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Regulations -->
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <a href="/standards/" class="section-title"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>最新国标地标</a>
+        <a href="/standards/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid list-grid-2col" id="home-laws-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Standards -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <a href="/regulations/" class="section-title"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>最新法规文件</a>
+        <a href="/regulations/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid list-grid-2col" id="home-standards-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Accidents -->
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <a href="/accidents/" class="section-title"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>最新事故报告</a>
+        <a href="/accidents/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid list-grid-2col" id="home-accs-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Videos - 暂时隐藏
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">最新视频课堂</h2>
+        <a href="/videos/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="video-grid video-grid-3col" id="home-videos-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+  -->
+
+  <!-- Latest Documents -->
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <a href="/documents/" class="section-title"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>最新资料文档</a>
+        <a href="/documents/" class="section-more">查看全部 &rarr;</a>
+      </div>
+      <div class="list-grid list-grid-2col" id="home-docs-list">
+        <div class="empty">加载中...</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const API = 'https://api.hser.ren';
+
+    async function safeFetch(url) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      } catch (e) {
+        console.warn('Fetch failed:', url, e);
+        return null;
+      }
+    }
+
+    function renderListItem(item, hrefPrefix, type) {
+      const title = item.title || '';
+      const desc = item.description || item.summary || '';
+      const standardNo = item.standardNo || '';
+      const publishDate = item.publishDate || '';
+      const effectiveDate = item.effectiveDate || '';
+
+      // 法规类型：标题后加标准号，小字显示日期
+      if (type === 'regulation') {
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}${standardNo ? ` <span class="list-item-no">${standardNo}</span>` : ''}</div>
+              <div class="list-item-meta-row">
+                ${publishDate ? `<span>发布：${publishDate}</span>` : ''}
+                ${effectiveDate ? `<span>实施：${effectiveDate}</span>` : ''}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
+      // 法规文件类型：标题下小字显示发文机构、发文号、实施/发文日期（首页不显示标签）
+      if (type === 'standard') {
+        const source = item.source || '';
+        const stdNo = item.standardNo || '';
+        const dateValue = item.effectiveDate || item.publishDate || '';
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}</div>
+              <div class="list-item-meta-row">
+                ${source ? `<span>${source}</span>` : ''}
+                ${stdNo ? `<span>${stdNo}</span>` : ''}
+                ${dateValue ? `<span>${dateValue}</span>` : ''}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
+// 事故类型：标题下小字显示发生日期、事故类型、事故等级
+      const accSeverityMap: Record<string,string> = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
+      const accCategoryMap: Record<string,string> = {
+        suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
+        traffic: '交通', poisoning_suffocation: '中毒窒息',
+        falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害',
+        other_injury: '其他伤害', fire: '火灾', explosion: '爆炸',
+        electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺'
+      };
+      if (type === 'accident') {
+        const category = accCategoryMap[item.category] || item.category || '';
+        const severity = accSeverityMap[item.severity] || item.severity || '';
+        const date = item.date || '';
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}</div>
+              <div class="list-item-meta-row">
+                ${date ? `<span>发生日期：${date}</span>` : ''}
+                ${category ? `<span>事故类型：${category}</span>` : ''}
+                ${severity ? `<span>事故等级：${severity}</span>` : ''}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
+      // 资料文档类型：标题后加（类型，大小），小字显示分类
+      if (type === 'document') {
+        const fileType = item.fileType ? item.fileType.toUpperCase() : '';
+        const fileSize = item.fileSize || '';
+        const typeSizeTag = (fileType || fileSize) ? ` <span class="list-item-no">(${[fileType, fileSize].filter(Boolean).join('，')})</span>` : '';
+        const category = item.category || '';
+        return `
+          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}${typeSizeTag}</div>
+              <div class="list-item-meta-row">
+                ${category ? `<span>${category}</span>` : ''}
+                ${item.publishDate ? `<span>${item.publishDate}</span>` : ''}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }
+
+      return `
+        <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+          <div class="list-item-body">
+            <div class="list-item-title">${title}</div>
+            ${desc ? `<div class="list-item-desc">${desc.length > 80 ? desc.slice(0,80) + '...' : desc}</div>` : ''}
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </a>`;
+    }
+
+    function renderVideoCard(item) {
+      const title = item.title || '';
+      const desc = item.description || '';
+      const videoUrl = item.videoUrl || item.url || '';
+      const duration = item.duration || '';
+      
+      // Extract YouTube/Bilibili thumbnail or use placeholder
+      let thumbSrc = '';
+      if (videoUrl.includes('bilibili.com/video/')) {
+        const bv = videoUrl.match(/BV[a-zA-Z0-9]+/);
+        thumbSrc = bv ? `https://i0.hdslb.com/bfs/archive/${bv[0]}s.jpg` : '';
+      } else if (videoUrl.includes('youtube.com/watch')) {
+        const vid = new URL(videoUrl).searchParams.get('v');
+        thumbSrc = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
+      }
+
+      return `
+        <a href="/videos/${item.slug || item.id}" class="video-card">
+          <div class="video-card-thumb">
+            ${thumbSrc 
+              ? `<img src="${thumbSrc}" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                 <div class="video-card-placeholder" style="display:none"><svg width="48" height="48" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>`
+              : `<div class="video-card-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>`
+            }
+            ${duration ? `<span class="video-card-duration">${duration}</span>` : ''}
+            <div class="video-card-play">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+          <div class="video-card-info">
+            <div class="video-card-title">${title}</div>
+            ${desc ? `<div class="video-card-desc">${desc.length > 60 ? desc.slice(0,60) + '...' : desc}</div>` : ''}
+          </div>
+        </a>`;
+    }
+
+    async function loadAll() {
+      const [aiApps, regs, standards, accs, videos, docs, msgs] = await Promise.all([
+        safeFetch(`${API}/ai-apps?pagination[pageSize]=6&sort=createdAt:desc`),
+        safeFetch(`${API}/regulations?pagination[pageSize]=6&sort=publishDate:desc`),
+        safeFetch(`${API}/standards?pagination[pageSize]=6&sort=publishDate:desc`),
+        safeFetch(`${API}/accidents?pagination[pageSize]=6&sort=date:desc`),
+        safeFetch(`${API}/videos?pagination[pageSize]=3&sort=createdAt:desc`),
+        safeFetch(`${API}/documents?pagination[pageSize]=6&sort=createdAt:desc`),
+        safeFetch(`${API}/messages?pagination[pageSize]=6&sort=publishDate:desc`),
+      ]);
+
+      // Stats
+      const s = (el, data) => { const e = document.getElementById(el); if (e) e.textContent = data?.meta?.pagination?.total ?? '0'; };
+      s('stat-laws', standards);
+      s('stat-standards', regs);
+      s('stat-ai', aiApps);
+      s('stat-accs', accs);
+      s('stat-videos', videos);
+      s('stat-docs', docs);
+      s('stat-msgs', msgs);
+
+      // Render lists (non-video modules)
+      const renderList = (elId, data, href, type) => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        const items = data?.data ?? [];
+        el.innerHTML = items.length === 0
+          ? '<div class="empty">暂无数据</div>'
+          : items.map(item => renderListItem(item, href, type)).join('');
+      };
+
+      renderList('home-ai-list', aiApps, '/ai-apps/');
+      renderList('home-laws-list', standards, '/standards/', 'regulation');
+      renderList('home-standards-list', regs, '/regulations/', 'standard');
+      renderList('home-accs-list', accs, '/accidents/', 'accident');
+      renderList('home-docs-list', docs, '/documents/', 'document');
+
+      // Render video cards
+      const videoEl = document.getElementById('home-videos-list');
+      if (videoEl) {
+        const videoItems = videos?.data ?? [];
+        videoEl.innerHTML = videoItems.length === 0
+          ? '<div class="empty">暂无视频</div>'
+          : videoItems.map(item => renderVideoCard(item)).join('');
+      }
+    }
+
+    loadAll();
+  </script>
+</Layout>

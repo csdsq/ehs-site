@@ -1,0 +1,522 @@
+---
+// PageComment.astro - 页面评论组件
+// Props: pageUrl (当前页面路径), pageTitle (页面标题)
+interface Props {
+  pageUrl: string;
+  pageTitle?: string;
+}
+const { pageUrl, pageTitle = '' } = Astro.props;
+---
+
+<div class="comment-section" id="comment-section">
+  <h2 class="detail-section-title">💬 评论区</h2>
+  <div id="comment-form" class="comment-form">
+    <div class="comment-form-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+    <div class="comment-form-body">
+      <div class="comment-form-row">
+        <input type="text" id="comment-nickname" placeholder="昵称（必填）" required class="comment-input comment-input-half" />
+        <input type="email" id="comment-email" placeholder="邮箱（必填，用于接收回复通知）" required class="comment-input comment-input-half" />
+      </div>
+      <textarea id="comment-content" placeholder="写下你的评论..." rows="3" required class="comment-textarea"></textarea>
+      <div class="comment-form-footer">
+        <span class="comment-form-hint">支持回复 · 邮箱仅用于接收回复通知</span>
+        <button id="comment-submit" class="comment-submit-btn">发表评论</button>
+      </div>
+    </div>
+  </div>
+  <div id="comment-list" class="comment-list">
+    <div class="comment-loading">加载评论中...</div>
+  </div>
+</div>
+
+<script define:vars={{ pageUrl, pageTitle }}>
+  const API = 'https://api.hser.ren';
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - d) / 1000);
+    if (diff < 60) return '刚刚';
+    if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+    if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+    if (diff < 2592000) return Math.floor(diff / 86400) + '天前';
+    return d.toLocaleDateString('zh-CN');
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function getAvatarColor() {
+    return '#5B8FF9';
+  }
+
+  function renderComment(item, depth = 0) {
+    const isAdmin = item.isAdminReply;
+    const adminBadge = isAdmin ? '<span class="comment-admin-badge">✦ 管理员</span>' : '';
+    const replyClass = depth > 0 ? 'comment-item-reply' : '';
+    const initial = escapeHtml(item.nickname).charAt(0).toUpperCase();
+    const avatarColor = getAvatarColor(item.nickname);
+    const avatarHtml = `<div class="comment-avatar" style="background:${avatarColor}">${initial}</div>`;
+    return `
+      <div class="comment-item ${replyClass}" data-id="${item.id}">
+        <div class="comment-main">
+          ${avatarHtml}
+          <div class="comment-body">
+            <div class="comment-header">
+              <span class="comment-nickname">${escapeHtml(item.nickname)}${adminBadge}</span>
+              <span class="comment-time">${timeAgo(item.createdAt)}</span>
+            </div>
+            <div class="comment-content">${escapeHtml(item.content)}</div>
+            <div class="comment-actions">
+              <button class="comment-reply-btn" data-id="${item.id}" data-nickname="${escapeHtml(item.nickname)}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                回复
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="comment-reply-form" id="reply-form-${item.id}" style="display:none;">
+          <input type="text" class="comment-input reply-nickname" placeholder="昵称（必填）" />
+          <input type="email" class="comment-input reply-email" placeholder="邮箱（必填）" />
+          <textarea class="comment-textarea reply-content" rows="2" placeholder="回复 ${escapeHtml(item.nickname)}..."></textarea>
+          <div class="reply-form-actions">
+            <button class="comment-submit-btn reply-submit" data-parent-id="${item.id}">回复</button>
+            <button class="comment-cancel-btn reply-cancel">取消</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function loadComments() {
+    try {
+      const encodedUrl = encodeURIComponent(pageUrl);
+      const res = await fetch(`${API}/comments?filters[pageUrl][$eq]=${encodedUrl}&sort=createdAt:asc&pagination[pageSize]=100`);
+      const json = await res.json();
+      const items = json.data || [];
+
+      const listEl = document.getElementById('comment-list');
+      if (!listEl) return;
+
+      if (items.length === 0) {
+        listEl.innerHTML = '<div class="comment-empty">暂无评论，来发表第一条吧 ✨</div>';
+        return;
+      }
+
+      const rootComments = items.filter(c => !c.parentId || c.parentId === 0);
+      const replies = items.filter(c => c.parentId && c.parentId !== 0);
+
+      let html = '';
+      for (const root of rootComments) {
+        html += renderComment(root, 0);
+        const childReplies = replies.filter(r => r.parentId === root.id);
+        for (const reply of childReplies) {
+          html += renderComment(reply, 1);
+        }
+      }
+      listEl.innerHTML = html;
+
+      listEl.querySelectorAll('.comment-reply-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const form = document.getElementById(`reply-form-${id}`);
+          if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        });
+      });
+
+      listEl.querySelectorAll('.reply-submit').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const parentId = parseInt(btn.dataset.parentId);
+          const form = btn.closest('.comment-reply-form');
+          const nickname = form.querySelector('.reply-nickname').value.trim();
+          const email = form.querySelector('.reply-email').value.trim();
+          const content = form.querySelector('.reply-content').value.trim();
+          if (!nickname || !content) { alert('请填写昵称和回复内容'); return; }
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('请填写有效的邮箱地址'); return; }
+          btn.disabled = true;
+          btn.textContent = '提交中...';
+          try {
+            const res = await fetch(`${API}/comments`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: { nickname, email, content, pageUrl, pageTitle, parentId, isAdminReply: false } })
+            });
+            if (res.ok) {
+              loadComments();
+            } else {
+              alert('回复失败，请稍后重试');
+              btn.disabled = false;
+              btn.textContent = '回复';
+            }
+          } catch (e) {
+            alert('网络错误，请稍后重试');
+            btn.disabled = false;
+            btn.textContent = '回复';
+          }
+        });
+      });
+
+      listEl.querySelectorAll('.reply-cancel').forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.closest('.comment-reply-form').style.display = 'none';
+        });
+      });
+
+    } catch (e) {
+      const listEl = document.getElementById('comment-list');
+      if (listEl) listEl.innerHTML = '<div class="comment-empty">评论加载失败</div>';
+    }
+  }
+
+  const submitBtn = document.getElementById('comment-submit');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', async () => {
+      const nickname = document.getElementById('comment-nickname').value.trim();
+      const email = document.getElementById('comment-email').value.trim();
+      const content = document.getElementById('comment-content').value.trim();
+      if (!nickname) { alert('请填写昵称'); return; }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('请填写有效的邮箱地址'); return; }
+      if (!content) { alert('请填写评论内容'); return; }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交中...';
+
+      try {
+        const res = await fetch(`${API}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: { nickname, email, content, pageUrl, pageTitle, parentId: 0, isAdminReply: false }
+          })
+        });
+        if (res.ok) {
+          document.getElementById('comment-content').value = '';
+          document.getElementById('comment-email').value = '';
+          loadComments();
+        } else {
+          const err = await res.json();
+          alert('评论失败：' + (err.error?.message || '请稍后重试'));
+        }
+      } catch (e) {
+        alert('网络错误，请稍后重试');
+      }
+      submitBtn.disabled = false;
+      submitBtn.textContent = '发表评论';
+    });
+  }
+
+  loadComments();
+</script>
+
+<style is:global>
+  .comment-section {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* === 评论表单 === */
+  .comment-form {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding: 20px;
+    background: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  }
+  .comment-form-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-light);
+    border: 2px dashed var(--border);
+  }
+  .comment-form-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .comment-form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .comment-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    transition: all 0.2s ease;
+  }
+  .comment-input::placeholder, .comment-textarea::placeholder {
+    color: var(--text-light);
+    opacity: 0.7;
+  }
+  .comment-input:focus, .comment-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+    background: #fff;
+  }
+  .comment-input-half { flex: 1; }
+  .comment-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+  }
+  .comment-form-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .comment-form-hint {
+    font-size: 12px;
+    color: var(--text-light);
+    opacity: 0.7;
+  }
+  .comment-submit-btn {
+    padding: 8px 28px;
+    background: var(--primary-light);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .comment-submit-btn:hover {
+    background: var(--primary);
+  }
+  .comment-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .comment-cancel-btn {
+    padding: 7px 16px;
+    background: transparent;
+    color: var(--text-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+  }
+  .comment-cancel-btn:hover {
+    border-color: var(--text-light);
+    color: var(--text);
+  }
+
+  /* === 评论列表 === */
+  .comment-list { margin-top: 4px; }
+
+  .comment-item {
+    padding: 16px 18px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .comment-item:hover {
+    border-color: rgba(37, 99, 235, 0.2);
+    box-shadow: 0 3px 12px rgba(37,99,235,0.06);
+  }
+  .comment-item-reply {
+    margin-left: 44px;
+    margin-top: -4px;
+    background: linear-gradient(135deg, rgba(37,99,235,0.015), rgba(99,102,241,0.02));
+    border-color: rgba(37, 99, 235, 0.08);
+  }
+
+  .comment-main {
+    display: flex;
+    gap: 14px;
+  }
+
+  .comment-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    letter-spacing: 0;
+  }
+  .comment-item-reply .comment-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .comment-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .comment-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .comment-nickname {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .comment-admin-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 11px;
+    border-radius: 12px;
+    font-weight: 500;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+  }
+  .comment-time {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-left: auto;
+  }
+
+  .comment-content {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 4px 0;
+  }
+
+  .comment-actions {
+    margin-top: 4px;
+  }
+  .comment-reply-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+  }
+  .comment-reply-btn:hover {
+    color: var(--primary);
+    background: rgba(37,99,235,0.06);
+  }
+  .comment-reply-btn svg {
+    opacity: 0.7;
+  }
+  .comment-reply-btn:hover svg {
+    opacity: 1;
+  }
+
+  .comment-reply-form {
+    margin-top: 14px;
+    margin-left: 54px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(37,99,235,0.02), rgba(99,102,241,0.02));
+    border: 1px solid rgba(37,99,235,0.08);
+    border-radius: 12px;
+  }
+  .comment-reply-form .comment-input,
+  .comment-reply-form .comment-textarea {
+    margin-bottom: 8px;
+    font-size: 13px;
+    background: var(--card);
+  }
+  .comment-reply-form .comment-textarea {
+    min-height: 60px;
+  }
+  .reply-form-actions {
+    display: flex;
+    align-items: center;
+  }
+  .comment-reply-form .comment-submit-btn {
+    padding: 6px 18px;
+    font-size: 13px;
+  }
+
+  .comment-empty, .comment-loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-light);
+    font-size: 14px;
+  }
+
+  @media (max-width: 768px) {
+    .comment-form {
+      padding: 14px;
+      gap: 10px;
+    }
+    .comment-form-avatar {
+      display: none;
+    }
+    .comment-form-row {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .comment-item {
+      padding: 12px 14px;
+    }
+    .comment-item-reply {
+      margin-left: 24px;
+    }
+    .comment-avatar {
+      width: 34px;
+      height: 34px;
+      font-size: 14px;
+    }
+    .comment-item-reply .comment-avatar {
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+    }
+    .comment-reply-form {
+      margin-left: 24px;
+    }
+  }
+</style>

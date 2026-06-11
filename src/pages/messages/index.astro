@@ -1,0 +1,137 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout title="留言板" currentPath="/messages/">
+
+  <div class="page-layout">
+    <div class="container">
+      <h1 class="page-title">留言板</h1>
+      <p class="page-description">交流讨论、经验分享、问题反馈，EHS从业者互助社区。资料文档分享请发送至：<a href="mailto:csdsq@qq.com">csdsq@qq.com</a></p>
+
+      <div style="margin-top:24px; margin-bottom:24px;">
+        <div class="search-box" style="margin-bottom: 32px; max-width: 100%;">
+          <input type="text" id="msg-search" placeholder="搜索留言..." />
+          <button id="msg-search-btn">搜索</button>
+        </div>
+      </div>
+
+      <!-- 提交留言 -->
+      <div class="msg-submit-card">
+        <h3 style="font-size:16px;margin-bottom:16px;font-weight:600;">✍️ 发表留言</h3>
+        <form id="msg-form" class="msg-form">
+          <div class="msg-form-row" style="display:flex;gap:12px;">
+            <input type="text" id="msg-author" placeholder="你的昵称（选填）" class="msg-input" style="flex:1;" />
+            <input type="email" id="msg-email" placeholder="你的邮箱（必填，用于接收回复通知）" class="msg-input" style="flex:1;" />
+          </div>
+          <div class="msg-form-row">
+            <textarea id="msg-content" placeholder="输入你的留言内容..." class="msg-textarea" rows="4"></textarea>
+          </div>
+          <button type="submit" class="detail-action-btn">提交留言</button>
+          <div id="msg-status" style="margin-top:8px;font-size:13px;"></div>
+        </form>
+      </div>
+
+      <div style="margin-top:32px;">
+        <div id="msg-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
+        <div class="list-grid" id="msg-list">
+          <div class="empty">加载中...</div>
+        </div>
+      </div>
+
+      
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://api.hser.ren';
+    let allItems: any[] = [];
+
+    async function loadItems() {
+      try {
+        const res = await fetch(`${API}/messages?pagination[pageSize]=100&sort=publishDate:desc&populate=*`);
+        const json = await res.json();
+        allItems = json.data ?? [];
+        const total = json.meta?.pagination?.total ?? 0;
+        document.getElementById('msg-count')!.textContent = `共 ${total} 条留言`;
+        renderItems(allItems);
+      } catch (e) {
+        document.getElementById('msg-list')!.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function renderItems(items: any[]) {
+      const el = document.getElementById('msg-list');
+      if (!el) return;
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无留言，来抢沙发吧！</div>'; return; }
+      el.innerHTML = items.map(item => {
+        const replies = item.replies || item.adminReplies || [];
+        const hasReply = replies.length > 0;
+        return `
+        <a href="/messages/${item.slug || item.id}" class="list-item">
+          <div class="list-item-body">
+            <div class="list-item-title">${item.title || "无标题"}</div>
+            <div class="list-item-desc">${item.author || "游客"} · ${item.publishDate || ""} ${hasReply ? "· 已回复" : ""}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </a>`;
+      }).join('');
+    }
+
+    function doSearch() {
+      const q = (document.getElementById('msg-search') as HTMLInputElement).value.trim().toLowerCase();
+      if (!q) { renderItems(allItems); return; }
+      renderItems(allItems.filter(item =>
+        (item.title ?? '').toLowerCase().includes(q) ||
+        (item.content ?? '').toLowerCase().includes(q) ||
+        (item.category ?? '').toLowerCase().includes(q)
+      ));
+    }
+
+    document.getElementById('msg-search')!.addEventListener('input', doSearch);
+    document.getElementById('msg-search-btn')!.addEventListener('click', doSearch);
+
+    // 留言提交
+    document.getElementById('msg-form')!.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const author = (document.getElementById('msg-author') as HTMLInputElement).value.trim() || '游客';
+      const content = (document.getElementById('msg-content') as HTMLTextAreaElement).value.trim();
+      const email = (document.getElementById('msg-email') as HTMLInputElement).value.trim();
+
+      if (!content) {
+        document.getElementById('msg-status')!.textContent = '请填写留言内容';
+        document.getElementById('msg-status')!.style.color = '#e63946';
+        return;
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        document.getElementById('msg-status')!.textContent = '请填写有效的邮箱地址';
+        document.getElementById('msg-status')!.style.color = '#e63946';
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: { author, email, title: content.slice(0, 50), content, slug: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), publishDate: new Date().toISOString().split('T')[0] }
+          })
+        });
+        if (res.ok) {
+          document.getElementById('msg-status')!.textContent = '留言提交成功！';
+          document.getElementById('msg-status')!.style.color = '#2a9d8f';
+          (document.getElementById('msg-content') as HTMLTextAreaElement).value = '';
+          (document.getElementById('msg-email') as HTMLInputElement).value = '';
+          setTimeout(() => loadItems(), 500);
+        } else {
+          const err = await res.json();
+          throw new Error(err.error?.message || '提交失败');
+        }
+      } catch (err: any) {
+        document.getElementById('msg-status')!.textContent = '提交失败：' + (err.message || '请稍后重试');
+        document.getElementById('msg-status')!.style.color = '#e63946';
+      }
+    });
+
+    loadItems();
+  </script>
+</Layout>

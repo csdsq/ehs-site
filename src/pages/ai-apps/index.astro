@@ -1,0 +1,207 @@
+﻿---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout title="AI应用" currentPath="/ai-apps/">
+
+  <div class="page-layout">
+    <div class="container">
+      <h1 class="page-title">AI应用</h1>
+
+      <div class="filter-bar" id="ai-filter-row">
+        <div class="filter-group">
+          <span class="filter-label">分类</span>
+          <div class="filter-tags" id="ai-category-tags"></div>
+        </div>
+      </div>
+
+      <div class="search-box" style="margin-bottom: 24px; max-width: 100%;">
+        <input type="text" id="ai-search" placeholder="搜索AI应用名称..." />
+        <button id="ai-search-btn">搜索</button>
+      </div>
+
+      <div id="ai-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
+      <div class="list-grid" id="ai-list">
+        <div class="empty">加载中...</div>
+      </div>
+      <div id="ai-pagination" class="pagination-bar" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://api.hser.ren';
+    let allItems: any[] = [];
+    let filteredItems: any[] = [];
+    let activeCategory = '';
+    let currentPage = 1;
+    let pageSize = 10;
+
+    function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
+
+    function getThumbUrl(item: any): string {
+      // 从demoContent提取图片URL，或用icon字段
+      const demo = item.demoContent || '';
+      const imgMatch = demo.match(/src=["']([^"']+)["']/);
+      if (imgMatch) return imgMatch[1];
+      if (item.icon) return item.icon;
+      return '';
+    }
+
+    function renderItems(items: any[]) {
+      const el = document.getElementById('ai-list');
+      if (!el) return;
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无AI应用</div>'; return; }
+      el.innerHTML = items.map(item => {
+        const desc = item.description || '';
+        const thumbUrl = getThumbUrl(item);
+        const category = item.category || '';
+        return `
+        <a href="/ai-apps/${item.slug || item.id}" class="ai-card">
+          ${thumbUrl ? `<div class="ai-card-thumb"><img src="${thumbUrl}" alt="${item.title}" loading="lazy" /></div>` : `<div class="ai-card-icon icon-ai">🤖</div>`}
+          <div class="ai-card-body">
+            <div class="ai-card-title">${item.title}</div>
+            ${category ? `<div class="ai-card-category">${category}</div>` : ''}
+            ${desc ? `<div class="ai-card-desc">${desc.length > 100 ? desc.slice(0,100) + '...' : desc}</div>` : ''}
+          </div>
+        </a>`;
+      }).join('');
+    }
+
+    function renderPagination() {
+      const el = document.getElementById('ai-pagination')!;
+      const total = filteredItems.length;
+      const totalPages = getTotalPages();
+      if (total <= pageSize) { el.style.display = 'none'; return; }
+      el.style.display = 'flex';
+
+      const start = (currentPage - 1) * pageSize + 1;
+      const end = Math.min(currentPage * pageSize, total);
+
+      let pagesHtml = '';
+      const range: number[] = [];
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) range.push(i);
+      } else {
+        range.push(1);
+        if (currentPage > 4) range.push(-1);
+        const s = Math.max(2, currentPage - 2);
+        const e = Math.min(totalPages - 1, currentPage + 2);
+        for (let i = s; i <= e; i++) range.push(i);
+        if (currentPage < totalPages - 3) range.push(-2);
+        range.push(totalPages);
+      }
+      for (const p of range) {
+        if (p < 0) { pagesHtml += `<span class="page-ellipsis">…</span>`; }
+        else { pagesHtml += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`; }
+      }
+
+      el.innerHTML = `
+        <div class="pagination-info">显示 ${start}-${end}，共 ${total} 个应用</div>
+        <div class="pagination-controls">
+          <button data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
+          ${pagesHtml}
+          <button data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
+        </div>
+        <div class="page-size-select">
+          每页
+          <select id="ai-page-size">
+            <option value="10" ${pageSize===10?'selected':''}>10</option>
+            <option value="20" ${pageSize===20?'selected':''}>20</option>
+            <option value="50" ${pageSize===50?'selected':''}>50</option>
+            <option value="100" ${pageSize===100?'selected':''}>100</option>
+          </select>
+          条
+        </div>`;
+
+      el.querySelector('#ai-page-size')!.addEventListener('change', (e: any) => {
+        pageSize = parseInt(e.target.value); currentPage = 1; updateView();
+      });
+      el.querySelectorAll('[data-page]').forEach(btn => {
+        btn.addEventListener('click', () => { currentPage = parseInt((btn as HTMLElement).dataset.page!); updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      });
+      el.querySelector('[data-action="prev"]')!.addEventListener('click', () => {
+        if (currentPage > 1) { currentPage--; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      });
+      el.querySelector('[data-action="next"]')!.addEventListener('click', () => {
+        if (currentPage < getTotalPages()) { currentPage++; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      });
+    }
+
+    function updateView() {
+      const start = (currentPage - 1) * pageSize;
+      renderItems(filteredItems.slice(start, start + pageSize));
+      renderPagination();
+    }
+
+    function buildCategoryFilters() {
+      const container = document.getElementById('ai-category-tags');
+      if (!container) return;
+
+      const categories = Array.from(new Set(
+        allItems.map(item => (item.category || '').trim()).filter(Boolean)
+      )).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'filter-tag active';
+      allBtn.textContent = '全部';
+      allBtn.addEventListener('click', () => {
+        activeCategory = '';
+        container.querySelectorAll('.filter-tag').forEach(btn => btn.classList.remove('active'));
+        allBtn.classList.add('active');
+        applyFilters();
+      });
+      container.appendChild(allBtn);
+
+      categories.forEach(category => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'filter-tag';
+        btn.textContent = category;
+        btn.addEventListener('click', () => {
+          activeCategory = category;
+          container.querySelectorAll('.filter-tag').forEach(tag => tag.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilters();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    async function loadItems() {
+      try {
+        const res = await fetch(`${API}/ai-apps?pagination[pageSize]=200&sort=createdAt:desc`);
+        const json = await res.json();
+        allItems = json.data ?? [];
+        buildCategoryFilters();
+        applyFilters();
+      } catch (e) {
+        document.getElementById('ai-list')!.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function applyFilters() {
+      const q = (document.getElementById('ai-search') as HTMLInputElement).value.trim().toLowerCase();
+      filteredItems = allItems.filter(item => {
+        const itemCategory = (item.category || '').trim();
+        const matchesCategory = !activeCategory || itemCategory === activeCategory;
+        const matchesSearch = !q ||
+          (item.title ?? '').toLowerCase().includes(q) ||
+          (item.description ?? '').toLowerCase().includes(q) ||
+          itemCategory.toLowerCase().includes(q);
+        return matchesCategory && matchesSearch;
+      });
+      currentPage = 1;
+      const countEl = document.getElementById('ai-count')!;
+      countEl.textContent = `共 ${filteredItems.length} 个应用${(q || activeCategory) ? `（筛选自 ${allItems.length} 个）` : ''}`;
+      updateView();
+    }
+
+    document.getElementById('ai-search')!.addEventListener('input', applyFilters);
+    document.getElementById('ai-search-btn')!.addEventListener('click', applyFilters);
+
+    loadItems();
+  </script>
+</Layout>
+
