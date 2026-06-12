@@ -131,3 +131,28 @@
 - [ ] description 是人读摘要，不是元信息拼接
 - [ ] source 是实际发文机关
 - [ ] 原文来源 URL 可访问（如有）
+---
+
+## 六、Standards 字段专项规范
+
+### 6.1 content 字段规范
+
+standards 的 content 与 regulations 不同——它存储的是标准元数据表格（英文名、ICS 分类、中标分类、发布日期、实施日期、发布部门），**不是法规正文**。当前格式为标准的 `<table>`，属正常形态，不需要按 regulations 的结构化 HTML 标准改造。
+
+### 6.2 sourceUrl 链接规则
+
+根据 standards 的标准类型判断 `sourceUrl` 指向域名：
+
+| 标准类型 | 前缀判断 | 目标域名 | 示例 |
+|---------|---------|---------|------|
+| 国家标准（GB/GB/T） | 以 GB、GB/T 开头 | `openstd.samr.gov.cn` | GB 39800.1 → openstd.samr.gov.cn |
+| 行业标准（AQ/HJ等） | 不以 GB 开头 | `hbba.sacinfo.org.cn` | AQ 3026 → hbba.sacinfo.org.cn |
+| 地方标准（DB） | 以 DB 开头 | `dbba.sacinfo.org.cn` | DB33/XXX → dbba.sacinfo.org.cn |
+
+**例外规则：**
+- 如果 `sourceUrl` 直接指向 PDF 文件（以 `.pdf` 结尾），则保持不动
+- 如果对应平台尚未收录该标准，**暂时保持当前有效 URL**，待收录后更新
+
+### 6.3 下载链接规范
+
+`downloadUrl` 存放标准 PDF 的直链，不受域名规则约束，按实际来源填写即可。
