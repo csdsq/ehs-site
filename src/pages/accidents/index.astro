@@ -256,7 +256,7 @@ import Layout from '../../layouts/Layout.astro';
     function buildCategoryFilters() {
       const container = document.getElementById('category-tags')!;
       container.innerHTML = '';
-      container.classList.add('filter-tags-collapsible');
+      // filter-tags-collapsible removed - now fully displayed
       const types = Object.entries(categoryMap) as [string, string][];
       // "全部" button
       const allBtn = document.createElement('button');
@@ -281,32 +281,12 @@ import Layout from '../../layouts/Layout.astro';
         });
         container.appendChild(btn);
       }
-      // "更多" toggle - check if content overflows
-      requestAnimationFrame(() => {
-        if (container.scrollHeight > container.clientHeight + 2) {
-          const moreBtn = document.createElement('button');
-          moreBtn.className = 'filter-tag filter-more-btn';
-          moreBtn.textContent = '更多 ▼';
-          let expanded = false;
-          moreBtn.addEventListener('click', () => {
-            expanded = !expanded;
-            if (expanded) {
-              container.classList.add('expanded');
-              moreBtn.textContent = '收起 ▲';
-            } else {
-              container.classList.remove('expanded');
-              moreBtn.textContent = '更多 ▼';
-            }
-          });
-          container.appendChild(moreBtn);
-        }
-      });
     }
 
     function buildProvinceFilters() {
       const container = document.getElementById('province-tags')!;
       container.innerHTML = '';
-      container.classList.add('filter-tags-collapsible');
+      // filter-tags-collapsible removed - now fully displayed
       const provinces = [
         '', '北京', '天津', '上海', '重庆',
         '河北', '山西', '辽宁', '吉林', '黑龙江',
@@ -329,26 +309,6 @@ import Layout from '../../layouts/Layout.astro';
         });
         container.appendChild(btn);
       }
-      // "更多" toggle - check if content overflows
-      requestAnimationFrame(() => {
-        if (container.scrollHeight > container.clientHeight + 2) {
-          const moreBtn = document.createElement('button');
-          moreBtn.className = 'filter-tag filter-more-btn';
-          moreBtn.textContent = '更多 ▼';
-          let expanded = false;
-          moreBtn.addEventListener('click', () => {
-            expanded = !expanded;
-            if (expanded) {
-              container.classList.add('expanded');
-              moreBtn.textContent = '收起 ▲';
-            } else {
-              container.classList.remove('expanded');
-              moreBtn.textContent = '更多 ▼';
-            }
-          });
-          container.appendChild(moreBtn);
-        }
-      });
     }
 
     document.getElementById('acc-search')!.addEventListener('input', applyFilters);
