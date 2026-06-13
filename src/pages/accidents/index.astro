@@ -197,7 +197,16 @@ import Layout from '../../layouts/Layout.astro';
           }
           page++;
         }
-        allItems = allData;
+        // 统一直辖市名称（避免"北京"和"北京市"并存）
+        const provinceNormalize: Record<string, string> = {
+          '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆'
+        };
+        allItems = allData.map(item => {
+          if (item.province && provinceNormalize[item.province]) {
+            return { ...item, province: provinceNormalize[item.province] };
+          }
+          return item;
+        });
         filteredItems = [...allItems];
         document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
         buildSeverityFilters();
@@ -298,24 +307,22 @@ import Layout from '../../layouts/Layout.astro';
       const container = document.getElementById('province-tags')!;
       container.innerHTML = '';
       container.classList.add('filter-tags-collapsible');
-      const provinces = [...new Set(allItems.map(i => i.province).filter(Boolean))].sort() as string[];
-      // "全部" button
-      const allBtn = document.createElement('button');
-      allBtn.className = 'filter-tag active';
-      allBtn.textContent = '全部';
-      allBtn.addEventListener('click', () => {
-        activeProvince = '';
-        container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
-        allBtn.classList.add('active');
-        applyFilters();
-      });
-      container.appendChild(allBtn);
+      const provinces = [
+        '', '北京', '天津', '上海', '重庆',
+        '河北', '山西', '辽宁', '吉林', '黑龙江',
+        '江苏', '浙江', '安徽', '福建', '江西', '山东',
+        '河南', '湖北', '湖南', '广东', '海南',
+        '四川', '贵州', '云南', '陕西',
+        '广西', '甘肃', '青海', '内蒙古', '西藏', '宁夏', '新疆'
+      ];
+      const labels: Record<string, string> = { '': '全部' };
       for (const prov of provinces) {
         const btn = document.createElement('button');
-        btn.className = 'filter-tag';
-        btn.textContent = prov;
+        btn.className = 'filter-tag' + (prov === '' ? ' active' : '');
+        btn.textContent = labels[prov] || prov;
+        btn.dataset.value = prov;
         btn.addEventListener('click', () => {
-          activeProvince = prov;
+          activeProvince = btn.dataset.value || '';
           container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           applyFilters();
