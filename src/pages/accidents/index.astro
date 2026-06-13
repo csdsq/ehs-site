@@ -8,7 +8,7 @@ import Layout from '../../layouts/Layout.astro';
       <h1 class="page-title">事故报告</h1>
 
       <!-- 筛选区 -->
-      <div class="filter-bar filter-bar-row" id="acc-filter-row1">
+      <div class="filter-bar" id="acc-filter-row1">
         <!-- 事故等级 -->
         <div class="filter-group">
           <span class="filter-label">等级</span>
@@ -20,13 +20,11 @@ import Layout from '../../layouts/Layout.astro';
           <div class="filter-tags" id="province-tags"></div>
         </div>
       </div>
-      <div class="filter-bar" id="acc-filter-row2">
-        <!-- 事故类型 -->
+      <!-- 事故类型 -->
         <div class="filter-group">
           <span class="filter-label">类型</span>
           <div class="filter-tags" id="category-tags"></div>
         </div>
-      </div>
 
       <div class="search-box" style="margin-bottom: 24px; max-width: 100%;">
         <input type="text" id="acc-search" placeholder="搜索事故名称、地点..." />

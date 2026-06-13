@@ -449,19 +449,7 @@ a:hover { color: var(--primary); }
   align-items: flex-start;
   gap: 72px;
 }
-.filter-bar.filter-bar-row {
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  gap: 72px;
-}
-.filter-bar.filter-bar-row .filter-group {
-  flex-shrink: 0;
-}
-.filter-bar.filter-bar-row .filter-group:last-child {
-  flex: 1;
-  min-width: 0;
-}
+
 .filter-group {
   display: flex;
   align-items: flex-start;
@@ -501,15 +489,6 @@ a:hover { color: var(--primary); }
   border-color: var(--primary);
 }
 
-.filter-more-btn {
-  background: transparent !important;
-  color: var(--primary) !important;
-  border-color: var(--primary) !important;
-  font-weight: 500;
-}
-.filter-tags-collapsible {
-  /* 全显示，无折叠 */
-}
 
 /* ===== Standard Tags ===== */
 
@@ -997,14 +976,11 @@ a:hover { color: var(--primary); }
   .list-item { padding: 14px 16px; }
   .list-item-icon { width: 40px; height: 40px; font-size: 18px; }
   .filter-bar { flex-wrap: wrap; gap: 8px; }
-  .filter-bar.filter-bar-row { flex-direction: column; gap: 8px; }
   .filter-row { flex-direction: column; gap: 8px; }
   .filter-group { flex-wrap: nowrap; }
   .filter-tags { flex-wrap: wrap; overflow-x: visible; -webkit-overflow-scrolling: auto; scrollbar-width: auto; padding-bottom: 2px; }
   .filter-tags::-webkit-scrollbar { display: block; }
   .filter-tag { padding: 3px 10px; font-size: 12px; flex-shrink: 0; white-space: nowrap; }
-  .filter-tags-collapsible { max-height: none; overflow-x: visible; flex-wrap: wrap; }
-  .filter-more-btn { display: none; }
 }
 @media (max-width: 480px) {
   .module-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
