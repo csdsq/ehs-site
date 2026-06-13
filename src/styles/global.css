@@ -508,12 +508,7 @@ a:hover { color: var(--primary); }
   font-weight: 500;
 }
 .filter-tags-collapsible {
-  max-height: 34px;
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-}
-.filter-tags-collapsible.expanded {
-  max-height: none;
+  /* 全显示，无折叠 */
 }
 
 /* ===== Standard Tags ===== */
