@@ -87,6 +87,31 @@ import Layout from '../../layouts/Layout.astro';
     // 归入"其他"的省份/地区
     const otherRegions = ['甘肃','青海','内蒙古','西藏','宁夏','新疆'];
 
+    // 国家级发文机构关键词——source匹配这些关键词时视为全国性法规
+    const nationalSourceKeywords = [
+      '国务院', '国务院办公厅', '全国人大', '全国人民代表大会', '全国人大常委会', '中共中央',
+      '应急管理部', '生态环境部', '国家市场监督管理总局', '国家标准委',
+      '国家标准化管理委员会', '国家矿山安全监察局', '国家卫生健康委员会',
+      '国家卫健委', '人力资源和社会保障部', '住房和城乡建设部',
+      '国家发展和改革委员会', '国家发改委', '商务部', '工业和信息化部', '工信部',
+      '交通运输部', '自然资源部', '农业农村部', '司法部', '公安部',
+      '国家消防救援局', '国家能源局', '中国气象局', '国家林业和草原局',
+      '中华全国总工会', '国家国防科技工业局', '财政部', '教育部',
+      '科学技术部', '民政部', '水利部', '文化和旅游部', '审计署',
+      '国家广播电视总局', '国家体育总局', '国家统计局', '国家医疗保障局',
+      '国家金融监督管理总局', '国家原子能机构'
+    ];
+
+    // 判断是否为全国性法规（根据发文机构）
+    function isNationalBySource(item: any): boolean {
+      if (item.regionLevel === 'national') return true;
+      if (!item.source) return false;
+      for (const kw of nationalSourceKeywords) {
+        if (item.source.includes(kw)) return true;
+      }
+      return false;
+    }
+
     function extractRegion(title: string): string {
       if (!title) return '';
       for (const [city, prov] of Object.entries(cityProvinceMap)) {
@@ -111,7 +136,7 @@ import Layout from '../../layouts/Layout.astro';
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
     function getRegionLabel(item: any): string {
-      if (item.regionLevel === 'national') return '全国';
+      if (isNationalBySource(item)) return '全国';
       const region = extractRegion(item.title);
       return region || '地方';
     }
@@ -213,7 +238,7 @@ import Layout from '../../layouts/Layout.astro';
         if (activeCategory && item.category !== activeCategory) return false;
         if (activeRegion) {
           if (activeRegion === 'national') {
-            if (item.regionLevel !== 'national') return false;
+            if (!isNationalBySource(item)) return false;
           } else {
             const region = extractRegion(item.title);
             if (region !== activeRegion) return false;
