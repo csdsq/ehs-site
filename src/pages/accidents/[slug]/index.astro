@@ -4,11 +4,20 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    const res = await fetch('https://api.hser.ren/accidents?pagination[pageSize]=100&fields[0]=slug');
-    const json = await res.json();
-    const items = json.data || [];
-    return items.map(item => ({ params: { slug: item.slug || String(item.id) } }));
+    const pageSize = 100;
+    let allItems = [];
+    let page = 1;
+    while (true) {
+      const res = await fetch(`https://api.hser.ren/accidents?pagination[pageSize]=${pageSize}&pagination[page]=${page}&fields[0]=slug`);
+      const json = await res.json();
+      const items = json.data || [];
+      allItems = allItems.concat(items);
+      if (items.length < pageSize) break;
+      page++;
+    }
+    return allItems.map(item => ({ params: { slug: item.slug || String(item.id) } }));
   } catch (e) { return []; }
+}
 }
 
 const { slug } = Astro.params;
