@@ -1,0 +1,115 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import PageComment from '../../../components/PageComment.astro';
+
+
+const { slug } = Astro.params;
+---
+<Layout title="资料详情" currentPath="/documents/">
+  <div class="detail-breadcrumb-flat">
+    <div class="container">
+      <a href="/">首页</a> / <a href="/documents/">资料文档</a> / 详情
+    </div>
+  </div>
+  <div class="container">
+    <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
+  </div>
+  <div class="container">
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+    <PageComment pageUrl={`/documents/${slug}`} />
+  </div>
+
+  <script define:vars={{ slug }}>
+    const API = '/api/strapi';
+    async function loadDetail() {
+      try {
+        let res = await fetch(`${API}/documents?filters[slug][$eq]=${slug}&pagination[pageSize]=1&populate=*`);
+        let json = await res.json();
+        let item = json.data?.[0];
+        if (!item) {
+          res = await fetch(`${API}/documents/${slug}?populate=*`);
+          json = await res.json();
+          item = json.data;
+        }
+        if (item) {
+          document.getElementById('detail-title').textContent = item.title || '';
+
+          // Determine preview URL: use previewUrl if set, otherwise use downloadUrl
+          const fileUrl = item.previewUrl || item.downloadUrl || '';
+          const ft = (item.fileType || '').toLowerCase();
+
+          let previewHtml = '';
+          if (fileUrl) {
+            if (ft === 'pdf') {
+              // PDF: use browser's built-in PDF viewer via iframe
+              previewHtml = `<div class="detail-iframe-wrap">
+                <iframe src="${fileUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
+              </div>`;
+            } else if (ft.includes('doc') || ft.includes('ppt') || ft.includes('xls')) {
+              // Office files: use Microsoft Office Online Viewer
+              const encodedUrl = encodeURIComponent(fileUrl);
+              previewHtml = `<div class="detail-iframe-wrap">
+                <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
+              </div>`;
+            } else {
+              // Other file types: try iframe
+              previewHtml = `<div class="detail-iframe-wrap">
+                <iframe src="${fileUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
+              </div>`;
+            }
+          }
+
+          // Build basic info
+          const infoItems = [];
+          if (item.category) infoItems.push({ label: '分类', value: item.category });
+          if (item.fileType) infoItems.push({ label: '文件类型', value: item.fileType.toUpperCase() });
+          if (item.fileSize) infoItems.push({ label: '文件大小', value: item.fileSize });
+          if (item.publishDate) infoItems.push({ label: '发布日期', value: item.publishDate });
+
+          document.getElementById('detail-body').innerHTML = `
+            <!-- 基本信息 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">基本信息</h2>
+              <div class="detail-section-content">
+                ${infoItems.length > 0
+                  ? `<table class="detail-info-table">
+                      <tbody>
+                        ${infoItems.map(i => `<tr><td class="detail-info-label">${i.label}</td><td>${i.value}</td></tr>`).join('')}
+                      </tbody>
+                    </table>`
+                  : '<p class="detail-empty">暂无基本信息</p>'}
+              </div>
+            </section>
+
+            <!-- 在线预览 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">在线预览</h2>
+              <div class="detail-section-content">
+                ${previewHtml
+                  ? previewHtml
+                  : '<p class="detail-empty">暂不支持在线预览</p>'}
+              </div>
+            </section>
+
+            <!-- 下载 -->
+            <section class="detail-section">
+              <h2 class="detail-section-title">下载资料</h2>
+              <div class="detail-section-content">
+                ${item.downloadUrl
+                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" download class="detail-action-btn">下载文件 (${item.fileType ? item.fileType.toUpperCase() : '文件'}${item.fileSize ? ' · ' + item.fileSize : ''})</a>`
+                  : '<p class="detail-empty">暂无下载链接</p>'}
+              </div>
+            </section>
+          `;
+        } else {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该资料</div>';
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+    loadDetail();
+  </script>
+</Layout>

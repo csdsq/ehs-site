@@ -1,0 +1,229 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import PageComment from '../../../components/PageComment.astro';
+
+
+const { slug } = Astro.params;
+---
+<Layout title="留言详情" currentPath="/messages/">
+
+  <div class="container">
+    <div class="detail-breadcrumb-flat">
+      <a href="/">首页</a> / <a href="/messages/">留言板</a> / 详情
+    </div>
+    <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
+    <div class="detail-meta-flat" id="detail-meta"></div>
+  </div>
+
+  <div class="container">
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+    <PageComment pageUrl={`/messages/${slug}`} />
+  </div>
+
+  <script define:vars={{ slug }}>
+    const API = '/api/strapi';
+    const TOKEN = '2f3b49e0adab57651579bc408d265c4d417d7826aa393a5d21a0fcced8de390536302b741438a36368e8bee686b9e36ec792da4d6025205367bcfe1a78abf7532937e2cddeb7b3521aff305d120983bded91ee91549905e557fc81f21d437c83806628d59d92c9c7a3b2b75aa1f298f4b0730c480d1e09f543d05bd434dbe2df';
+    let currentItem = null;
+
+    async function loadDetail() {
+      try {
+        let res = await fetch(`${API}/messages?filters[slug][$eq]=${slug}&pagination[pageSize]=1&populate=*`);
+        let json = await res.json();
+        let item = json.data?.[0];
+        if (!item) {
+          res = await fetch(`${API}/messages/${slug}?populate=*`);
+          json = await res.json();
+          item = json.data;
+        }
+        if (!item) {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该留言</div>';
+          return;
+        }
+        currentItem = item;
+
+        document.getElementById('detail-title').textContent = item.title || '';
+        document.getElementById('detail-meta').innerHTML = [
+          item.author ? `<span>留言人：${item.author}</span>` : '<span>游客</span>',
+          item.category ? `<span>${item.category}</span>` : '',
+          item.publishDate ? `<span>${item.publishDate}</span>` : '',
+        ].filter(Boolean).join('');
+
+        const replies = Array.isArray(item.replies) ? item.replies : [];
+        const adminReplies = Array.isArray(item.adminReplies) ? item.adminReplies : [];
+
+        document.getElementById('detail-body').innerHTML = `
+          <!-- 留言内容 -->
+          <section class="detail-section">
+            <h2 class="detail-section-title">留言内容</h2>
+            <div class="detail-section-content">
+              <div class="msg-bubble msg-guest">
+                <div class="msg-author">${item.author || '游客'}</div>
+                <div class="msg-text">${item.content || ''}</div>
+                <div class="msg-time">${item.publishDate || ''}</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 访客回复 -->
+          <section class="detail-section">
+            <h2 class="detail-section-title">💬 访客回复 (${replies.length})</h2>
+            <div class="detail-section-content" id="visitor-replies">
+              ${replies.length > 0
+                ? replies.map(r => `
+                    <div class="msg-bubble msg-guest">
+                      <div class="msg-author">${r.author || '游客'}</div>
+                      <div class="msg-text">${r.content || ''}</div>
+                      <div class="msg-time">${r.date || ''}</div>
+                    </div>`).join('')
+                : '<p class="detail-empty">暂无回复</p>'}
+            </div>
+          </section>
+
+          <!-- 管理员回复 -->
+          <section class="detail-section">
+            <h2 class="detail-section-title">🛡 管理员回复 (${adminReplies.length})</h2>
+            <div class="detail-section-content" id="admin-replies">
+              ${adminReplies.length > 0
+                ? adminReplies.map(r => `
+                    <div class="msg-bubble msg-admin">
+                      <div class="msg-author">管理员</div>
+                      <div class="msg-text">${r.content || ''}</div>
+                      <div class="msg-time">${r.date || ''}</div>
+                    </div>`).join('')
+                : '<p class="detail-empty">暂无管理员回复</p>'}
+            </div>
+          </section>
+
+          <!-- 回复表单 -->
+          <section class="detail-section">
+            <h2 class="detail-section-title">✍️ 回复留言</h2>
+            <div class="detail-section-content">
+              <form id="reply-form" class="msg-form">
+                <div class="msg-form-row" style="display:flex;gap:12px;">
+                  <input type="text" id="reply-author" placeholder="你的昵称（选填）" class="msg-input" style="flex:1;" />
+                  <select id="reply-type" class="msg-input" style="flex:1;">
+                    <option value="visitor">访客回复</option>
+                    <option value="admin">管理员回复</option>
+                  </select>
+                </div>
+                <div id="admin-key-row" class="msg-form-row" style="display:none;">
+                  <input type="password" id="admin-key" placeholder="管理口令" class="msg-input" />
+                </div>
+                <div class="msg-form-row">
+                  <textarea id="reply-content" placeholder="输入回复内容..." class="msg-textarea" rows="4"></textarea>
+                </div>
+                <button type="submit" class="detail-action-btn">提交回复</button>
+                <div id="reply-status" style="margin-top:8px;font-size:13px;"></div>
+              </form>
+            </div>
+          </section>
+        `;
+
+        // 管理员回复模式切换
+        const typeSelect = document.getElementById('reply-type');
+        const adminKeyRow = document.getElementById('admin-key-row');
+        if (typeSelect) {
+          typeSelect.addEventListener('change', () => {
+            adminKeyRow.style.display = typeSelect.value === 'admin' ? 'block' : 'none';
+          });
+        }
+
+        // 绑定回复表单
+        const form = document.getElementById('reply-form');
+        if (form) {
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const author = document.getElementById('reply-author').value.trim() || '游客';
+            const content = document.getElementById('reply-content').value.trim();
+            const replyType = document.getElementById('reply-type').value;
+
+            if (!content) {
+              document.getElementById('reply-status').textContent = '请输入回复内容';
+              document.getElementById('reply-status').style.color = '#e63946';
+              return;
+            }
+
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            const newReply = { author, content, date: dateStr };
+
+            try {
+              // 获取当前message的最新数据
+              const freshRes = await fetch(`${API}/messages?filters[slug][$eq]=${slug}&pagination[pageSize]=1&populate=*`);
+              const freshJson = await freshRes.json();
+              const freshItem = freshJson.data?.[0];
+              if (!freshItem) throw new Error('留言不存在');
+
+              let fieldName, existing;
+              if (replyType === 'admin') {
+                const adminKey = document.getElementById('admin-key').value.trim();
+                if (adminKey !== 'ehs2026') {
+                  document.getElementById('reply-status').textContent = '管理口令不正确';
+                  document.getElementById('reply-status').style.color = '#e63946';
+                  return;
+                }
+                fieldName = 'adminReplies';
+                existing = Array.isArray(freshItem.adminReplies) ? freshItem.adminReplies : [];
+              } else {
+                fieldName = 'replies';
+                existing = Array.isArray(freshItem.replies) ? freshItem.replies : [];
+              }
+
+              existing.push(newReply);
+
+              const updateRes = await fetch(`${API}/messages/${freshItem.documentId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${TOKEN}`
+                },
+                body: JSON.stringify({
+                  data: { [fieldName]: existing }
+                })
+              });
+
+              if (updateRes.ok) {
+                document.getElementById('reply-status').textContent = '回复成功！';
+                document.getElementById('reply-status').style.color = '#2a9d8f';
+                document.getElementById('reply-content').value = '';
+
+                // If admin reply and message has email, send notification
+                if (replyType === 'admin' && freshItem.email) {
+                  try {
+                    await fetch('/api/send-notification', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        adminKey: document.getElementById('admin-key').value.trim(),
+                        toEmail: freshItem.email,
+                        toName: freshItem.author || '',
+                        messageTitle: freshItem.title || '',
+                        replyContent: content,
+                        messageUrl: window.location.href
+                      })
+                    });
+                  } catch (emailErr) {
+                    console.warn('Email notification failed:', emailErr);
+                  }
+                }
+
+                setTimeout(() => loadDetail(), 800);
+              } else {
+                const err = await updateRes.json();
+                throw new Error(err.error?.message || '提交失败');
+              }
+            } catch (err) {
+              document.getElementById('reply-status').textContent = '提交失败：' + (err.message || '请稍后重试');
+              document.getElementById('reply-status').style.color = '#e63946';
+            }
+          });
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+    loadDetail();
+  </script>
+</Layout>

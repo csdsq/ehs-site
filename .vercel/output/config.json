@@ -1,0 +1,79 @@
+{
+	"version": 3,
+	"routes": [
+		{
+			"src": "^/_astro/(.*)$",
+			"headers": {
+				"cache-control": "public, max-age=31536000, immutable"
+			},
+			"continue": true
+		},
+		{
+			"handle": "filesystem"
+		},
+		{
+			"src": "^\\/_image$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/accidents\\/([^/]+?)\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/accidents\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/ai-apps\\/([^/]+?)\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/ai-apps\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/documents\\/([^/]+?)\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/documents\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/messages\\/([^/]+?)\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/messages\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/regulations\\/([^/]+?)\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/regulations\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/standards\\/([^/]+?)\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/standards\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/videos\\/([^/]+?)\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/videos\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/$",
+			"dest": "_render"
+		}
+	]
+}

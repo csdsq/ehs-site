@@ -1,0 +1,82 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import PageComment from '../../../components/PageComment.astro';
+
+
+const { slug } = Astro.params;
+---
+<Layout title="AI应用详情" currentPath="/ai-apps/">
+  <div class="container">
+    <div class="detail-breadcrumb-flat">
+      <a href="/">首页</a> / <a href="/ai-apps/">AI应用</a> / 详情
+    </div>
+    <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
+    <div class="detail-meta-flat" id="detail-meta"></div>
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+    <PageComment pageUrl={`/ai-apps/${slug}`} />
+  </div>
+
+  <script define:vars={{ slug }}>
+    const API = '/api/strapi';
+    async function loadDetail() {
+      try {
+        let res = await fetch(`${API}/ai-apps?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        let json = await res.json();
+        let item = json.data?.[0];
+        if (!item) {
+          res = await fetch(`${API}/ai-apps/${slug}`);
+          json = await res.json();
+          item = json.data;
+        }
+        if (item) {
+          document.getElementById('detail-title').textContent = item.title || '';
+          document.getElementById('detail-meta').innerHTML = [
+            item.category ? `<span>${item.category}</span>` : '',
+          ].filter(Boolean).join(' ');
+
+          const intro = item.features || item.description || '';
+          const imageHtml = item.demoContent || '';
+          const appUrl = item.appUrl || item.url || '';
+
+          document.getElementById('detail-body').innerHTML = `
+            ${intro ? `
+            <section class="detail-section">
+              <h2 class="detail-section-title">应用简介</h2>
+              <div class="detail-section-content">
+                <div class="detail-text">${intro.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>
+              </div>
+            </section>` : ''}
+
+            ${imageHtml ? `
+            <section class="detail-section">
+              <h2 class="detail-section-title">应用展示</h2>
+              <div class="detail-section-content">
+                <div class="detail-app-image">${imageHtml}</div>
+              </div>
+            </section>` : ''}
+
+            ${appUrl ? `
+            <section class="detail-section">
+              <h2 class="detail-section-title">访问应用</h2>
+              <div class="detail-section-content">
+                <div class="detail-actions">
+                  <a href="${appUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-preview">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    进入应用
+                  </a>
+                </div>
+              </div>
+            </section>` : ''}
+          `;
+        } else {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该应用</div>';
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+    loadDetail();
+  </script>
+</Layout>
