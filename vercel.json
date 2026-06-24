@@ -17,7 +17,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "http://api.hser.ren/api/$1"
+      "destination": "http://8.149.139.66/api/$1"
     }
   ]
 }
