@@ -3,11 +3,6 @@
   "outputDirectory": "dist",
   "framework": "astro",
   "installCommand": "npm install",
-  "functions": {
-    "api/strapi/[[...path]].js": {
-      "runtime": "nodejs22.x"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
