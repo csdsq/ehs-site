@@ -37,7 +37,7 @@ const { slug } = Astro.params;
           document.getElementById('detail-title').textContent = item.title || '';
 
           // Determine preview URL: use previewUrl if set, otherwise use downloadUrl
-          const fileUrl = item.previewUrl || item.downloadUrl || '';
+          const fileUrl = (item.previewUrl || item.downloadUrl || '').replace('https://api.hser.ren/uploads/', '/uploads/');
           const ft = (item.fileType || '').toLowerCase();
 
           let previewHtml = '';
@@ -97,8 +97,8 @@ const { slug } = Astro.params;
             <section class="detail-section">
               <h2 class="detail-section-title">下载资料</h2>
               <div class="detail-section-content">
-                ${item.downloadUrl
-                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" download class="detail-action-btn">下载文件 (${item.fileType ? item.fileType.toUpperCase() : '文件'}${item.fileSize ? ' · ' + item.fileSize : ''})</a>`
+                ${(item.downloadUrl || "").replace("https://api.hser.ren/uploads/", "/uploads/")
+                  ? `<a href="${(item.downloadUrl || "").replace("https://api.hser.ren/uploads/", "/uploads/")}" target="_blank" rel="noopener" download class="detail-action-btn">下载文件 (${item.fileType ? item.fileType.toUpperCase() : '文件'}${item.fileSize ? ' · ' + item.fileSize : ''})</a>`
                   : '<p class="detail-empty">暂无下载链接</p>'}
               </div>
             </section>

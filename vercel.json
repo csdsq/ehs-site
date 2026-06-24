@@ -3,6 +3,10 @@
     {
       "source": "/api/strapi/:path*",
       "destination": "https://api.hser.ren/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://api.hser.ren/uploads/:path*"
     }
   ],
   "headers": [
