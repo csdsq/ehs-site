@@ -32,7 +32,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
 </div>
 
 <script define:vars={{ pageUrl, pageTitle }}>
-  const API = '';
+  const API = 'https://api.hser.ren:8443';
 
   function timeAgo(dateStr) {
     if (!dateStr) return '';

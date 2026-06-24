@@ -26,7 +26,7 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = '';
+    const API = 'https://api.hser.ren:8443';
 
     function getBilibiliEmbed(url) {
       const bvMatch = url.match(/BV[a-zA-Z0-9]+/);

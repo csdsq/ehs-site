@@ -13,11 +13,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "http://8.149.139.66:8080/api/$1"
-    }
   ]
 }
