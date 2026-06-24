@@ -8,7 +8,7 @@ export async function getStaticPaths() {
     let allItems = [];
     let page = 1;
     while (true) {
-      const res = await fetch(`https://api.hser.ren/accidents?pagination[pageSize]=${pageSize}&pagination[page]=${page}&fields[0]=slug`);
+      const res = await fetch(`/accidents?pagination[pageSize]=${pageSize}&pagination[page]=${page}&fields[0]=slug`);
       const json = await res.json();
       const items = json.data || [];
       allItems = allItems.concat(items);
@@ -35,7 +35,7 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = 'https://api.hser.ren';
+    const API = '';
     async function loadDetail() {
       try {
         let res = await fetch(`${API}/accidents?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);

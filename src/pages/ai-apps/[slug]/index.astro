@@ -4,7 +4,7 @@ import PageComment from '../../../components/PageComment.astro';
 
 export async function getStaticPaths() {
   try {
-    const res = await fetch('https://api.hser.ren/ai-apps?pagination[pageSize]=100&fields[0]=slug');
+    const res = await fetch('/ai-apps?pagination[pageSize]=100&fields[0]=slug');
     const json = await res.json();
     const items = json.data || [];
     return items.map(item => ({
@@ -31,7 +31,7 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = 'https://api.hser.ren';
+    const API = '';
     async function loadDetail() {
       try {
         let res = await fetch(`${API}/ai-apps?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
