@@ -3,6 +3,12 @@
   "outputDirectory": "dist",
   "framework": "astro",
   "installCommand": "npm install",
+  "rewrites": [
+    {
+      "source": "/api/strapi/:path*",
+      "destination": "https://api.hser.ren/api/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
