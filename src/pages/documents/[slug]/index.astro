@@ -30,7 +30,7 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = 'https://api.hser.ren';
+    const API = '/api/strapi';
     async function loadDetail() {
       try {
         let res = await fetch(`${API}/documents?filters[slug][$eq]=${slug}&pagination[pageSize]=1&populate=*`);

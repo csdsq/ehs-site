@@ -1,7 +1,7 @@
 ﻿// src/lib/strapi.ts
 // Strapi v5 API 数据获取工具
 
-export const STRAPI_URL = 'https://api.hser.ren'; // Use Vercel rewrites to proxy to Strapi
+export const STRAPI_URL = '/api/strapi'; // Use Vercel rewrites to proxy to Strapi
 
 export interface StrapiResponse<T> {
   data: T[];

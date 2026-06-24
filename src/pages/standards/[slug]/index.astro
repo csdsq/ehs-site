@@ -38,7 +38,7 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = 'https://api.hser.ren';
+    const API = '/api/strapi';
 
     const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
     const regionLevelMap = { national: '国家', provincial: '省', municipal: '市' };

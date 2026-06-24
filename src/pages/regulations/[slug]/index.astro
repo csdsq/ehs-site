@@ -36,7 +36,7 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = 'https://api.hser.ren';
+    const API = '/api/strapi';
     async function loadDetail() {
       try {
         // 法规数据现在全在 regulations 集合
