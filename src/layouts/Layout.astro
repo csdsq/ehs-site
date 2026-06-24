@@ -6,7 +6,7 @@ interface Props {
   title?: string;
   currentPath?: string;
 }
-const { title = 'EHS信息站', currentPath = '' } = Astro.props;
+const { title = 'EHS经验分享', currentPath = '' } = Astro.props;
 
 const navItems = [
   { label: 'AI应用', href: '/ai-apps/' },
@@ -24,7 +24,7 @@ const navItems = [
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title} - EHS信息站</title>
+  <title>{title} - EHS经验分享</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 </head>
 <body>
@@ -32,7 +32,7 @@ const navItems = [
     <div class="header-inner">
       <a href="/" class="logo">
         <span class="logo-icon">🛡</span>
-        <span>EHS信息站</span>
+        <span>EHS经验分享</span>
       </a>
       <nav>
         <ul class="nav-links">
@@ -73,7 +73,7 @@ const navItems = [
     <div class="container">
       <div class="footer-grid">
         <div class="footer-about">
-          <h3>🛡 EHS信息站</h3>
+          <h3>🛡 EHS经验分享</h3>
           <p style="font-size: 13px; margin-top: 8px; line-height: 1.8;">
             聚合环境、健康、安全领域国标地标、法规文件、事故报告，<br>
             助力EHS从业者高效获取专业安全信息。
@@ -95,7 +95,7 @@ const navItems = [
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2026 EHS信息站 &middot; 数据来源于官方公开渠道 &middot; 仅供学习参考</p>
+        <p>&copy; 2026 EHS经验分享 &middot; 数据来源于官方公开渠道 &middot; 仅供学习参考</p>
         <p style="margin-top: 6px; font-size: 12px;">
           <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026033883号-2</a>
         </p>
