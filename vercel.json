@@ -1,8 +1,4 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "astro",
-  "installCommand": "npm install",
   "rewrites": [
     {
       "source": "/api/strapi/:path*",
