@@ -60,8 +60,53 @@ function normalizeAccidents(items) {
 
 function writeJson(name, data) {
   const filePath = path.join(OUT_DIR, `${name}.json`);
+  const isArray = Array.isArray(data);
   fs.writeFileSync(filePath, JSON.stringify(data), 'utf8');
-  console.log(`Generated ${filePath} with ${data.length} items (${Math.round(fs.statSync(filePath).size / 1024)} KB)`);
+  const size = Math.round(fs.statSync(filePath).size / 1024);
+  console.log(`Generated ${filePath} (${isArray ? data.length + ' items' : 'object'}, ${size} KB)`);
+}
+
+async function fetchLatest(endpoint, fields, pageSize = 6, sort = 'createdAt:desc') {
+  const fieldParams = fields.map((f, i) => `fields[${i}]=${encodeURIComponent(f)}`).join('&');
+  const url = `${STRAPI_BASE}/${endpoint}?pagination[pageSize]=${pageSize}&sort=${sort}&${fieldParams}`;
+  return fetchPage(url);
+}
+
+async function generateHomeData(accidents, regulations, standards) {
+  // Fetch lightweight home-page previews and totals in parallel
+  const [aiApps, regs, stds, accs, videos, docs, msgs] = await Promise.all([
+    fetchLatest('ai-apps', ['title', 'slug', 'description', 'icon', 'category'], 6, 'createdAt:desc'),
+    fetchLatest('regulations', ['title', 'slug', 'source', 'standardNo', 'effectiveDate', 'publishDate'], 6, 'publishDate:desc'),
+    fetchLatest('standards', ['title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'description'], 6, 'publishDate:desc'),
+    fetchLatest('accidents', ['title', 'slug', 'category', 'severity', 'date'], 6, 'date:desc'),
+    fetchLatest('videos', ['title', 'slug', 'description', 'videoUrl', 'duration', 'category'], 3, 'createdAt:desc'),
+    fetchLatest('documents', ['title', 'slug', 'description', 'fileType', 'publishDate'], 6, 'createdAt:desc'),
+    fetchLatest('messages', ['title', 'slug', 'author', 'publishDate', 'category'], 6, 'publishDate:desc'),
+  ]);
+
+  const total = (res) => res?.meta?.pagination?.total ?? 0;
+
+  const homeData = {
+    stats: {
+      aiApps: total(aiApps),
+      regulations: total(regs),
+      standards: total(stds),
+      accidents: total(accs),
+      videos: total(videos),
+      documents: total(docs),
+      messages: total(msgs),
+    },
+    aiApps: aiApps?.data ?? [],
+    regulations: regs?.data ?? [],
+    standards: stds?.data ?? [],
+    accidents: accs?.data ?? [],
+    videos: videos?.data ?? [],
+    documents: docs?.data ?? [],
+    messages: msgs?.data ?? [],
+  };
+
+  writeJson('home-data', homeData);
+  return homeData;
 }
 
 async function main() {
@@ -87,6 +132,9 @@ async function main() {
     'title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'source'
   ]);
   writeJson('standards', standards);
+
+  // Generate single JSON for the homepage, replacing 7 parallel API calls
+  await generateHomeData(normalizedAccidents, regulations, standards);
 }
 
 main().catch(err => {

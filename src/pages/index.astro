@@ -1,4 +1,5 @@
 ---
+export const prerender = true;
 import Layout from '../layouts/Layout.astro';
 ---
 <Layout title="首页" currentPath="/">
@@ -96,7 +97,9 @@ import Layout from '../layouts/Layout.astro';
   </section>
 
   <script>
-    const API = '/api/strapi';
+    const HOME_DATA_URL = '/data/home-data.json';
+    const HOME_CACHE_KEY = 'home_data_cache';
+    const HOME_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
     async function safeFetch(url) {
       try {
@@ -106,6 +109,28 @@ import Layout from '../layouts/Layout.astro';
       } catch (e) {
         console.warn('Fetch failed:', url, e);
         return null;
+      }
+    }
+
+    function getCachedHomeData() {
+      try {
+        const cached = localStorage.getItem(HOME_CACHE_KEY);
+        const cachedAt = localStorage.getItem(HOME_CACHE_KEY + '_ts');
+        if (cached && cachedAt && Date.now() - parseInt(cachedAt, 10) < HOME_CACHE_TTL) {
+          return JSON.parse(cached);
+        }
+      } catch (e) {
+        console.warn('Failed to read cached home data:', e);
+      }
+      return null;
+    }
+
+    function setCachedHomeData(data) {
+      try {
+        localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(HOME_CACHE_KEY + '_ts', String(Date.now()));
+      } catch (e) {
+        console.warn('Failed to cache home data:', e);
       }
     }
 
@@ -150,9 +175,9 @@ import Layout from '../layouts/Layout.astro';
           </a>`;
       }
 
-// 事故类型：标题下小字显示发生日期、事故类型、事故等级
-      const accSeverityMap: Record<string,string> = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
-      const accCategoryMap: Record<string,string> = {
+      // 事故类型：标题下小字显示发生日期、事故类型、事故等级
+      const accSeverityMap = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
+      const accCategoryMap = {
         suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
         traffic: '交通', poisoning_suffocation: '中毒窒息',
         falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害',
@@ -242,32 +267,24 @@ import Layout from '../layouts/Layout.astro';
         </a>`;
     }
 
-    async function loadAll() {
-      const [aiApps, regs, standards, accs, videos, docs, msgs] = await Promise.all([
-        safeFetch(`${API}/ai-apps?pagination[pageSize]=6&sort=createdAt:desc&fields[0]=title&fields[1]=slug&fields[2]=description&fields[3]=icon&fields[4]=category`),
-        safeFetch(`${API}/regulations?pagination[pageSize]=6&sort=publishDate:desc&fields[0]=title&fields[1]=slug&fields[2]=source&fields[3]=standardNo&fields[4]=effectiveDate&fields[5]=publishDate`),
-        safeFetch(`${API}/standards?pagination[pageSize]=6&sort=publishDate:desc&fields[0]=title&fields[1]=slug&fields[2]=standardNo&fields[3]=category&fields[4]=publishDate&fields[5]=effectiveDate&fields[6]=description`),
-        safeFetch(`${API}/accidents?pagination[pageSize]=6&sort=date:desc&fields[0]=title&fields[1]=slug&fields[2]=category&fields[3]=severity&fields[4]=date`),
-        safeFetch(`${API}/videos?pagination[pageSize]=3&sort=createdAt:desc&fields[0]=title&fields[1]=slug&fields[2]=description&fields[3]=videoUrl&fields[4]=duration&fields[5]=category`),
-        safeFetch(`${API}/documents?pagination[pageSize]=6&sort=createdAt:desc&fields[0]=title&fields[1]=slug&fields[2]=description&fields[3]=fileType&fields[4]=publishDate`),
-        safeFetch(`${API}/messages?pagination[pageSize]=6&sort=publishDate:desc&fields[0]=title&fields[1]=slug&fields[2]=author&fields[3]=publishDate&fields[4]=category`),
-      ]);
+    function renderHomeData(homeData) {
+      const { stats, aiApps, regulations, standards, accidents, videos, documents } = homeData;
 
       // Stats
-      const s = (el, data) => { const e = document.getElementById(el); if (e) e.textContent = data?.meta?.pagination?.total ?? '0'; };
-      s('stat-laws', standards);
-      s('stat-standards', regs);
-      s('stat-ai', aiApps);
-      s('stat-accs', accs);
-      s('stat-videos', videos);
-      s('stat-docs', docs);
-      s('stat-msgs', msgs);
+      const s = (el, value) => { const e = document.getElementById(el); if (e) e.textContent = value ?? '0'; };
+      s('stat-laws', stats?.standards);
+      s('stat-standards', stats?.regulations);
+      s('stat-ai', stats?.aiApps);
+      s('stat-accs', stats?.accidents);
+      s('stat-videos', stats?.videos);
+      s('stat-docs', stats?.documents);
+      s('stat-msgs', stats?.messages);
 
       // Render lists (non-video modules)
       const renderList = (elId, data, href, type) => {
         const el = document.getElementById(elId);
         if (!el) return;
-        const items = data?.data ?? [];
+        const items = data?.data ?? data ?? [];
         el.innerHTML = items.length === 0
           ? '<div class="empty">暂无数据</div>'
           : items.map(item => renderListItem(item, href, type)).join('');
@@ -275,17 +292,38 @@ import Layout from '../layouts/Layout.astro';
 
       renderList('home-ai-list', aiApps, '/ai-apps/');
       renderList('home-laws-list', standards, '/standards/', 'regulation');
-      renderList('home-standards-list', regs, '/regulations/', 'standard');
-      renderList('home-accs-list', accs, '/accidents/', 'accident');
-      renderList('home-docs-list', docs, '/documents/', 'document');
+      renderList('home-standards-list', regulations, '/regulations/', 'standard');
+      renderList('home-accs-list', accidents, '/accidents/', 'accident');
+      renderList('home-docs-list', documents, '/documents/', 'document');
 
       // Render video cards
       const videoEl = document.getElementById('home-videos-list');
       if (videoEl) {
-        const videoItems = videos?.data ?? [];
+        const videoItems = videos?.data ?? videos ?? [];
         videoEl.innerHTML = videoItems.length === 0
           ? '<div class="empty">暂无视频</div>'
           : videoItems.map(item => renderVideoCard(item)).join('');
+      }
+    }
+
+    async function loadAll() {
+      // 1. Try cached data first for instant render
+      const cached = getCachedHomeData();
+      if (cached) {
+        renderHomeData(cached);
+      }
+
+      // 2. Fetch fresh data in the background
+      const homeData = await safeFetch(HOME_DATA_URL);
+      if (homeData) {
+        setCachedHomeData(homeData);
+        renderHomeData(homeData);
+      } else if (!cached) {
+        // Only show error if we have no cached data at all
+        ['home-ai-list', 'home-laws-list', 'home-standards-list', 'home-accs-list', 'home-docs-list'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerHTML = '<div class="empty">加载失败</div>';
+        });
       }
     }
 
