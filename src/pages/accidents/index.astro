@@ -1,4 +1,5 @@
 ---
+export const prerender = true;
 import Layout from '../../layouts/Layout.astro';
 ---
 <Layout title="事故报告" currentPath="/accidents/">
@@ -40,7 +41,9 @@ import Layout from '../../layouts/Layout.astro';
   </div>
 
   <script>
-    const API = '/api/strapi';
+    const DATA_URL = '/data/accidents.json';
+    const CACHE_KEY = 'accidents_data_cache';
+    const CACHE_TTL = 30 * 60 * 1000;
     const severityMap: Record<string,string> = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
     const categoryMap: Record<string,string> = {
       suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',

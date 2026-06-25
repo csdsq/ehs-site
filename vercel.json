@@ -1,26 +1,51 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": ".vercel/output",
+  "framework": "astro",
+  "installCommand": "npm install",
   "rewrites": [
     {
       "source": "/api/strapi/:path*",
-      "destination": "https://api.hser.ren/api/:path*"
+      "destination": "http://8.149.139.66:1337/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://api.hser.ren/uploads/:path*"
+      "destination": "http://8.149.139.66:1337/uploads/:path*"
     }
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/data/:path*",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, s-maxage=0, max-age=0, must-revalidate"
+          "value": "public, s-maxage=3600, stale-while-revalidate=86400"
         }
       ]
     },
     {
-      "source": "/_astro/(.*)",
+      "source": "/api/strapi/:path*",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" },
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=300, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/((?!data/|api/).*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=300, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/_astro/:path*",
       "headers": [
         {
           "key": "Cache-Control",
