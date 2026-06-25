@@ -73,7 +73,9 @@ import Layout from '../../layouts/Layout.astro';
   </div>
 
   <script>
-    const API = '/api/strapi';
+    const DATA_URL = '/data/regulations.json';
+    const CACHE_KEY = 'regulations_data_cache';
+    const CACHE_TTL = 30 * 60 * 1000;
     const categoryMap: Record<string,string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
 
     // 直辖市映射：标题中可能出现"深圳市""广州市"等，需归到对应省/直辖市
@@ -264,26 +266,46 @@ import Layout from '../../layouts/Layout.astro';
 
     async function loadItems() {
       try {
-        // 分页获取全部法规数据（每次最多100条，翻页取完）
         let allData: any[] = [];
-        let page = 1;
-        let totalPages = 1;
-        while (page <= totalPages) {
-          const res = await fetch(`${API}/regulations?pagination[pageSize]=100&pagination[page]=${page}&sort=publishDate:desc&fields[0]=title&fields[1]=category&fields[2]=source&fields[3]=standardNo&fields[4]=effectiveDate&fields[5]=publishDate&fields[6]=slug`);
-          const json = await res.json();
-          if (json.data) allData = allData.concat(json.data);
-          const meta = json.meta?.pagination;
-          if (meta) {
-            totalPages = meta.pageCount;
-          } else {
-            break;
-          }
-          page++;
+        let fromCache = false;
+
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed.timestamp && Date.now() - parsed.timestamp < CACHE_TTL) {
+              allData = parsed.data;
+              fromCache = true;
+            }
+          } catch {}
         }
+
+        if (!fromCache) {
+          const res = await fetch(DATA_URL);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          allData = await res.json();
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ data: allData, timestamp: Date.now() }));
+          } catch {}
+        }
+
         allItems = allData;
         filteredItems = [...allItems];
         document.getElementById('std-count')!.textContent = `共 ${allItems.length} 项`;
         updateView();
+
+        if (fromCache) {
+          fetch(DATA_URL).then(res => res.json()).then(freshData => {
+            if (JSON.stringify(freshData) !== JSON.stringify(allData)) {
+              allItems = freshData;
+              filteredItems = [...allItems];
+              try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: freshData, timestamp: Date.now() }));
+              } catch {}
+              applyFilters();
+            }
+          }).catch(() => {});
+        }
       } catch (e) {
         document.getElementById('std-list')!.innerHTML = '<div class="empty">加载失败</div>';
       }
