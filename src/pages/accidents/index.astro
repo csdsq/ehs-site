@@ -42,6 +42,7 @@ import Layout from '../../layouts/Layout.astro';
 
   <script>
     const DATA_URL = '/data/accidents.json';
+    const PREVIEW_URL = '/data/accidents-preview.json';
     const CACHE_KEY = 'accidents_data_cache';
     const CACHE_TTL = 30 * 60 * 1000;
     const severityMap: Record<string,string> = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
@@ -181,48 +182,71 @@ import Layout from '../../layouts/Layout.astro';
       document.getElementById('acc-count')!.textContent = `共 ${filteredItems.length} 项${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 项）` : ''}`;
     }
 
+    function normalizeProvince(item: any) {
+      const provinceNormalize: Record<string, string> = {
+        '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆'
+      };
+      if (item.province && provinceNormalize[item.province]) {
+        return { ...item, province: provinceNormalize[item.province] };
+      }
+      return item;
+    }
+
     async function loadItems() {
       try {
+        const now = Date.now();
         const cached = localStorage.getItem(CACHE_KEY);
         const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
-        const now = Date.now();
-        if (cached && cachedAt && now - parseInt(cachedAt, 10) < CACHE_TTL) {
-          allItems = JSON.parse(cached);
+        const hasFullCache = cached && cachedAt && now - parseInt(cachedAt, 10) < CACHE_TTL;
+
+        if (hasFullCache) {
+          // 已有完整缓存：直接渲染并后台刷新
+          allItems = JSON.parse(cached).map(normalizeProvince);
           filteredItems = [...allItems];
           document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
           buildSeverityFilters();
           buildCategoryFilters();
           buildProvinceFilters();
           updateView();
+          fetchFullAndCache(true);
+          return;
         }
-        // 后台刷新数据
-        const res = await fetch(DATA_URL);
-        if (!res.ok) throw new Error('fetch failed');
-        const allData = await res.json();
-        // 统一直辖市名称
-        const provinceNormalize: Record<string, string> = {
-          '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆'
-        };
-        const normalized = allData.map((item: any) => {
-          if (item.province && provinceNormalize[item.province]) {
-            return { ...item, province: provinceNormalize[item.province] };
-          }
-          return item;
-        });
-        localStorage.setItem(CACHE_KEY, JSON.stringify(normalized));
-        localStorage.setItem(CACHE_KEY + '_ts', String(now));
-        allItems = normalized;
-        filteredItems = [...allItems];
-        document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
-        buildSeverityFilters();
-        buildCategoryFilters();
-        buildProvinceFilters();
-        updateView();
+
+        // 无缓存：先加载 preview（前 50 条）快速首屏，再后台加载完整数据
+        const previewRes = await fetch(PREVIEW_URL);
+        if (previewRes.ok) {
+          const previewData = (await previewRes.json()).map(normalizeProvince);
+          allItems = previewData;
+          filteredItems = [...allItems];
+          document.getElementById('acc-count')!.textContent = `加载中 ${previewData.length} 项…`;
+          buildSeverityFilters();
+          buildCategoryFilters();
+          buildProvinceFilters();
+          updateView();
+        }
+
+        await fetchFullAndCache(false);
       } catch (e) {
         if (allItems.length === 0) {
           document.getElementById('acc-list')!.innerHTML = '<div class="empty">加载失败</div>';
         }
       }
+    }
+
+    async function fetchFullAndCache(isBackground: boolean) {
+      const res = await fetch(DATA_URL);
+      if (!res.ok) throw new Error('fetch failed');
+      const allData = (await res.json()).map(normalizeProvince);
+      const now = Date.now();
+      localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
+      localStorage.setItem(CACHE_KEY + '_ts', String(now));
+      allItems = allData;
+      filteredItems = [...allItems];
+      document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
+      buildSeverityFilters();
+      buildCategoryFilters();
+      buildProvinceFilters();
+      updateView();
     }
 
 

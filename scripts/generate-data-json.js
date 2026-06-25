@@ -71,7 +71,10 @@ async function main() {
   const accidents = await fetchAll('accidents', [
     'title', 'slug', 'severity', 'category', 'province', 'date', 'casualties', 'location'
   ]);
-  writeJson('accidents', normalizeAccidents(accidents));
+  const normalizedAccidents = normalizeAccidents(accidents);
+  writeJson('accidents', normalizedAccidents);
+  // Preview file for instant first paint (first 50 most recent items)
+  writeJson('accidents-preview', normalizedAccidents.slice(0, 50));
 
   // Keep in sync with src/pages/regulations/index.astro expectations
   const regulations = await fetchAll('regulations', [
