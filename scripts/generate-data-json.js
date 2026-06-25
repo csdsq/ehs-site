@@ -174,6 +174,34 @@ async function main() {
 
   // Generate single JSON for the homepage, replacing 7 parallel API calls
   await generateHomeData(normalizedAccidents, regulations, standards);
+
+  // Generate full regulation data for detail page prerendering
+  // All fields (including content, downloadUrl) for 504 items
+  // Only used at build time by getStaticPaths()
+  const regFull = await fetchAll('regulations', [
+    'title', 'slug', 'source', 'standardNo', 'downloadUrl',
+    'publishDate', 'effectiveDate', 'category',
+    'content', 'summary', 'validity', 'description'
+  ], 'publishDate:desc');
+  writeJson('regulations-full', regFull);
+  console.log(`Regulations full data ready for prerender (${regFull.length} items).`);
+
+  // Generate full accident data for detail page prerendering
+  const accFull = await fetchAll('accidents', [
+    'title', 'slug', 'severity', 'category', 'province', 'date', 'casualties',
+    'location', 'company', 'economicLoss', 'description', 'content',
+    'causes', 'suggestions', 'personnelHandling', 'reportUrl', 'downloadUrl'
+  ], 'date:desc');
+  writeJson('accidents-full', normalizeAccidents(accFull));
+  console.log(`Accidents full data ready for prerender (${accFull.length} items).`);
+
+  // Generate full standards data for detail page prerendering
+  const stdFull = await fetchAll('standards', [
+    'title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate',
+    'source', 'description', 'content', 'downloadUrl'
+  ], 'effectiveDate:desc');
+  writeJson('standards-full', stdFull);
+  console.log(`Standards full data ready for prerender (${stdFull.length} items).`);
 }
 
 main().catch(err => {

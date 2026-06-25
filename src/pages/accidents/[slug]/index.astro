@@ -1,143 +1,152 @@
 ---
-export const prerender = false;
+export const prerender = true;
 import Layout from '../../../layouts/Layout.astro';
 import PageComment from '../../../components/PageComment.astro';
+import fs from 'node:fs';
+import path from 'node:path';
 
+export async function getStaticPaths() {
+  const filePath = path.join(process.cwd(), 'public', 'data', 'accidents-full.json');
+  let items: any[] = [];
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    items = Array.isArray(data) ? data : [];
+  } catch {
+    console.warn('accidents-full.json not found, falling back to empty');
+  }
+  return items.map((item: any) => ({
+    params: { slug: item.slug },
+    props: { item },
+  }));
+}
 
-const { slug } = Astro.params;
+const { item } = Astro.props;
+
+const severityMap: Record<string,string> = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
+const categoryMap: Record<string,string> = {
+  suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
+  traffic: '交通', poisoning_suffocation: '中毒窒息',
+  falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害',
+  other_injury: '其他伤害', fire: '火灾', explosion: '爆炸',
+  electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺'
+};
+const sevClassMap: Record<string,string> = { major: 'acc-sev-major', larger: 'acc-sev-larger', general: 'acc-sev-general', minor: 'acc-sev-minor' };
+const sevLabel = severityMap[item.severity] || item.severity || '';
+const catLabel = categoryMap[item.category] || item.category || '';
+const provLabel = item.province || '';
+
+const infoRows: Array<[string,any]> = [
+  ['事故名称', item.title],
+  ['事故类型', catLabel || item.category],
+  ['事故等级', sevLabel || item.severity],
+  ['发生省份', provLabel || '-'],
+  ['发生地点', item.location],
+  ['发生时间', item.date],
+  ['伤亡情况', item.casualties],
+  ['涉及企业', item.company],
+  ['直接经济损失', item.economicLoss],
+].filter(([,v]) => v && v !== '-');
+const reportUrl = item.reportUrl || item.downloadUrl;
+const hasDetailedContent = item.content && item.content.length > 50;
 ---
-<Layout title="事故报告详情" currentPath="/accidents/">
+<Layout title={`${item.title || '事故报告详情'}`} currentPath="/accidents/">
   <div class="container">
     <div class="detail-breadcrumb-flat">
       <a href="/">首页</a> / <a href="/accidents/">事故报告</a> / 详情
     </div>
-    <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
-    <div id="detail-tags" style="margin-bottom: 16px;"></div>
-    <div class="detail-body" id="detail-body">
-      <div class="loading">加载中...</div>
+    <h1 class="detail-title-flat">{item.title || '无标题'}</h1>
+    {sevLabel || catLabel || provLabel ? <div style="margin-bottom: 16px;">
+      {sevLabel ? <span class={`acc-tag ${sevClassMap[item.severity] || 'acc-sev-general'}`}>{sevLabel}</span> : ''}
+      {catLabel ? <span class="acc-tag acc-tag-cat">{catLabel}</span> : ''}
+      {provLabel ? <span class="acc-tag acc-tag-prov">{provLabel}</span> : ''}
+    </div> : ''}
+    <div class="detail-body">
+      <!-- 基本信息 -->
+      <section class="detail-section">
+        <h2 class="detail-section-title">基本信息</h2>
+        <div class="detail-section-content">
+          {infoRows.length > 0 ? (
+            <table class="detail-info-table">
+              {infoRows.map(([k,v]) => (
+                <tr><td class="info-label">{k}</td><td class="info-value">{v}</td></tr>
+              ))}
+            </table>
+          ) : (
+            <p class="detail-empty">暂无基本信息</p>
+          )}
+        </div>
+      </section>
+
+      <!-- 事故经过 -->
+      <section class="detail-section">
+        <h2 class="detail-section-title">事故经过</h2>
+        <div class="detail-section-content">
+          {item.content ? (
+            <div class="detail-text" set:html={item.content} />
+          ) : (
+            <p class="detail-empty">暂无事故经过</p>
+          )}
+        </div>
+      </section>
+
+      <!-- 事故原因 -->
+      <section class="detail-section">
+        <h2 class="detail-section-title">事故原因</h2>
+        <div class="detail-section-content">
+          {item.causes ? (
+            <div class="detail-text" set:html={item.causes} />
+          ) : (
+            <p class="detail-empty">暂无原因分析</p>
+          )}
+        </div>
+      </section>
+
+      <!-- 改善措施 -->
+      <section class="detail-section">
+        <h2 class="detail-section-title">改善措施</h2>
+        <div class="detail-section-content">
+          {item.suggestions ? (
+            <div class="detail-text" set:html={item.suggestions} />
+          ) : (
+            <p class="detail-empty">暂无改善措施</p>
+          )}
+        </div>
+      </section>
+
+      <!-- 处理结果 -->
+      <section class="detail-section">
+        <h2 class="detail-section-title">处理结果</h2>
+        <div class="detail-section-content">
+          {item.personnelHandling ? (
+            <div class="detail-text" set:html={item.personnelHandling} />
+          ) : (
+            <p class="detail-empty">暂无处理结果</p>
+          )}
+        </div>
+      </section>
+
+      <!-- 报告原文 -->
+      <section class="detail-section">
+        <h2 class="detail-section-title">报告原文</h2>
+        <div class="detail-section-content">
+          <div class="detail-actions">
+            {reportUrl ? (
+              <a href={reportUrl} target="_blank" rel="noopener" class="detail-action-btn btn-preview">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                查看原文
+              </a>
+            ) : hasDetailedContent ? (
+              <details class="detail-expand" open>
+                <summary>展开/收起报告全文</summary>
+                <div class="detail-expand-body" set:html={item.content} />
+              </details>
+            ) : (
+              <p class="detail-empty">暂无报告原文</p>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
-    <PageComment pageUrl={`/accidents/${slug}`} />
+    <PageComment pageUrl={`/accidents/${item.slug}`} pageTitle={item.title} />
   </div>
-
-  <script define:vars={{ slug }}>
-    const API = '/api/strapi';
-    async function loadDetail() {
-      try {
-        let res = await fetch(`${API}/accidents?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
-        let json = await res.json();
-        let item = json.data?.[0];
-        if (!item) {
-          res = await fetch(`${API}/accidents/${slug}`);
-          json = await res.json();
-          item = json.data;
-        }
-        if (item) {
-          document.getElementById('detail-title').textContent = item.title || '';
-
-          // 映射标签
-          const severityMap = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
-          const categoryMap = {
-            suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
-            traffic: '交通', poisoning_suffocation: '中毒窒息',
-            falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害',
-            other_injury: '其他伤害', fire: '火灾', explosion: '爆炸',
-            electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺'
-          };
-          const sevClassMap = { major: 'acc-sev-major', larger: 'acc-sev-larger', general: 'acc-sev-general', minor: 'acc-sev-minor' };
-          const sevLabel = severityMap[item.severity] || item.severity || '';
-          const catLabel = categoryMap[item.category] || item.category || '';
-          const provLabel = item.province || '';
-          const tags = [];
-          if (sevLabel) tags.push(`<span class="acc-tag ${sevClassMap[item.severity] || 'acc-sev-general'}">${sevLabel}</span>`);
-          if (catLabel) tags.push(`<span class="acc-tag acc-tag-cat">${catLabel}</span>`);
-          if (provLabel) tags.push(`<span class="acc-tag acc-tag-prov">${provLabel}</span>`);
-          document.getElementById('detail-tags').innerHTML = tags.join(' ');
-
-          // 基本信息表格
-          const infoRows = [
-            ['事故名称', item.title],
-            ['事故类型', catLabel || item.category],
-            ['事故等级', sevLabel || item.severity],
-            ['发生省份', provLabel || '-'],
-            ['发生地点', item.location],
-            ['发生时间', item.date],
-            ['伤亡情况', item.casualties],
-            ['涉及企业', item.company],
-            ['直接经济损失', item.economicLoss],
-          ].filter(([,v]) => v && v !== '-');
-
-          document.getElementById('detail-body').innerHTML = `
-            <!-- 基本信息 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">基本信息</h2>
-              <div class="detail-section-content">
-                ${infoRows.length > 0
-                  ? `<table class="detail-info-table">
-                       ${infoRows.map(([k,v]) => `<tr><td class="info-label">${k}</td><td class="info-value">${v}</td></tr>`).join('')}
-                     </table>`
-                  : '<p class="detail-empty">暂无基本信息</p>'}
-              </div>
-            </section>
-
-            <!-- 事故经过 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">事故经过</h2>
-              <div class="detail-section-content">
-                ${item.content
-                  ? `<div class="detail-text">${item.content}</div>`
-                  : '<p class="detail-empty">暂无事故经过</p>'}
-              </div>
-            </section>
-
-            <!-- 事故原因 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">事故原因</h2>
-              <div class="detail-section-content">
-                ${item.causes
-                  ? `<div class="detail-text">${item.causes}</div>`
-                  : '<p class="detail-empty">暂无原因分析</p>'}
-              </div>
-            </section>
-
-            <!-- 改善措施 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">改善措施</h2>
-              <div class="detail-section-content">
-                ${item.suggestions
-                  ? `<div class="detail-text">${item.suggestions}</div>`
-                  : '<p class="detail-empty">暂无改善措施</p>'}
-              </div>
-            </section>
-
-            <!-- 处理结果 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">处理结果</h2>
-              <div class="detail-section-content">
-                ${item.personnelHandling
-                  ? `<div class="detail-text">${item.personnelHandling}</div>`
-                  : '<p class="detail-empty">暂无处理结果</p>'}
-              </div>
-            </section>
-
-            <!-- 报告原文 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">报告原文</h2>
-              <div class="detail-section-content">
-                ${item.reportUrl || item.downloadUrl
-                  ? `<a href="${item.reportUrl || item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn">查看报告原文 &rarr;</a>`
-                  : item.content
-                    ? `<details class="detail-expand" open><summary>展开/收起报告全文</summary><div class="detail-expand-body">${item.content}</div></details>`
-                    : '<p class="detail-empty">暂无报告原文</p>'}
-              </div>
-            </section>
-          `;
-        } else {
-          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该事故报告</div>';
-        }
-      } catch (e) {
-        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
-      }
-    }
-    loadDetail();
-  </script>
 </Layout>

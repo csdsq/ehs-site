@@ -1,163 +1,88 @@
 ---
-export const prerender = false;
+export const prerender = true;
 import Layout from '../../../layouts/Layout.astro';
 import PageComment from '../../../components/PageComment.astro';
+import fs from 'node:fs';
+import path from 'node:path';
 
+export async function getStaticPaths() {
+  const filePath = path.join(process.cwd(), 'public', 'data', 'standards-full.json');
+  let items: any[] = [];
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    items = Array.isArray(data) ? data : [];
+  } catch {
+    console.warn('standards-full.json not found, falling back to empty');
+  }
+  return items.map((item: any) => ({
+    params: { slug: item.slug },
+    props: { item },
+  }));
+}
 
-const { slug } = Astro.params;
+const { item } = Astro.props;
+const content = (item.content || '').trim();
+const hasFullText = content && !content.startsWith('{');
+const categoryMap: Record<string,string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+const catLabel = categoryMap[item.category] || '';
+const infoRows = [
+  ['标准编号', item.standardNo],
+  ['发布机构', item.source],
+  item.publishDate ? ['发布日期', item.publishDate] : null,
+  item.effectiveDate ? ['实施日期', item.effectiveDate] : null,
+  ['标准类别', catLabel || item.category],
+].filter(Boolean).filter(([,v]: [string,any]) => v && v !== '-');
 ---
-<Layout title="国标地标详情" currentPath="/standards/">
+<Layout title={`${item.title || '国标地标详情'}`} currentPath="/standards/">
   <div class="container">
     <div class="detail-breadcrumb-flat">
       <a href="/">首页</a> / <a href="/standards/">国标地标</a> / 详情
     </div>
-    <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
-    <div id="detail-tags" style="margin-bottom: 16px;"></div>
-    <div class="detail-body" id="detail-body">
-      <div class="loading">加载中...</div>
+    <h1 class="detail-title-flat">{item.title || '无标题'}</h1>
+    <div id="detail-tags" style="margin-bottom: 16px;">
+      {catLabel ? `<span class="std-tag std-tag-${item.category}">${catLabel}</span>` : ''}
     </div>
-    <PageComment pageUrl={`/standards/${slug}`} />
+    <div class="detail-body">
+      <!-- 基本信息 -->
+      <section class="detail-section">
+        <h2 class="detail-section-title">基本信息</h2>
+        <div class="detail-section-content">
+          {infoRows.length > 0
+            ? `<div class="info-card-list">
+                 ${infoRows.map(([k,v]) => `
+                   <div class="info-card-item">
+                     <span class="info-card-label">${k}</span>
+                     <span class="info-card-value">${v}</span>
+                   </div>`).join('')}
+               </div>`
+            : '<p class="detail-empty">暂无基本信息</p>'}
+        </div>
+      </section>
+
+      <!-- 标准全文 -->
+      {hasFullText ? `
+      <section class="detail-section">
+        <h2 class="detail-section-title">标准全文</h2>
+        <div class="detail-section-content">
+          <div class="regulation-full-text">${content}</div>
+        </div>
+      </section>` : ''}
+
+      <!-- 查看原文 -->
+      <section class="detail-section">
+        <h2 class="detail-section-title">查看原文</h2>
+        <div class="detail-section-content">
+          <div class="detail-actions">
+            ${item.downloadUrl
+              ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-preview">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  查看原文
+                </a>`
+              : '<p class="detail-empty">暂无原文链接</p>'}
+          </div>
+        </div>
+      </section>
+    </div>
+    <PageComment pageUrl={`/standards/${item.slug}`} pageTitle={item.title} />
   </div>
-
-  <script define:vars={{ slug }}>
-    const API = '/api/strapi';
-
-    const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
-    const regionLevelMap = { national: '国家', provincial: '省', municipal: '市' };
-
-    function getStdTypeLabel(item) {
-      const no = (item.standardNo || '').toUpperCase().trim();
-      if (/^GB/.test(no)) return '国标';
-      if (/^DB/.test(no)) return '地标';
-      return '行标';
-    }
-
-    async function loadDetail() {
-      try {
-        // 标准数据现在全在 standards 集合
-        const res = await fetch(`${API}/standards?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
-        const json = await res.json();
-        const item = json.data?.[0];
-
-        if (item) {
-          const stdTypeLabel = getStdTypeLabel(item);
-          const catLabel = categoryMap[item.category] || '';
-          const regLevelLabel = regionLevelMap[item.regionLevel] || '';
-          const tagHtml = [
-            `<span class="std-tag std-tag-type">${stdTypeLabel}</span>`,
-            catLabel ? `<span class="std-tag std-tag-${item.category}">${catLabel}</span>` : '',
-            regLevelLabel ? `<span class="std-tag std-tag-region">${regLevelLabel}</span>` : '',
-          ].filter(Boolean).join(' ');
-
-          document.getElementById('detail-title').textContent = item.title || '';
-          document.getElementById('detail-tags').innerHTML = tagHtml;
-
-          // 标准简介（从 description 提取）
-          let intro = (item.description || '').replace(/\s*状态[：:].+$/, '').trim();
-
-          // 解析 content 中的结构化数据（支持 JSON 和 HTML 表格两种格式）
-          let infoRows = [];
-          const content = (item.content || '').trim();
-
-          if (content.startsWith('{')) {
-            try {
-              const extraInfo = JSON.parse(content);
-              if (extraInfo.intro && !intro) intro = extraInfo.intro;
-              infoRows = [
-                ['英文名称', extraInfo.englishName],
-                ['替代情况', extraInfo.replacement],
-                ['中标分类', extraInfo.ccs],
-                ['ICS分类', extraInfo.ics],
-                ['发布部门', item.source || extraInfo.publisher],
-                ['发布日期', item.publishDate],
-                ['实施日期', item.effectiveDate],
-                ['提出单位', extraInfo.proposingOrg],
-                ['归口单位', extraInfo.managingOrg],
-                ['页数', extraInfo.pages],
-                ['出版社', extraInfo.publishingHouse],
-              ].filter(([,v]) => v);
-            } catch(e) {}
-          } else if (content.includes('<table')) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(content, 'text/html');
-            const rows = doc.querySelectorAll('tr');
-            rows.forEach(row => {
-              const th = row.querySelector('th');
-              const td = row.querySelector('td');
-              if (th && td) {
-                const key = th.textContent.trim();
-                let val = td.textContent.trim();
-                val = val.replace(/\s*即将实施.*$/, '').replace(/\s*现行.*$/, '').replace(/\s*废止.*$/, '').trim();
-                if (key === '标准状态') return;
-                if (key && val) infoRows.push([key, val]);
-              }
-            });
-          }
-
-          // 如果 content 解析不到信息，从字段兜底
-          if (infoRows.length === 0) {
-            infoRows = [
-              ['发布部门', item.source],
-              ['发布日期', item.publishDate],
-              ['实施日期', item.effectiveDate],
-            ].filter(([,v]) => v);
-          }
-
-          // 标准编号始终作为第一行
-          if (item.standardNo && !infoRows.some(([k]) => k === '标准编号' || k === '标准号')) {
-            infoRows.unshift(['标准编号', item.standardNo]);
-          }
-
-          // 标准查阅链接
-          const stdPageUrl = item.downloadUrl || item.sourceUrl || '';
-
-          document.getElementById('detail-body').innerHTML = `
-            <!-- 标准简介 -->
-            ${intro ? `
-            <section class="detail-section">
-              <h2 class="detail-section-title">标准简介</h2>
-              <div class="detail-section-content">
-                <div class="detail-text">${intro.replace(/\n/g, '<br>')}</div>
-              </div>
-            </section>` : ''}
-
-            <!-- 标准信息 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">标准信息</h2>
-              <div class="detail-section-content">
-                ${infoRows.length > 0
-                  ? `<div class="info-card-list">
-                       ${infoRows.map(([k,v]) => `
-                         <div class="info-card-item">
-                           <span class="info-card-label">${k}</span>
-                           <span class="info-card-value">${v}</span>
-                         </div>`).join('')}
-                     </div>`
-                  : '<p class="detail-empty">暂无标准信息</p>'}
-              </div>
-            </section>
-
-            <!-- 标准查阅 -->
-            ${stdPageUrl ? `
-            <section class="detail-section">
-              <h2 class="detail-section-title">标准查阅</h2>
-              <div class="detail-section-content">
-                <div class="detail-actions">
-                  <a href="${stdPageUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-preview">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    在线预览/下载标准
-                  </a>
-                </div>
-              </div>
-            </section>` : ''}
-          `;
-        } else {
-          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该标准</div>';
-        }
-      } catch (e) {
-        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
-      }
-    }
-    loadDetail();
-  </script>
 </Layout>
