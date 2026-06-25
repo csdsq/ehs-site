@@ -268,7 +268,7 @@ import Layout from '../../layouts/Layout.astro';
         let page = 1;
         let totalPages = 1;
         while (page <= totalPages) {
-          const res = await fetch(`${API}/regulations?pagination[pageSize]=100&pagination[page]=${page}&sort=publishDate:desc`);
+          const res = await fetch(`${API}/regulations?pagination[pageSize]=100&pagination[page]=${page}&sort=publishDate:desc&fields[0]=title&fields[1]=category&fields[2]=source&fields[3]=standardNo&fields[4]=effectiveDate&fields[5]=publishDate&fields[6]=slug`);
           const json = await res.json();
           if (json.data) allData = allData.concat(json.data);
           const meta = json.meta?.pagination;
