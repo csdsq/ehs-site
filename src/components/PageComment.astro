@@ -10,17 +10,17 @@ const { pageUrl, pageTitle = '' } = Astro.props;
 <div class="comment-section" id="comment-section">
   <h2 class="detail-section-title">💬 评论区</h2>
 
-  <!-- Giscus 评论区 -->
-  <div class="giscus-wrapper">
-    <div class="giscus"></div>
-  </div>
-
   <!-- 问题反馈提示 -->
   <div class="feedback-notice">
     <span class="feedback-icon">📢</span>
     <span>如发现页面内容或链接有问题，欢迎通过
       <a href="mailto:csdsq@qq.com" class="feedback-link">csdsq@qq.com</a>
       反馈</span>
+  </div>
+
+  <!-- Giscus 评论区 -->
+  <div class="giscus-wrapper">
+    <div class="giscus"></div>
   </div>
 </div>
 
@@ -32,7 +32,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   data-category-id="DIC_kwDOSsnCZs4C_1Z2"
   data-mapping="pathname"
   data-strict="0"
-  data-reactions-enabled="1"
+  data-reactions-enabled="0"
   data-emit-metadata="0"
   data-input-position="bottom"
   data-theme="light"
@@ -48,21 +48,11 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     border-top: 1px solid var(--border);
   }
 
-  .giscus-wrapper {
-    margin-top: 8px;
-    min-height: 100px;
-  }
-
-  /* Giscus iframe 适配 */
-  .giscus-wrapper iframe {
-    width: 100% !important;
-  }
-
   .feedback-notice {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 24px;
+    margin-bottom: 20px;
     padding: 14px 18px;
     background: var(--card);
     border: 1px solid var(--border);
@@ -87,6 +77,15 @@ const { pageUrl, pageTitle = '' } = Astro.props;
   .feedback-link:hover {
     color: var(--primary);
     text-decoration: underline;
+  }
+
+  .giscus-wrapper {
+    min-height: 100px;
+  }
+
+  /* Giscus iframe 适配 */
+  .giscus-wrapper iframe {
+    width: 100% !important;
   }
 
   @media (max-width: 768px) {
