@@ -8,15 +8,15 @@ const { pageUrl, pageTitle = '' } = Astro.props;
 ---
 
 <div class="comment-section" id="comment-section">
-  <h2 class="detail-section-title">💬 评论区</h2>
-
-  <!-- 问题反馈提示 -->
+  <!-- 问题反馈提示 → 移到"评论区"三个字上面 -->
   <div class="feedback-notice">
     <span class="feedback-icon">📢</span>
     <span>如发现页面内容或链接有问题，欢迎通过
       <a href="mailto:admin@hser.ren" class="feedback-link">admin@hser.ren</a>
       反馈</span>
   </div>
+
+  <h2 class="detail-section-title">💬 评论区</h2>
 
   <!-- Giscus 评论区 -->
   <div class="giscus-wrapper">
@@ -52,7 +52,7 @@ const { pageUrl, pageTitle = '' } = Astro.props;
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     padding: 14px 18px;
     background: var(--card);
     border: 1px solid var(--border);
