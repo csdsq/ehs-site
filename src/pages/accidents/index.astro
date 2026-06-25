@@ -15,11 +15,6 @@ import Layout from '../../layouts/Layout.astro';
           <span class="filter-label">等级</span>
           <div class="filter-tags" id="severity-tags"></div>
         </div>
-        <!-- 省份 -->
-        <div class="filter-group" id="province-group">
-          <span class="filter-label">省份</span>
-          <div class="filter-tags" id="province-tags"></div>
-        </div>
       </div>
       <!-- 事故类型 -->
         <div class="filter-group">
@@ -61,7 +56,6 @@ import Layout from '../../layouts/Layout.astro';
     let pageSize = 10;
     let activeSeverity = '';
     let activeCategory = '';
-    let activeProvince = '';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
@@ -164,7 +158,6 @@ import Layout from '../../layouts/Layout.astro';
       filteredItems = allItems.filter(item => {
         if (activeSeverity && item.severity !== activeSeverity) return false;
         if (activeCategory && item.category !== activeCategory) return false;
-        if (activeProvince && item.province !== activeProvince) return false;
         if (q) {
           const text = `${item.title ?? ''} ${item.location ?? ''} ${item.province ?? ''} ${item.casualties ?? ''}`.toLowerCase();
           if (!text.includes(q)) return false;
@@ -206,7 +199,6 @@ import Layout from '../../layouts/Layout.astro';
           document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
           buildSeverityFilters();
           buildCategoryFilters();
-          buildProvinceFilters();
           updateView();
           fetchFullAndCache(true);
           return;
@@ -221,7 +213,6 @@ import Layout from '../../layouts/Layout.astro';
           document.getElementById('acc-count')!.textContent = `加载中 ${previewData.length} 项…`;
           buildSeverityFilters();
           buildCategoryFilters();
-          buildProvinceFilters();
           updateView();
         }
 
@@ -245,7 +236,6 @@ import Layout from '../../layouts/Layout.astro';
       document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
       buildSeverityFilters();
       buildCategoryFilters();
-      buildProvinceFilters();
       updateView();
     }
 
@@ -306,34 +296,6 @@ import Layout from '../../layouts/Layout.astro';
         btn.textContent = label;
         btn.addEventListener('click', () => {
           activeCategory = val;
-          container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          applyFilters();
-        });
-        container.appendChild(btn);
-      }
-    }
-
-    function buildProvinceFilters() {
-      const container = document.getElementById('province-tags')!;
-      container.innerHTML = '';
-      // filter-tags-collapsible removed - now fully displayed
-      const provinces = [
-        '', '北京', '天津', '上海', '重庆',
-        '河北', '山西', '辽宁', '吉林', '黑龙江',
-        '江苏', '浙江', '安徽', '福建', '江西', '山东',
-        '河南', '湖北', '湖南', '广东', '海南',
-        '四川', '贵州', '云南', '陕西',
-        '广西', '甘肃', '青海', '内蒙古', '西藏', '宁夏', '新疆'
-      ];
-      const labels: Record<string, string> = { '': '全部' };
-      for (const prov of provinces) {
-        const btn = document.createElement('button');
-        btn.className = 'filter-tag' + (prov === '' ? ' active' : '');
-        btn.textContent = labels[prov] || prov;
-        btn.dataset.value = prov;
-        btn.addEventListener('click', () => {
-          activeProvince = btn.dataset.value || '';
           container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           applyFilters();
