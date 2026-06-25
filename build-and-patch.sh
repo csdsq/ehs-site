@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Generate static data JSON files before build
+node scripts/generate-data-json.js
+
 # Build the Astro project
 npx astro build
 
@@ -23,7 +26,7 @@ has_api_proxy = any(
 if not has_api_proxy:
     new_route = {
         "src": "^/api/strapi/(.*)$",
-        "dest": "https://api.hser.ren/api/$1"
+        "dest": "http://8.149.139.66:1337/api/$1"
     }
     # Insert before filesystem handler
     fs_idx = next(

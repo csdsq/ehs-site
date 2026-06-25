@@ -183,31 +183,35 @@ import Layout from '../../layouts/Layout.astro';
 
     async function loadItems() {
       try {
-        let allData: any[] = [];
-        let page = 1;
-        let totalPages = 1;
-        while (page <= totalPages) {
-          const res = await fetch(`${API}/accidents?pagination[pageSize]=100&pagination[page]=${page}&sort=date:desc&fields[0]=title&fields[1]=slug&fields[2]=severity&fields[3]=category&fields[4]=province&fields[5]=date&fields[6]=casualties&fields[7]=location`);
-          const json = await res.json();
-          if (json.data) allData = allData.concat(json.data);
-          const meta = json.meta?.pagination;
-          if (meta) {
-            totalPages = meta.pageCount;
-          } else {
-            break;
-          }
-          page++;
+        const cached = localStorage.getItem(CACHE_KEY);
+        const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
+        const now = Date.now();
+        if (cached && cachedAt && now - parseInt(cachedAt, 10) < CACHE_TTL) {
+          allItems = JSON.parse(cached);
+          filteredItems = [...allItems];
+          document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
+          buildSeverityFilters();
+          buildCategoryFilters();
+          buildProvinceFilters();
+          updateView();
         }
-        // 统一直辖市名称（避免"北京"和"北京市"并存）
+        // 后台刷新数据
+        const res = await fetch(DATA_URL);
+        if (!res.ok) throw new Error('fetch failed');
+        const allData = await res.json();
+        // 统一直辖市名称
         const provinceNormalize: Record<string, string> = {
           '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆'
         };
-        allItems = allData.map(item => {
+        const normalized = allData.map((item: any) => {
           if (item.province && provinceNormalize[item.province]) {
             return { ...item, province: provinceNormalize[item.province] };
           }
           return item;
         });
+        localStorage.setItem(CACHE_KEY, JSON.stringify(normalized));
+        localStorage.setItem(CACHE_KEY + '_ts', String(now));
+        allItems = normalized;
         filteredItems = [...allItems];
         document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
         buildSeverityFilters();
@@ -215,7 +219,9 @@ import Layout from '../../layouts/Layout.astro';
         buildProvinceFilters();
         updateView();
       } catch (e) {
-        document.getElementById('acc-list')!.innerHTML = '<div class="empty">加载失败</div>';
+        if (allItems.length === 0) {
+          document.getElementById('acc-list')!.innerHTML = '<div class="empty">加载失败</div>';
+        }
       }
     }
 
