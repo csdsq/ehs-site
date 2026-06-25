@@ -142,7 +142,7 @@ import Layout from '../../layouts/Layout.astro';
 
     async function loadItems() {
       try {
-        const res = await fetch(`${API}/videos?pagination[pageSize]=200&sort=createdAt:desc`);
+        const res = await fetch(`${API}/videos?pagination[pageSize]=200&sort=createdAt:desc&fields[0]=title&fields[1]=slug&fields[2]=description&fields[3]=videoUrl&fields[4]=duration&fields[5]=category`);
         const json = await res.json();
         allItems = json.data ?? [];
         filteredItems = [...allItems];

@@ -244,13 +244,13 @@ import Layout from '../layouts/Layout.astro';
 
     async function loadAll() {
       const [aiApps, regs, standards, accs, videos, docs, msgs] = await Promise.all([
-        safeFetch(`${API}/ai-apps?pagination[pageSize]=6&sort=createdAt:desc`),
-        safeFetch(`${API}/regulations?pagination[pageSize]=6&sort=publishDate:desc`),
-        safeFetch(`${API}/standards?pagination[pageSize]=6&sort=publishDate:desc`),
-        safeFetch(`${API}/accidents?pagination[pageSize]=6&sort=date:desc`),
-        safeFetch(`${API}/videos?pagination[pageSize]=3&sort=createdAt:desc`),
-        safeFetch(`${API}/documents?pagination[pageSize]=6&sort=createdAt:desc`),
-        safeFetch(`${API}/messages?pagination[pageSize]=6&sort=publishDate:desc`),
+        safeFetch(`${API}/ai-apps?pagination[pageSize]=6&sort=createdAt:desc&fields[0]=title&fields[1]=slug&fields[2]=description&fields[3]=icon&fields[4]=category`),
+        safeFetch(`${API}/regulations?pagination[pageSize]=6&sort=publishDate:desc&fields[0]=title&fields[1]=slug&fields[2]=source&fields[3]=standardNo&fields[4]=effectiveDate&fields[5]=publishDate`),
+        safeFetch(`${API}/standards?pagination[pageSize]=6&sort=publishDate:desc&fields[0]=title&fields[1]=slug&fields[2]=standardNo&fields[3]=category&fields[4]=publishDate&fields[5]=effectiveDate&fields[6]=description`),
+        safeFetch(`${API}/accidents?pagination[pageSize]=6&sort=date:desc&fields[0]=title&fields[1]=slug&fields[2]=category&fields[3]=severity&fields[4]=date`),
+        safeFetch(`${API}/videos?pagination[pageSize]=3&sort=createdAt:desc&fields[0]=title&fields[1]=slug&fields[2]=description&fields[3]=videoUrl&fields[4]=duration&fields[5]=category`),
+        safeFetch(`${API}/documents?pagination[pageSize]=6&sort=createdAt:desc&fields[0]=title&fields[1]=slug&fields[2]=description&fields[3]=fileType&fields[4]=publishDate`),
+        safeFetch(`${API}/messages?pagination[pageSize]=6&sort=publishDate:desc&fields[0]=title&fields[1]=slug&fields[2]=author&fields[3]=publishDate&fields[4]=category`),
       ]);
 
       // Stats

@@ -379,7 +379,7 @@ import Layout from '../../layouts/Layout.astro';
         let page = 1;
         let pageCount = 1;
         while (page <= pageCount) {
-          const res = await fetch(`${API}/standards?pagination[pageSize]=100&pagination[page]=${page}&sort=publishDate:desc`);
+          const res = await fetch(`${API}/standards?pagination[pageSize]=100&pagination[page]=${page}&sort=publishDate:desc&fields[0]=title&fields[1]=slug&fields[2]=standardNo&fields[3]=category&fields[4]=publishDate&fields[5]=effectiveDate&fields[6]=source`);
           const json = await res.json();
           if (json.data) allData = allData.concat(json.data);
           const meta = json.meta?.pagination;
