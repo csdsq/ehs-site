@@ -28,14 +28,14 @@ async function fetchPage(url) {
   return res.json();
 }
 
-async function fetchAll(endpoint, fields) {
+async function fetchAll(endpoint, fields, sort = 'createdAt:desc') {
   const fieldParams = fields.map((f, i) => `fields[${i}]=${encodeURIComponent(f)}`).join('&');
   const allData = [];
   let page = 1;
   let pageCount = 1;
 
   while (page <= pageCount) {
-    const url = `${STRAPI_BASE}/${endpoint}?pagination[pageSize]=100&pagination[page]=${page}&${fieldParams}`;
+    const url = `${STRAPI_BASE}/${endpoint}?pagination[pageSize]=100&pagination[page]=${page}&sort=${encodeURIComponent(sort)}&${fieldParams}`;
     const json = await fetchPage(url);
     if (Array.isArray(json.data)) {
       allData.push(...json.data);
@@ -58,6 +58,35 @@ function normalizeAccidents(items) {
   });
 }
 
+function parseDate(value) {
+  if (!value || value === 'null') return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return d;
+}
+
+function sortByDateDesc(items, field) {
+  return items.slice().sort((a, b) => {
+    const da = parseDate(a[field]);
+    const db = parseDate(b[field]);
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return db.getTime() - da.getTime();
+  });
+}
+
+function sortByDateDescFallback(items, primaryField, fallbackField) {
+  return items.slice().sort((a, b) => {
+    const da = parseDate(a[primaryField]) || parseDate(a[fallbackField]);
+    const db = parseDate(b[primaryField]) || parseDate(b[fallbackField]);
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return db.getTime() - da.getTime();
+  });
+}
+
 function writeJson(name, data) {
   const filePath = path.join(OUT_DIR, `${name}.json`);
   const isArray = Array.isArray(data);
@@ -77,7 +106,7 @@ async function generateHomeData(accidents, regulations, standards) {
   const [aiApps, regs, stds, accs, videos, docs, msgs] = await Promise.all([
     fetchLatest('ai-apps', ['title', 'slug', 'description', 'icon', 'category'], 6, 'createdAt:desc'),
     fetchLatest('regulations', ['title', 'slug', 'source', 'standardNo', 'effectiveDate', 'publishDate'], 6, 'publishDate:desc'),
-    fetchLatest('standards', ['title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'description'], 6, 'publishDate:desc'),
+    fetchLatest('standards', ['title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'description'], 6, 'effectiveDate:desc'),
     fetchLatest('accidents', ['title', 'slug', 'category', 'severity', 'date'], 6, 'date:desc'),
     fetchLatest('videos', ['title', 'slug', 'description', 'videoUrl', 'duration', 'category'], 3, 'createdAt:desc'),
     fetchLatest('documents', ['title', 'slug', 'description', 'fileType', 'publishDate'], 6, 'createdAt:desc'),
@@ -113,24 +142,34 @@ async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   // Keep in sync with src/pages/accidents/index.astro expectations
-  const accidents = await fetchAll('accidents', [
-    'title', 'slug', 'severity', 'category', 'province', 'date', 'casualties', 'location'
-  ]);
+  const accidents = sortByDateDesc(
+    await fetchAll('accidents', [
+      'title', 'slug', 'severity', 'category', 'province', 'date', 'casualties', 'location'
+    ], 'date:desc'),
+    'date'
+  );
   const normalizedAccidents = normalizeAccidents(accidents);
   writeJson('accidents', normalizedAccidents);
   // Preview file for instant first paint (first 50 most recent items)
   writeJson('accidents-preview', normalizedAccidents.slice(0, 50));
 
   // Keep in sync with src/pages/regulations/index.astro expectations
-  const regulations = await fetchAll('regulations', [
-    'title', 'category', 'source', 'standardNo', 'effectiveDate', 'publishDate', 'slug'
-  ]);
+  const regulations = sortByDateDescFallback(
+    await fetchAll('regulations', [
+      'title', 'category', 'source', 'standardNo', 'effectiveDate', 'publishDate', 'slug'
+    ], 'publishDate:desc'),
+    'publishDate',
+    'effectiveDate'
+  );
   writeJson('regulations', regulations);
 
   // Keep in sync with src/pages/standards/index.astro expectations
-  const standards = await fetchAll('standards', [
-    'title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'source'
-  ]);
+  const standards = sortByDateDesc(
+    await fetchAll('standards', [
+      'title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'source'
+    ], 'effectiveDate:desc'),
+    'effectiveDate'
+  );
   writeJson('standards', standards);
 
   // Generate single JSON for the homepage, replacing 7 parallel API calls
