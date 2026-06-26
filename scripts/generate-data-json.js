@@ -292,13 +292,16 @@ async function main() {
       reg.downloadUrl = regDownloads[reg.slug];
     }
   }
-  // 过滤掉"意见"和"废止"类（这些不是法规名称）
+  // 过滤掉"意见""废止""TEST/测试记录"等非正式法规
   const filteredRegulations = regulations.filter(reg => {
     const t = reg.title || '';
+    const s = reg.slug || '';
     // "XX的意见"、"XX指导意见" → 删掉
     if (/意见$/.test(t)) return false;
     // "废止XX" → 删掉
     if (/^关于废止/.test(t) || /决定废止/.test(t) || /废止/.test(t)) return false;
+    // "TEST-请删除-测试记录" 等测试数据 → 删掉
+    if (/test|TEST/.test(s) || /请删除|测试记录|示例|样例/.test(t)) return false;
     return true;
   });
   const removedCount = regulations.length - filteredRegulations.length;
