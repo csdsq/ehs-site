@@ -206,33 +206,16 @@ function cleanRegulationTitle(title) {
   return title;
 }
 
-/** 构建法规数据的下载链接映射表（slug → downloadUrl） */
-const REGULATION_DOWNLOADS = {
-  // 陕西省应急管理厅 陕西金融监管局关于印发《陕西省安全生产责任保险保险机构事故预防服务效能评估办法》
-  '202651': 'https://yjt.shaanxi.gov.cn/gk/zcwj/wjzl/gggs/202606/t20260604_3644553.html',
-  // 陕西省应急管理厅 陕西金融监管局关于印发《陕西省安全生产责任保险事故预防服务费投入和使用办法》
-  '202650': 'https://yjt.shaanxi.gov.cn/gk/zcwj/wjzl/gggs/202606/t20260604_3644551.html',
-  // 煤矿重大事故隐患判定标准（应急管理部令第21号）
-  'coal-mine-major-hazard-identification-standard-no21': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202605/t20260528_605335.shtml',
-  // 安全评价检测检验机构管理办法（应急管理部令第20号）— 3个重复slug
-  'safety-evaluation-inspection-agency-management-no20': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202605/t20260528_605334.shtml',
-  'reg-cd5e6cbf0d11-20': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202605/t20260528_605334.shtml',
-  '20-2026-05-28': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202605/t20260528_605334.shtml',
-  // 生产安全事故应急条例（国务院）
-  'item-29eceefb': 'https://xzfg.moj.gov.cn/law/detail?LawID=441',
-  // 河北省突发事件应急预案管理实施办法
-  'reg-ffafe5114310': 'https://www.hebei.gov.cn/columns/8dff597e-a95c-4b20-b321-a5320af40141/202604/01/2899c31a-ba62-4e57-829d-1f0f28ab0157.html',
-  // 四川省安全生产举报奖励办法
-  '20254': 'https://yjt.sc.gov.cn/scyjt/aqscjbts/2022/11/30/b248bce348fd49f9b3284f9d863ada12.shtml',
-  // 特种作业人员安全技术培训考核管理规定（应急管理部令第19号）— 多个slug
-  'item-a67de78d': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202512/t20251219_589179.shtml',
-  'reg-5af683e7a232': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202512/t20251219_589179.shtml',
-  'reg-3dc9abc912b4-19': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202512/t20251219_589179.shtml',
-  // 安全生产责任保险实施办法（应急〔2025〕27号）— 多个slug
-  '2025': 'https://www.gov.cn/zhengce/zhengceku/202504/content_7017006.htm',
-  'item-0e28e43b': 'https://www.gov.cn/zhengce/zhengceku/202504/content_7017006.htm',
-  'item-fc2268cb': 'https://www.gov.cn/zhengce/zhengceku/202504/content_7017006.htm',
-};
+/** 加载法规下载链接映射表（slug → downloadUrl），从独立 JSON 文件读取 */
+function loadRegulationDownloads() {
+  const filePath = path.join(OUT_DIR, 'regulation-downloads.json');
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    console.warn('regulation-downloads.json not found, using empty mapping.');
+    return {};
+  }
+}
 
 async function fetchLatest(endpoint, fields, pageSize = 6, sort = 'createdAt:desc') {
   const fieldParams = fields.map((f, i) => `fields[${i}]=${encodeURIComponent(f)}`).join('&');
@@ -301,11 +284,12 @@ async function main() {
     'effectiveDate'
   );
   // 清洗法规标题：从通知格式中提取实际名称
+  const regDownloads = loadRegulationDownloads();
   for (const reg of regulations) {
     reg.title = cleanRegulationTitle(reg.title);
     // 如果有已知的下载链接，补充进去
-    if (REGULATION_DOWNLOADS[reg.slug]) {
-      reg.downloadUrl = REGULATION_DOWNLOADS[reg.slug];
+    if (regDownloads[reg.slug]) {
+      reg.downloadUrl = regDownloads[reg.slug];
     }
   }
   // 过滤掉"意见"和"废止"类（这些不是法规名称）
