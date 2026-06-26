@@ -51,11 +51,35 @@ async function fetchAll(endpoint, fields, sort = 'createdAt:desc') {
 
 function normalizeAccidents(items) {
   return items.map(item => {
-    if (item.province && PROVINCE_NORMALIZE[item.province]) {
-      return { ...item, province: PROVINCE_NORMALIZE[item.province] };
+    let result = { ...item };
+    // 归一化省份简称
+    if (result.province && PROVINCE_NORMALIZE[result.province]) {
+      result.province = PROVINCE_NORMALIZE[result.province];
     }
-    return item;
+    // 自动从标题提取事故等级，覆盖 Strapi 中可能错误的字段值
+    result.severity = detectSeverityFromTitle(result.title) || result.severity;
+    return result;
   });
+}
+
+/**
+ * 从事故标题中自动提取事故等级。
+ * 根据《生产安全事故报告和调查处理条例》：
+ *   特别重大/特大 → major
+ *   重大 → larger
+ *   较大 → general
+ *   一般 → minor
+ * 
+ * 只要标题中包含关键词，就能自动判断。不依赖人工在 Strapi 中的选择。
+ * 这相当于在构建时对整个链条（录入→映射→显示）进行自动纠错。
+ */
+function detectSeverityFromTitle(title) {
+  if (!title) return null;
+  if (title.includes('特别重大') || /特大(?!暴雨|洪)/.test(title)) return 'major';
+  if (title.includes('重大')) return 'larger';
+  if (title.includes('较大')) return 'general';
+  if (title.includes('一般')) return 'minor';
+  return null;
 }
 
 function parseDate(value) {
