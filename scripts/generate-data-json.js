@@ -183,7 +183,7 @@ function generateSlugs(items, dateField = 'publishDate') {
   const groups = {};
   items.forEach(item => {
     const date = item[dateField] || item.createdAt || '';
-    const key = date.substring(0, 7); // YYYY-MM
+    const key = date.substring(0, 7) || 'no-date';
     if (!groups[key]) groups[key] = [];
     groups[key].push(item);
   });
@@ -196,11 +196,16 @@ function generateSlugs(items, dateField = 'publishDate') {
       return da.localeCompare(db);
     });
     group.forEach((item, idx) => {
-      const parts = key.split('-');
-      if (parts.length >= 2) {
+      const seq = String(idx + 1).padStart(3, '0');
+      if (key === 'no-date') {
+        // 无日期的放在最后，用 9999-XX
+        slugMap[item.slug] = `9999-${seq}`;
+        item.slug = `9999-${seq}`;
+      } else {
+        const parts = key.split('-');
         const yy = parts[0].slice(2);
         const mm = parts[1];
-        const newSlug = `${yy}${mm}-${String(idx + 1).padStart(3, '0')}`;
+        const newSlug = `${yy}${mm}-${seq}`;
         slugMap[item.slug] = newSlug;
         item.slug = newSlug;
       }
