@@ -55,11 +55,15 @@ const { slug } = Astro.params;
       if (catLabel) tagHtml += `<span class="std-tag std-tag-${item.category}">${catLabel}</span> `;
       if (regLabel) tagHtml += `<span class="std-tag std-tag-region">${regLabel}</span>`;
 
-      // 清洗标题：从《》提取实际法规名称
+      // 清洗标题：从通知格式提取实际法规名称
+      // 规则：1.优先取《》内容 2.无《》时取"印发...的通知"之间的内容
       const cleanTitle = (t) => {
         if (!t) return t;
         const m = t.match(/《([^》]+)》/);
-        return m ? m[1] : t;
+        if (m) return m[1];
+        const yf = t.match(/印发(.+?)(?:的)?通知/);
+        if (yf) return yf[1].trim().replace(/[（(][^）)]*[）)]$/, '').trim();
+        return t;
       };
 
       document.getElementById('detail-title').textContent = cleanTitle(item.title) || '';

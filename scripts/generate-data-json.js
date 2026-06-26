@@ -177,16 +177,32 @@ function writeJson(name, data) {
 
 /**
  * 清洗法规标题：从通知/印发格式中提取实际法规名称。
- * 例："XXX关于印发《实际法规名称》的通知（文号）" → "实际法规名称"
- * 例："XXX关于YYY工作的通知" → 保留原标题（无法自动提取）
+ * 规则：
+ *   1. 优先提取《》内的内容 → "XXX关于印发《办法》的通知" → "办法"
+ *   2. 无《》时，提取"印发"到"的通知"之间的内容 → "XXX印发办法的通知" → "办法"
+ *   3. 以上都不匹配则返回原标题
  */
 function cleanRegulationTitle(title) {
   if (!title) return title;
-  // 优先提取 《》 内的内容（这是最准确的法规名称）
+  // 规则1：优先提取 《》 内的内容（最准确的法规名称）
   const match = title.match(/《([^》]+)》/);
   if (match) return match[1];
-  // 如果没有《》，但包含"关于印发"，尝试提取后面跟着的名称
-  // 包含"关于"但没有"印发《"的，可能已经是正确标题了
+  // 规则2：无《》时，从"印发..."中提取名称
+  // "XXX印发XXX办法的通知" → "XXX办法"
+  // "XXX印发XXX管理办法" (无通知) → "XXX管理办法"
+  const yinfaMatch = title.match(/印发(.+?)(?:的)?通知/);
+  if (yinfaMatch) {
+    let name = yinfaMatch[1].trim();
+    name = name.replace(/[（(][^）)]*[）)]$/, '').replace(/\s+$/, '');
+    if (name) return name;
+  }
+  // 处理"印发XXX管理办法"（末句以"办法"、"规定"、"细则"、"条例"等结尾）
+  const yinfaEndMatch = title.match(/印发(.+?)(?:办法|规定|细则|条例|制度|标准|规范|规程|决定)(?:\s|$)/);
+  if (yinfaEndMatch) {
+    let name = yinfaEndMatch[1] + (title.match(/办法|规定|细则|条例|制度|标准|规范|规程|决定/)[0]);
+    if (name) return name;
+  }
+  // 规则3：以上都不匹配则返回原标题
   return title;
 }
 
@@ -292,7 +308,20 @@ async function main() {
       reg.downloadUrl = REGULATION_DOWNLOADS[reg.slug];
     }
   }
-  writeJson('regulations', regulations);
+  // 过滤掉"意见"和"废止"类（这些不是法规名称）
+  const filteredRegulations = regulations.filter(reg => {
+    const t = reg.title || '';
+    // "XX的意见"、"XX指导意见" → 删掉
+    if (/意见$/.test(t)) return false;
+    // "废止XX" → 删掉
+    if (/^关于废止/.test(t) || /决定废止/.test(t) || /废止/.test(t)) return false;
+    return true;
+  });
+  const removedCount = regulations.length - filteredRegulations.length;
+  if (removedCount > 0) {
+    console.log(`Filtered out ${removedCount} non-regulation items (意见/废止).`);
+  }
+  writeJson('regulations', filteredRegulations);
 
   // Keep in sync with src/pages/standards/index.astro expectations
   const standards = sortByDateDesc(
