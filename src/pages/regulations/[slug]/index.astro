@@ -1,96 +1,110 @@
 ---
-export const prerender = true;
+export const prerender = false;
 import Layout from '../../../layouts/Layout.astro';
 import PageComment from '../../../components/PageComment.astro';
-import fs from 'node:fs';
-import path from 'node:path';
 
-export async function getStaticPaths() {
-  const filePath = path.join(process.cwd(), 'public', 'data', 'regulations-full.json');
-  let items: any[] = [];
-  try {
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    items = Array.isArray(data) ? data : [];
-  } catch {
-    console.warn('regulations-full.json not found, falling back to empty');
-  }
-  return items.map((item: any) => ({
-    params: { slug: item.slug },
-    props: { item },
-  }));
-}
-
-const { item } = Astro.props;
-const content = (item.content || '').trim();
-const hasFullText = content && !content.startsWith('{') && !content.includes('<table');
-const categoryMap: Record<string,string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
-const regionMap: Record<string,string> = { national: '国家', provincial: '省', municipal: '市' };
-const catLabel = categoryMap[item.category] || '';
-const regLabel = regionMap[item.regionLevel] || '';
-const infoRows: Array<[string,any]> = [
-  ['发文机构', item.source],
-  ['发文号', item.standardNo],
-  ...(item.publishDate ? [['发布日期', item.publishDate] as [string,string]] : []),
-  ...(item.effectiveDate ? [['实施日期', item.effectiveDate] as [string,string]] : []),
-].filter(([,v]) => v && v !== '-');
+const { slug } = Astro.params;
 ---
-<Layout title={`${item.title || '法规文件详情'}`} currentPath="/regulations/">
+<Layout title="法规文件详情" currentPath="/regulations/">
   <div class="container">
     <div class="detail-breadcrumb-flat">
       <a href="/">首页</a> / <a href="/regulations/">法规文件</a> / 详情
     </div>
-    <h1 class="detail-title-flat">{item.title || '无标题'}</h1>
-    {catLabel || regLabel ? <div style="margin-bottom: 16px;">
-      {catLabel ? <span class={`std-tag std-tag-${item.category}`}>{catLabel}</span> : ''}
-      {regLabel ? <span class="std-tag std-tag-region">{regLabel}</span> : ''}
-    </div> : ''}
-    <div class="detail-body">
-      <!-- 基本信息 -->
-      <section class="detail-section">
-        <h2 class="detail-section-title">基本信息</h2>
-        <div class="detail-section-content">
-          {infoRows.length > 0 ? (
-            <div class="info-card-list">
-              {infoRows.map(([k,v]) => (
-                <div class="info-card-item">
-                  <span class="info-card-label">{k}</span>
-                  <span class="info-card-value">{v}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p class="detail-empty">暂无基本信息</p>
-          )}
-        </div>
-      </section>
+    <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
+    <div id="detail-tags" style="margin-bottom: 16px;"></div>
+    <div class="detail-body" id="detail-body">
+      <div class="loading">加载中...</div>
+    </div>
+    <PageComment pageUrl={`/regulations/${slug}`} />
+  </div>
 
-      <!-- 法规全文 -->
-      {hasFullText ? (
+  <script define:vars={{ slug }}>
+    const API = '/api/strapi';
+    const CACHE_KEY = 'reg_detail_' + slug;
+    const CACHE_TTL = 30 * 60 * 1000;
+
+    async function loadDetail() {
+      const cached = localStorage.getItem(CACHE_KEY);
+      const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
+      if (cached && cachedAt && Date.now() - parseInt(cachedAt) < CACHE_TTL) {
+        renderItem(JSON.parse(cached));
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/regulations?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        const json = await res.json();
+        const item = json.data?.[0];
+        if (item) {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(item));
+          localStorage.setItem(CACHE_KEY + '_ts', String(Date.now()));
+          renderItem(item);
+        } else {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该规范</div>';
+        }
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function renderItem(item) {
+      const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+      const regionMap = { national: '国家', provincial: '省', municipal: '市' };
+      const catLabel = categoryMap[item.category] || '';
+      const regLabel = regionMap[item.regionLevel] || '';
+      let tagHtml = '';
+      if (catLabel) tagHtml += `<span class="std-tag std-tag-${item.category}">${catLabel}</span> `;
+      if (regLabel) tagHtml += `<span class="std-tag std-tag-region">${regLabel}</span>`;
+
+      document.getElementById('detail-title').textContent = item.title || '';
+      document.getElementById('detail-tags').innerHTML = tagHtml;
+
+      const content = (item.content || '').trim();
+      const hasFullText = content && !content.startsWith('{') && !content.includes('<table');
+      const infoRows = [
+        ['发文机构', item.source],
+        ['发文号', item.standardNo],
+        item.publishDate ? ['发布日期', item.publishDate] : null,
+        item.effectiveDate ? ['实施日期', item.effectiveDate] : null,
+      ].filter(Boolean).filter(([,v]) => v && v !== '-');
+
+      document.getElementById('detail-body').innerHTML = `
+        <section class="detail-section">
+          <h2 class="detail-section-title">基本信息</h2>
+          <div class="detail-section-content">
+            ${infoRows.length > 0
+              ? `<div class="info-card-list">
+                   ${infoRows.map(([k,v]) => `
+                     <div class="info-card-item">
+                       <span class="info-card-label">${k}</span>
+                       <span class="info-card-value">${v}</span>
+                     </div>`).join('')}
+                 </div>`
+              : '<p class="detail-empty">暂无基本信息</p>'}
+          </div>
+        </section>
+        ${hasFullText ? `
         <section class="detail-section">
           <h2 class="detail-section-title">法规全文</h2>
           <div class="detail-section-content">
-            <div class="regulation-full-text" set:html={content} />
+            <div class="regulation-full-text">${content}</div>
+          </div>
+        </section>` : ''}
+        <section class="detail-section">
+          <h2 class="detail-section-title">查看原文</h2>
+          <div class="detail-section-content">
+            <div class="detail-actions">
+              ${item.downloadUrl
+                ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-preview">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    查看原文
+                  </a>`
+                : '<p class="detail-empty">暂无原文链接</p>'}
+            </div>
           </div>
         </section>
-      ) : ''}
+      `;
+    }
 
-      <!-- 查看原文 -->
-      <section class="detail-section">
-        <h2 class="detail-section-title">查看原文</h2>
-        <div class="detail-section-content">
-          <div class="detail-actions">
-            {item.downloadUrl ? (
-              <a href={item.downloadUrl} target="_blank" rel="noopener" class="detail-action-btn btn-preview">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                查看原文
-              </a>
-            ) : (
-              <p class="detail-empty">暂无原文链接</p>
-            )}
-          </div>
-        </div>
-      </section>
-    </div>
-    <PageComment pageUrl={`/regulations/${item.slug}`} pageTitle={item.title} />
-  </div>
+    loadDetail();
+  </script>
 </Layout>
