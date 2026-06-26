@@ -51,6 +51,21 @@ const { slug } = Astro.params;
       }
     }
 
+    /** 清洗标题：去掉 .pdf/.docx 后缀 */
+    function cleanTitle(t) { return t ? t.replace(/\.(pdf|docx|doc|txt)$/i, '') : t; }
+
+    /** 清洗伤亡：只保留人数统计，去除括号内的人名和伤情细节 */
+    function cleanCasualties(c) {
+      if (!c || c === '-' || ['待官方公布','未知','待确认','待从完整报告获取'].includes(c.trim())) return c;
+      if (/(无人员伤亡|无人员死亡|0人死亡|未造成人员伤亡)/.test(c)) return c.trim();
+      const parts = [];
+      const deathMatch = c.match(/(\d+)人死亡/);
+      if (deathMatch) parts.push(deathMatch[1] + '人死亡');
+      const injuryMatch = c.match(/(\d+)人[受重轻]伤/);
+      if (injuryMatch) parts.push(injuryMatch[1] + '人受伤');
+      return parts.length > 0 ? parts.join('，') : c;
+    }
+
     function renderItem(item) {
       const severityMap = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
       const categoryMap = {
@@ -65,7 +80,7 @@ const { slug } = Astro.params;
       const catLabel = categoryMap[item.category] || item.category || '';
       const provLabel = item.province || '';
 
-      document.getElementById('detail-title').textContent = item.title || '';
+      document.getElementById('detail-title').textContent = cleanTitle(item.title) || '';
 
       const tags = [];
       if (sevLabel) tags.push(`<span class="acc-tag ${sevClassMap[item.severity] || 'acc-sev-general'}">${sevLabel}</span>`);
@@ -74,13 +89,13 @@ const { slug } = Astro.params;
       document.getElementById('detail-tags').innerHTML = tags.join(' ');
 
       const infoRows = [
-        ['事故名称', item.title],
+        ['事故名称', cleanTitle(item.title)],
         ['事故类型', catLabel || item.category],
         ['事故等级', sevLabel || item.severity],
         ['发生省份', provLabel || '-'],
         ['发生地点', item.location],
         ['发生时间', item.date],
-        ['伤亡情况', item.casualties],
+        ['伤亡情况', cleanCasualties(item.casualties)],
         ['涉及企业', item.company],
         ['直接经济损失', item.economicLoss],
       ].filter(([,v]) => v && v !== '-');

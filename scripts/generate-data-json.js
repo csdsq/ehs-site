@@ -91,6 +91,32 @@ function detectSeverityFromCasualties(casualties) {
   return 'minor';
 }
 
+/**
+ * 清洗标题：去掉 .pdf / .docx 等文件后缀
+ */
+function cleanTitle(title) {
+  if (!title) return title;
+  return title.replace(/\.(pdf|docx|doc|txt)$/i, '');
+}
+
+/**
+ * 清洗伤亡数据：只保留人数统计，去除括号内的人名和伤情细节
+ * 如 "5人死亡（王x忠、陶x江），4人受伤（周绍洪肋骨骨折）" → "5人死亡，4人受伤"
+ */
+function cleanCasualties(casualties) {
+  if (!casualties || casualties === '-' ||
+      ['待官方公布','未知','待确认','待从完整报告获取'].includes(casualties.trim())) return casualties;
+  if (/(无人员伤亡|无人员死亡|0人死亡|未造成人员伤亡)/.test(casualties)) return casualties.trim();
+
+  const parts = [];
+  const deathMatch = casualties.match(/(\d+)人死亡/);
+  if (deathMatch) parts.push(deathMatch[1] + '人死亡');
+  const injuryMatch = casualties.match(/(\d+)人[受重轻]伤/);
+  if (injuryMatch) parts.push(injuryMatch[1] + '人受伤');
+  if (parts.length > 0) return parts.join('，');
+  return casualties;
+}
+
 function normalizeAccidents(items) {
   return items.map(item => {
     let result = { ...item };
@@ -98,6 +124,10 @@ function normalizeAccidents(items) {
     if (result.province && PROVINCE_NORMALIZE[result.province]) {
       result.province = PROVINCE_NORMALIZE[result.province];
     }
+    // 清洗标题：去掉 .pdf / .docx 后缀
+    result.title = cleanTitle(result.title);
+    // 清洗伤亡：只保留人数，去掉人名和伤情细节
+    result.casualties = cleanCasualties(result.casualties);
     // 自动从标题提取事故等级，覆盖 Strapi 中可能错误的字段值
     result.severity = detectSeverityFromTitle(result.title) || result.severity;
     // 标题没有关键词时，从伤亡数据推断
