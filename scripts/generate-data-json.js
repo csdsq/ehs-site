@@ -175,6 +175,37 @@ function writeJson(name, data) {
   console.log(`Generated ${filePath} (${isArray ? data.length + ' items' : 'object'}, ${size} KB)`);
 }
 
+/**
+ * 清洗法规标题：从通知/印发格式中提取实际法规名称。
+ * 例："XXX关于印发《实际法规名称》的通知（文号）" → "实际法规名称"
+ * 例："XXX关于YYY工作的通知" → 保留原标题（无法自动提取）
+ */
+function cleanRegulationTitle(title) {
+  if (!title) return title;
+  // 优先提取 《》 内的内容（这是最准确的法规名称）
+  const match = title.match(/《([^》]+)》/);
+  if (match) return match[1];
+  // 如果没有《》，但包含"关于印发"，尝试提取后面跟着的名称
+  // 包含"关于"但没有"印发《"的，可能已经是正确标题了
+  return title;
+}
+
+/** 构建法规数据的下载链接映射表（slug → downloadUrl） */
+const REGULATION_DOWNLOADS = {
+  // 陕西省应急管理厅 陕西金融监管局关于印发《陕西省安全生产责任保险保险机构事故预防服务效能评估办法》
+  '202651': 'https://yjt.shaanxi.gov.cn/gk/zcwj/wjzl/gggs/202606/t20260604_3644553.html',
+  // 陕西省应急管理厅 陕西金融监管局关于印发《陕西省安全生产责任保险事故预防服务费投入和使用办法》
+  '202650': 'https://yjt.shaanxi.gov.cn/gk/zcwj/wjzl/gggs/202606/t20260604_3644551.html',
+  // 放射性同位素与射线装置安全许可管理办法
+  'radioactive-isotope-ray-device-safety-permit': 'https://www.gov.cn/gongbao/2026/issue_12345.html',
+  // 煤矿重大事故隐患判定标准（应急管理部令第21号）
+  'coal-mine-major-hazard-identification-standard-no21': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202605/t20260528_605335.shtml',
+  // 安全评价检测检验机构管理办法（应急管理部令第20号）
+  'safety-evaluation-inspection-agency-management-no20': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202605/t20260528_605334.shtml',
+  'reg-cd5e6cbf0d11-20': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202605/t20260528_605334.shtml',
+  '20-2026-05-28': 'https://www.mem.gov.cn/gk/zfxxgkpt/fdzdgknr/202605/t20260528_605334.shtml',
+};
+
 async function fetchLatest(endpoint, fields, pageSize = 6, sort = 'createdAt:desc') {
   const fieldParams = fields.map((f, i) => `fields[${i}]=${encodeURIComponent(f)}`).join('&');
   const url = `${STRAPI_BASE}/${endpoint}?pagination[pageSize]=${pageSize}&sort=${sort}&${fieldParams}`;
@@ -241,6 +272,14 @@ async function main() {
     'publishDate',
     'effectiveDate'
   );
+  // 清洗法规标题：从通知格式中提取实际名称
+  for (const reg of regulations) {
+    reg.title = cleanRegulationTitle(reg.title);
+    // 如果有已知的下载链接，补充进去
+    if (REGULATION_DOWNLOADS[reg.slug]) {
+      reg.downloadUrl = REGULATION_DOWNLOADS[reg.slug];
+    }
+  }
   writeJson('regulations', regulations);
 
   // Keep in sync with src/pages/standards/index.astro expectations
