@@ -176,6 +176,40 @@ function writeJson(name, data) {
 }
 
 /**
+ * 生成统一 slug：格式为 YYMM-NNN（如 2606-001）
+ * 按发布年月分组，组内按日期排序后分配序列号
+ */
+function generateSlugs(items, dateField = 'publishDate') {
+  const groups = {};
+  items.forEach(item => {
+    const date = item[dateField] || item.createdAt || '';
+    const key = date.substring(0, 7); // YYYY-MM
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  });
+
+  const slugMap = {}; // originalSlug → newSlug
+  Object.keys(groups).sort().forEach(key => {
+    const group = groups[key].sort((a, b) => {
+      const da = a[dateField] || a.createdAt || '';
+      const db = b[dateField] || b.createdAt || '';
+      return da.localeCompare(db);
+    });
+    group.forEach((item, idx) => {
+      const parts = key.split('-');
+      if (parts.length >= 2) {
+        const yy = parts[0].slice(2);
+        const mm = parts[1];
+        const newSlug = `${yy}${mm}-${String(idx + 1).padStart(3, '0')}`;
+        slugMap[item.slug] = newSlug;
+        item.slug = newSlug;
+      }
+    });
+  });
+  return slugMap;
+}
+
+/**
  * 清洗法规标题：从通知/印发格式中提取实际法规名称。
  * 规则：
  *   1. 优先提取《》内的内容 → "XXX关于印发《办法》的通知" → "办法"
@@ -271,6 +305,8 @@ async function main() {
     'date'
   );
   const normalizedAccidents = normalizeAccidents(accidents);
+  // 为事故生成统一 slug：按 date（事故日期）分组
+  const accSlugMap = generateSlugs(normalizedAccidents, 'date');
   writeJson('accidents', normalizedAccidents);
   // Preview file for instant first paint (first 50 most recent items)
   writeJson('accidents-preview', normalizedAccidents.slice(0, 50));
@@ -309,6 +345,8 @@ async function main() {
     console.log(`Filtered out ${removedCount} non-regulation items (意见/废止).`);
   }
   writeJson('regulations', filteredRegulations);
+  // 为法规生成统一 slug：按 publishDate 分组
+  const regSlugMap = generateSlugs(filteredRegulations, 'publishDate');
 
   // Keep in sync with src/pages/standards/index.astro expectations
   const standards = sortByDateDesc(
@@ -318,9 +356,22 @@ async function main() {
     'effectiveDate'
   );
   writeJson('standards', standards);
+  // 为国标生成统一 slug：按 effectiveDate 分组
+  const stdSlugMap = generateSlugs(standards, 'effectiveDate');
 
   // Generate single JSON for the homepage, replacing 7 parallel API calls
   await generateHomeData(normalizedAccidents, regulations, standards);
+
+  // 生成 slug 映射表（newSlug → { originalSlug, module }）
+  // 用于详情页从新 slug 反查到 Strapi 中的原始 slug
+  const allSlugMaps = { ...regSlugMap, ...accSlugMap, ...stdSlugMap };
+  const slugMapping = {};
+  Object.keys(allSlugMaps).forEach(oldSlug => {
+    const newSlug = allSlugMaps[oldSlug];
+    slugMapping[newSlug] = { originalSlug: oldSlug };
+  });
+  writeJson('slug-mapping', slugMapping);
+  console.log(`Generated slug mapping: ${Object.keys(slugMapping).length} entries.`);
 }
 
 main().catch(err => {

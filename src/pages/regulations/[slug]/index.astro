@@ -31,7 +31,16 @@ const { slug } = Astro.params;
         return;
       }
       try {
-        const res = await fetch(`${API}/regulations?filters[slug][$eq]=${slug}&pagination[pageSize]=1`);
+        // 尝试加载 slug 映射表（新格式 → 原始 slug）
+        let querySlug = slug;
+        const slugRes = await fetch('/data/slug-mapping.json');
+        if (slugRes.ok) {
+          const slugMap = await slugRes.json();
+          if (slugMap[slug]) {
+            querySlug = slugMap[slug].originalSlug;
+          }
+        }
+        const res = await fetch(`${API}/regulations?filters[slug][$eq]=${querySlug}&pagination[pageSize]=1`);
         const json = await res.json();
         const item = json.data?.[0];
         if (item) {
