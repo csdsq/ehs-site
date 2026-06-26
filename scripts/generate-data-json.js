@@ -49,20 +49,8 @@ async function fetchAll(endpoint, fields, sort = 'createdAt:desc') {
   return allData;
 }
 
-function normalizeAccidents(items) {
-  return items.map(item => {
-    let result = { ...item };
-    // 归一化省份简称
-    if (result.province && PROVINCE_NORMALIZE[result.province]) {
-      result.province = PROVINCE_NORMALIZE[result.province];
-    }
-    // 自动从标题提取事故等级，覆盖 Strapi 中可能错误的字段值
-    result.severity = detectSeverityFromTitle(result.title) || result.severity;
-    return result;
-  });
-}
-
 /**
+
  * 从事故标题中自动提取事故等级。
  * 根据《生产安全事故报告和调查处理条例》：
  *   特别重大/特大 → major
@@ -80,6 +68,44 @@ function detectSeverityFromTitle(title) {
   if (title.includes('较大')) return 'general';
   if (title.includes('一般')) return 'minor';
   return null;
+}
+
+/**
+ * 当标题不含事故等级关键词时，从伤亡描述中推断等级。
+ * 依据《生产安全事故报告和调查处理条例》：
+ *   特别重大 (major): ≥30死亡
+ *   重大 (larger):    10-29死亡
+ *   较大 (general):    3-9死亡
+ *   一般 (minor):      1-2死亡
+ */
+function detectSeverityFromCasualties(casualties) {
+  if (!casualties || casualties === '-' ||
+    ['待官方公布','未知','待确认','待从完整报告获取'].includes(casualties.trim())) return null;
+  if (/(无人员伤亡|无人员死亡|0人死亡|未造成人员伤亡|无具体)/.test(casualties)) return null;
+  const m = casualties.match(/(\d+)人死亡/);
+  if (!m) return null;
+  const deaths = parseInt(m[1], 10);
+  if (deaths >= 30) return 'major';
+  if (deaths >= 10) return 'larger';
+  if (deaths >= 3) return 'general';
+  return 'minor';
+}
+
+function normalizeAccidents(items) {
+  return items.map(item => {
+    let result = { ...item };
+    // 归一化省份简称
+    if (result.province && PROVINCE_NORMALIZE[result.province]) {
+      result.province = PROVINCE_NORMALIZE[result.province];
+    }
+    // 自动从标题提取事故等级，覆盖 Strapi 中可能错误的字段值
+    result.severity = detectSeverityFromTitle(result.title) || result.severity;
+    // 标题没有关键词时，从伤亡数据推断
+    if (!detectSeverityFromTitle(result.title)) {
+      result.severity = detectSeverityFromCasualties(result.casualties) || result.severity;
+    }
+    return result;
+  });
 }
 
 function parseDate(value) {
