@@ -144,16 +144,6 @@ import Layout from '../../layouts/Layout.astro';
       return region || '地方';
     }
 
-    // 清洗标题：与详情页和 generate-data-json.js 一致
-    function cleanTitle(title: string): string {
-      if (!title) return title;
-      const m = title.match(/《([^》]+)》/);
-      if (m) return m[1];
-      const yf = title.match(/印发(.+?)(?:的)?通知/);
-      if (yf) return yf[1].trim().replace(/[（(][^）)]*[）)]$/, '').trim();
-      return title;
-    }
-
     function renderItems(items: any[]) {
       const el = document.getElementById('std-list');
       if (!el) return;
@@ -174,7 +164,7 @@ import Layout from '../../layouts/Layout.astro';
         return `
           <a href="/regulations/${item.slug || item.id}" class="list-item">
             <div class="list-item-body">
-              <div class="list-item-title">${cleanTitle(item.title)}</div>
+              <div class="list-item-title">${item.title || ''}</div>
               <div class="list-item-meta-row">
                 ${tagParts.length > 0 ? tagParts.join('') : ''}
                 ${metaParts.join('')}

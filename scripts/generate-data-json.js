@@ -343,10 +343,8 @@ async function main() {
     'publishDate',
     'effectiveDate'
   );
-  // 清洗法规标题：从通知格式中提取实际名称
   const regDownloads = loadRegulationDownloads();
   for (const reg of regulations) {
-    reg.title = cleanRegulationTitle(reg.title);
     // 如果有已知的下载链接，补充进去
     if (regDownloads[reg.slug]) {
       reg.downloadUrl = regDownloads[reg.slug];

@@ -134,18 +134,8 @@ import Layout from '../layouts/Layout.astro';
       }
     }
 
-    // 清洗法规标题：从通知格式提取实际法规名称（与详情页一致）
-    function cleanTitle(title) {
-      if (!title) return title;
-      const m = title.match(/《([^》]+)》/);
-      if (m) return m[1];
-      const yf = title.match(/印发(.+?)(?:的)?通知/);
-      if (yf) return yf[1].trim().replace(/[（(][^）)]*[）)]$/, '').trim();
-      return title;
-    }
-
     function renderListItem(item, hrefPrefix, type) {
-      const title = cleanTitle(item.title || '');
+      const title = item.title || '';
       const desc = item.description || item.summary || '';
       const standardNo = item.standardNo || '';
       const publishDate = item.publishDate || '';
