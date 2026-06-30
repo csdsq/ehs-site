@@ -262,7 +262,7 @@ async function fetchLatest(endpoint, fields, pageSize = 6, sort = 'createdAt:des
   return fetchPage(url);
 }
 
-async function generateHomeData(accidents, regulations, standards) {
+async function generateHomeData(accidents, filteredRegulations, standards) {
   // Fetch lightweight home-page previews and totals in parallel
   const [aiApps, regs, stds, accs, videos, docs, msgs] = await Promise.all([
     fetchLatest('ai-apps', ['title', 'slug', 'description', 'icon', 'category'], 6, 'createdAt:desc'),
@@ -276,6 +276,25 @@ async function generateHomeData(accidents, regulations, standards) {
 
   const total = (res) => res?.meta?.pagination?.total ?? 0;
 
+  // 为首页预览数据：取已清洗、过滤后的前 6 条
+  const homeRegulations = filteredRegulations.slice(0, 6).map(reg => ({
+    title: reg.title,
+    slug: reg.slug,
+    source: reg.source,
+    standardNo: reg.standardNo,
+    effectiveDate: reg.effectiveDate,
+    publishDate: reg.publishDate,
+  }));
+  const homeStandards = standards.slice(0, 6).map(std => ({
+    title: std.title,
+    slug: std.slug,
+    standardNo: std.standardNo,
+    category: std.category,
+    publishDate: std.publishDate,
+    effectiveDate: std.effectiveDate,
+    description: std.description,
+  }));
+
   const homeData = {
     stats: {
       aiApps: total(aiApps),
@@ -287,8 +306,8 @@ async function generateHomeData(accidents, regulations, standards) {
       messages: total(msgs),
     },
     aiApps: aiApps?.data ?? [],
-    regulations: regs?.data ?? [],
-    standards: stds?.data ?? [],
+    regulations: homeRegulations,
+    standards: homeStandards,
     accidents: accs?.data ?? [],
     videos: videos?.data ?? [],
     documents: docs?.data ?? [],
@@ -365,7 +384,7 @@ async function main() {
   const stdSlugMap = generateSlugs(standards, 'effectiveDate');
 
   // Generate single JSON for the homepage, replacing 7 parallel API calls
-  await generateHomeData(normalizedAccidents, regulations, standards);
+  await generateHomeData(normalizedAccidents, filteredRegulations, standards);
 
   // 生成 slug 映射表（newSlug → { originalSlug, module }）
   // 用于详情页从新 slug 反查到 Strapi 中的原始 slug
