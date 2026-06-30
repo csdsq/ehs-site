@@ -5,4 +5,4 @@ dist/
 !.env.example
 .DS_Store
 .vercel/
-public/data/*.json
+# public/data/*.json  (tracked: generated at build time from local Strapi)
