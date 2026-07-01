@@ -265,12 +265,13 @@ async function fetchLatest(endpoint, fields, pageSize = 6, sort = 'createdAt:des
 }
 
 async function generateHomeData(accidents, filteredRegulations, standards) {
-  // Fetch lightweight home-page previews and totals in parallel
-  const [aiApps, regs, stds, accs, videos, docs, msgs] = await Promise.all([
+  // ✅ FIX: 使用已处理的数据（带 YYMM-NNN slug），不再从 Strapi 重新拉取
+  // Stats totals still come from Strapi, but previews use processed data with new slugs
+  const [aiApps, regsTotal, stdsTotal, accsTotal, videos, docs, msgs] = await Promise.all([
     fetchLatest('ai-apps', ['title', 'slug', 'description', 'icon', 'category'], 6, 'createdAt:desc'),
-    fetchLatest('regulations', ['title', 'slug', 'source', 'standardNo', 'effectiveDate', 'publishDate'], 6, 'publishDate:desc'),
-    fetchLatest('standards', ['title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'description'], 6, 'effectiveDate:desc'),
-    fetchLatest('accidents', ['title', 'slug', 'category', 'severity', 'date'], 6, 'date:desc'),
+    fetchLatest('regulations', ['title', 'slug', 'source', 'standardNo', 'effectiveDate', 'publishDate'], 1, 'publishDate:desc'),
+    fetchLatest('standards', ['title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'description'], 1, 'effectiveDate:desc'),
+    fetchLatest('accidents', ['title', 'slug', 'category', 'severity', 'date'], 1, 'date:desc'),
     fetchLatest('videos', ['title', 'slug', 'description', 'videoUrl', 'duration', 'category'], 3, 'createdAt:desc'),
     fetchLatest('documents', ['title', 'slug', 'description', 'fileType', 'publishDate'], 6, 'createdAt:desc'),
     fetchLatest('messages', ['title', 'slug', 'author', 'publishDate', 'category'], 6, 'publishDate:desc'),
@@ -278,7 +279,7 @@ async function generateHomeData(accidents, filteredRegulations, standards) {
 
   const total = (res) => res?.meta?.pagination?.total ?? 0;
 
-  // 为首页预览数据：取已清洗、过滤后的前 6 条
+  // 为首页预览数据：取已清洗、过滤后的前 6 条（已含 YYMM-NNN slug）
   const homeRegulations = filteredRegulations.slice(0, 6).map(reg => ({
     title: reg.title,
     slug: reg.slug,
@@ -296,13 +297,21 @@ async function generateHomeData(accidents, filteredRegulations, standards) {
     effectiveDate: std.effectiveDate,
     description: std.description,
   }));
+  // ✅ FIX: 事故预览也用已处理数据（带 YYMM-NNN slug）
+  const homeAccidents = accidents.slice(0, 6).map(acc => ({
+    title: acc.title,
+    slug: acc.slug,
+    category: acc.category,
+    severity: acc.severity,
+    date: acc.date,
+  }));
 
   const homeData = {
     stats: {
       aiApps: total(aiApps),
-      regulations: total(regs),
-      standards: total(stds),
-      accidents: total(accs),
+      regulations: total(regsTotal),
+      standards: total(stdsTotal),
+      accidents: total(accsTotal),
       videos: total(videos),
       documents: total(docs),
       messages: total(msgs),
@@ -310,7 +319,7 @@ async function generateHomeData(accidents, filteredRegulations, standards) {
     aiApps: aiApps?.data ?? [],
     regulations: homeRegulations,
     standards: homeStandards,
-    accidents: accs?.data ?? [],
+    accidents: homeAccidents,
     videos: videos?.data ?? [],
     documents: docs?.data ?? [],
     messages: msgs?.data ?? [],
@@ -345,14 +354,7 @@ async function main() {
     'publishDate',
     'effectiveDate'
   );
-  const regDownloads = loadRegulationDownloads();
-  for (const reg of regulations) {
-    // 如果有已知的下载链接，补充进去
-    if (regDownloads[reg.slug]) {
-      reg.downloadUrl = regDownloads[reg.slug];
-    }
-  }
-  // 过滤掉"意见""废止""TEST/测试记录"等非正式法规
+  // 过滤掉"意见""废止""TEST/测试记录""垃圾标题"等非正式法规
   const filteredRegulations = regulations.filter(reg => {
     const t = reg.title || '';
     const s = reg.slug || '';
@@ -362,15 +364,26 @@ async function main() {
     if (/^关于废止/.test(t) || /决定废止/.test(t) || /废止/.test(t)) return false;
     // "TEST-请删除-测试记录" 等测试数据 → 删掉
     if (/test|TEST/.test(s) || /请删除|测试记录|示例|样例/.test(t)) return false;
+    // ✅ NEW: 垃圾标题（如"第一章 总则"、"相关链接："、"北京市生态环境局"）→ 删掉
+    if (/^第一章|^相关链接|^决策制度|^\s*$/.test(t)) return false;
+    // ✅ NEW: 仅含部委令号无实际内容的标题 → 删掉（如"中华人民共和国国务院令"）
+    if (/^中华人民共和国.+令$/.test(t) && !/《/.test(t)) return false;
     return true;
   });
   const removedCount = regulations.length - filteredRegulations.length;
   if (removedCount > 0) {
     console.log(`Filtered out ${removedCount} non-regulation items (意见/废止).`);
   }
-  writeJson('regulations', filteredRegulations);
-  // 为法规生成统一 slug：按 publishDate 分组
+  // ✅ FIX: Download URL lookup uses OLD slug (from Strapi) → must happen BEFORE generateSlugs
+  const regDownloads = loadRegulationDownloads();
+  for (const reg of filteredRegulations) {
+    if (regDownloads[reg.slug]) {
+      reg.downloadUrl = regDownloads[reg.slug];
+    }
+  }
+  // ✅ FIX: Generate slugs BEFORE writing JSON, so regulations.json has YYMM-NNN slugs
   const regSlugMap = generateSlugs(filteredRegulations, 'publishDate');
+  writeJson('regulations', filteredRegulations);
 
   // Keep in sync with src/pages/standards/index.astro expectations
   const standards = sortByDateDesc(
@@ -379,9 +392,9 @@ async function main() {
     ], 'effectiveDate:desc'),
     'effectiveDate'
   );
-  writeJson('standards', standards);
-  // 为国标生成统一 slug：按 effectiveDate 分组
+  // ✅ FIX: Generate slugs BEFORE writing JSON, so standards.json has YYMM-NNN slugs
   const stdSlugMap = generateSlugs(standards, 'effectiveDate');
+  writeJson('standards', standards);
 
   // Generate single JSON for the homepage, replacing 7 parallel API calls
   await generateHomeData(normalizedAccidents, filteredRegulations, standards);
