@@ -31,12 +31,15 @@ const { slug } = Astro.params;
         return;
       }
       try {
-        // 尝试加载 slug 映射表（新格式 → 原始 slug）
+        // ✅ FIX: 使用嵌套格式的 slug 映射表
+        // 事故详情页只读取 .accidents 字段，避免误查到其他集合的 slug
         let querySlug = slug;
         const slugRes = await fetch('/data/slug-mapping.json');
         if (slugRes.ok) {
           const slugMap = await slugRes.json();
-          if (slugMap[slug]) querySlug = slugMap[slug].originalSlug;
+          if (slugMap[slug] && slugMap[slug].accidents) {
+            querySlug = slugMap[slug].accidents;
+          }
         }
         let res = await fetch(`${API}/accidents?filters[slug][$eq]=${querySlug}&pagination[pageSize]=1`);
         let json = await res.json();

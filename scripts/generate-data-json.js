@@ -50,7 +50,6 @@ async function fetchAll(endpoint, fields, sort = 'createdAt:desc') {
 }
 
 /**
-
  * 从事故标题中自动提取事故等级。
  * 根据《生产安全事故报告和调查处理条例》：
  *   特别重大/特大 → major
@@ -220,6 +219,9 @@ function generateSlugs(items, dateField = 'publishDate') {
  *   1. 优先提取《》内的内容 → "XXX关于印发《办法》的通知" → "办法"
  *   2. 无《》时，提取"印发"到"的通知"之间的内容 → "XXX印发办法的通知" → "办法"
  *   3. 以上都不匹配则返回原标题
+ * 
+ * 注意：此函数已不再被调用（死代码），标题清洗已在 Strapi 源头完成。
+ * 前端直接使用 item.title，不做二次清洗。
  */
 function cleanRegulationTitle(title) {
   if (!title) return title;
@@ -384,13 +386,24 @@ async function main() {
   // Generate single JSON for the homepage, replacing 7 parallel API calls
   await generateHomeData(normalizedAccidents, filteredRegulations, standards);
 
-  // 生成 slug 映射表（newSlug → { originalSlug, module }）
-  // 用于详情页从新 slug 反查到 Strapi 中的原始 slug
-  const allSlugMaps = { ...regSlugMap, ...accSlugMap, ...stdSlugMap };
+  // ✅ FIX: 生成 slug 映射表（newSlug → { module: originalSlug }）
+  // 不再合并三个 slugMap（避免 originalSlug 相同时后者覆盖前者）
+  // 而是按模块分别写入，每个 detail page 用 URL 对应的 module 字段查找
   const slugMapping = {};
-  Object.keys(allSlugMaps).forEach(oldSlug => {
-    const newSlug = allSlugMaps[oldSlug];
-    slugMapping[newSlug] = { originalSlug: oldSlug };
+  Object.keys(regSlugMap).forEach(oldSlug => {
+    const newSlug = regSlugMap[oldSlug];
+    if (!slugMapping[newSlug]) slugMapping[newSlug] = {};
+    slugMapping[newSlug]['regulations'] = oldSlug;
+  });
+  Object.keys(accSlugMap).forEach(oldSlug => {
+    const newSlug = accSlugMap[oldSlug];
+    if (!slugMapping[newSlug]) slugMapping[newSlug] = {};
+    slugMapping[newSlug]['accidents'] = oldSlug;
+  });
+  Object.keys(stdSlugMap).forEach(oldSlug => {
+    const newSlug = stdSlugMap[oldSlug];
+    if (!slugMapping[newSlug]) slugMapping[newSlug] = {};
+    slugMapping[newSlug]['standards'] = oldSlug;
   });
   writeJson('slug-mapping', slugMapping);
   console.log(`Generated slug mapping: ${Object.keys(slugMapping).length} entries.`);

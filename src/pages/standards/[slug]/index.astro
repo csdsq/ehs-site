@@ -31,12 +31,15 @@ const { slug } = Astro.params;
         return;
       }
       try {
-        // 尝试加载 slug 映射表（新格式 → 原始 slug）
+        // ✅ FIX: 使用嵌套格式的 slug 映射表
+        // 国标详情页只读取 .standards 字段，避免误查到其他集合的 slug
         let querySlug = slug;
         const slugRes = await fetch('/data/slug-mapping.json');
         if (slugRes.ok) {
           const slugMap = await slugRes.json();
-          if (slugMap[slug]) querySlug = slugMap[slug].originalSlug;
+          if (slugMap[slug] && slugMap[slug].standards) {
+            querySlug = slugMap[slug].standards;
+          }
         }
         const res = await fetch(`${API}/standards?filters[slug][$eq]=${querySlug}&pagination[pageSize]=1`);
         const json = await res.json();
