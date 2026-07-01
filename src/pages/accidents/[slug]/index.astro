@@ -58,9 +58,6 @@ const { slug } = Astro.params;
       }
     }
 
-    /** 清洗标题：去掉 .pdf/.docx 后缀 */
-    function cleanTitle(t) { return t ? t.replace(/\.(pdf|docx|doc|txt)$/i, '') : t; }
-
     /** 清洗伤亡：只保留人数统计，去除括号内的人名和伤情细节 */
     function cleanCasualties(c) {
       if (!c || c === '-' || ['待官方公布','未知','待确认','待从完整报告获取'].includes(c.trim())) return c;
@@ -87,7 +84,7 @@ const { slug } = Astro.params;
       const catLabel = categoryMap[item.category] || item.category || '';
       const provLabel = item.province || '';
 
-      document.getElementById('detail-title').textContent = cleanTitle(item.title) || '';
+      document.getElementById('detail-title').textContent = item.title || '';
 
       const tags = [];
       if (sevLabel) tags.push(`<span class="acc-tag ${sevClassMap[item.severity] || 'acc-sev-general'}">${sevLabel}</span>`);
@@ -96,7 +93,7 @@ const { slug } = Astro.params;
       document.getElementById('detail-tags').innerHTML = tags.join(' ');
 
       const infoRows = [
-        ['事故名称', cleanTitle(item.title)],
+        ['事故名称', item.title],
         ['事故类型', catLabel || item.category],
         ['事故等级', sevLabel || item.severity],
         ['发生省份', provLabel || '-'],
