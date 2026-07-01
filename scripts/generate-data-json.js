@@ -354,7 +354,7 @@ async function main() {
     'publishDate',
     'effectiveDate'
   );
-  // 过滤掉"意见""废止""TEST/测试记录""垃圾标题"等非正式法规
+  // 过滤掉"意见""废止""TEST/测试记录"等非正式法规
   const filteredRegulations = regulations.filter(reg => {
     const t = reg.title || '';
     const s = reg.slug || '';
@@ -364,10 +364,6 @@ async function main() {
     if (/^关于废止/.test(t) || /决定废止/.test(t) || /废止/.test(t)) return false;
     // "TEST-请删除-测试记录" 等测试数据 → 删掉
     if (/test|TEST/.test(s) || /请删除|测试记录|示例|样例/.test(t)) return false;
-    // ✅ NEW: 垃圾标题（如"第一章 总则"、"相关链接："、"北京市生态环境局"）→ 删掉
-    if (/^第一章|^相关链接|^决策制度|^\s*$/.test(t)) return false;
-    // ✅ NEW: 仅含部委令号无实际内容的标题 → 删掉（如"中华人民共和国国务院令"）
-    if (/^中华人民共和国.+令$/.test(t) && !/《/.test(t)) return false;
     return true;
   });
   const removedCount = regulations.length - filteredRegulations.length;
