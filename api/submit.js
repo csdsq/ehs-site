@@ -268,7 +268,7 @@ export default async function handler(req, res) {
       token,
     });
 
-    console.log('Submission created:', message.data?.id || message.data?.documentId);
+    console.log('Submission created:', JSON.stringify(message.data));
 
     // 7. 返回成功
     return res.status(200).json({
@@ -283,6 +283,11 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Submit handler error:', error);
-    return res.status(500).json({ error: '提交失败，请稍后重试。' });
+    // 开发调试期间返回详细错误
+    return res.status(500).json({
+      error: '提交失败',
+      detail: error.message,
+      stack: error.stack?.split('\n').slice(0, 5).join('\n'),
+    });
   }
 }
