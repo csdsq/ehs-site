@@ -144,14 +144,16 @@ function buildContent({ nickname, email, sourceUrl, notes, attachments }) {
  * 生成唯一 slug
  */
 function generateSlug(title) {
-  const slug = title
+  // slug 只允许 [A-Za-z0-9-_.~]，去除中文和其他特殊字符
+  const sanitized = title
     .trim()
-    .toLowerCase()
-    .replace(/[^\w\u4e00-\u9fa5]+/g, '-')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
     .replace(/^-+|-+$/g, '')
+    .toLowerCase()
     .slice(0, 80);
   const ts = Date.now().toString(36);
-  return `sub-${slug}-${ts}`;
+  return `sub-${sanitized || 'post'}-${ts}`;
 }
 
 /**
@@ -283,11 +285,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Submit handler error:', error);
-    // 开发调试期间返回详细错误
-    return res.status(500).json({
-      error: '提交失败',
-      detail: error.message,
-      stack: error.stack?.split('\n').slice(0, 5).join('\n'),
-    });
+    return res.status(500).json({ error: '提交失败，请稍后重试。' });
   }
 }
