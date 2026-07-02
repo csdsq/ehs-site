@@ -94,7 +94,7 @@ async function uploadToStrapi(file, token) {
   const blob = new Blob([file.buffer], { type: file.mimeType });
   formData.append('files', blob, file.filename);
 
-  const res = await fetch(`${STRAPI_URL}/api/upload`, {
+  const res = await fetch(`${STRAPI_URL}/upload`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -134,34 +134,49 @@ function buildContent({ nickname, email, sourceUrl, notes, attachments }) {
 }
 
 /**
- * 创建 Message 记录
+ * 生成唯一 slug
+ */
+function generateSlug(title) {
+  const slug = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fa5]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  const ts = Date.now().toString(36);
+  return `sub-${slug}-${ts}`;
+}
+
+/**
+ * 创建 Message 记录（通过 content-manager API + admin token）
  */
 async function createMessage({ title, content, author, email, category, token }) {
-  const res = await fetch(`${STRAPI_URL}/api/messages`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      data: {
+  const res = await fetch(
+    `${STRAPI_URL}/content-manager/collection-types/api::message.message`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
         title,
         content,
         author,
-        email: email || '',
+        email: email || '投稿@anonymous',
         category,
-        // 投稿时间即审核依据
-        publishDate: new Date().toISOString(),
-      },
-    }),
-  });
+        slug: generateSlug(title),
+      }),
+    },
+  );
 
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`创建记录失败 (${res.status}): ${text}`);
   }
 
-  return await res.json();
+  const json = await res.json();
+  return json; // content-manager API 返回 {data: {...}}
 }
 
 export default async function handler(req, res) {
