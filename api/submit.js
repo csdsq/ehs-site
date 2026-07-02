@@ -1,3 +1,10 @@
+// Vercel 默认会解析 JSON body，但 multipart 需要 raw stream
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 import Busboy from 'busboy';
 
 const STRAPI_URL = 'http://8.149.139.66:1337';
