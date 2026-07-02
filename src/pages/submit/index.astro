@@ -1,0 +1,564 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout title="同行投稿" currentPath="/submit/">
+
+  <div class="page-layout">
+    <div class="container">
+      <div class="submit-wrapper">
+        <div class="submit-header">
+          <h1 class="page-title">📮 同行投稿</h1>
+          <p class="page-description">
+            欢迎同行分享 EHS 领域线索——法规文件、事故报告、标准规范、资料文档等。
+            提交后由管理员审核发布，优质内容将收录到对应栏目。
+          </p>
+        </div>
+
+        <div class="submit-content">
+          <div class="submit-form-section">
+            <form id="submitForm" class="submit-form">
+              <!-- 昵称 -->
+              <div class="form-group">
+                <label for="nickname">昵称 <span class="required">*</span></label>
+                <input type="text" id="nickname" name="nickname" required placeholder="你的称呼" />
+              </div>
+
+              <!-- 邮箱 -->
+              <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" placeholder="选填，用于接收审核结果通知" />
+              </div>
+
+              <!-- 投稿类型 -->
+              <div class="form-group">
+                <label for="type">投稿类型 <span class="required">*</span></label>
+                <select id="type" name="type" required>
+                  <option value="">请选择投稿类型</option>
+                  <option value="regulation">法规文件</option>
+                  <option value="accident">事故报告</option>
+                  <option value="standard">标准规范</option>
+                  <option value="document">资料文档</option>
+                </select>
+              </div>
+
+              <!-- 标题 -->
+              <div class="form-group">
+                <label for="title">标题 <span class="required">*</span></label>
+                <input type="text" id="title" name="title" required placeholder="请输入标题，简洁明确便于检索" />
+              </div>
+
+              <!-- 来源链接 -->
+              <div class="form-group">
+                <label for="sourceUrl">来源链接</label>
+                <input type="url" id="sourceUrl" name="sourceUrl" placeholder="原始来源网页链接（选填）" />
+              </div>
+
+              <!-- 备注 -->
+              <div class="form-group">
+                <label for="notes">备注说明</label>
+                <textarea id="notes" name="notes" rows="4" placeholder="补充说明、内容摘要或其他信息（选填）"></textarea>
+              </div>
+
+              <!-- 附件上传 -->
+              <div class="form-group">
+                <label for="attachments">附件上传</label>
+                <div class="file-upload-area">
+                  <div class="file-upload-input-wrapper">
+                    <input type="file" id="attachments" name="attachments" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.zip" />
+                    <div class="file-upload-placeholder">
+                      <span class="upload-icon">📎</span>
+                      <span>点击选择文件或拖拽到此处</span>
+                    </div>
+                  </div>
+                  <div class="file-upload-hint">支持 PDF、Word、Excel、图片等常见格式，单个文件不超过 10MB</div>
+                </div>
+                <div id="filePreview" class="file-preview"></div>
+              </div>
+
+              <!-- 提交按钮 -->
+              <div class="form-actions">
+                <button type="submit" class="submit-btn" id="submitBtn">
+                  <span id="btnText">提交投稿</span>
+                  <span id="btnLoading" class="btn-loading" style="display:none">⏳ 提交中...</span>
+                </button>
+              </div>
+            </form>
+
+            <!-- 成功提示 -->
+            <div id="successMessage" class="success-message" style="display:none">
+              <div class="success-icon">✅</div>
+              <h3>投稿成功！</h3>
+              <p>感谢你的贡献！提交的内容审核通过后将发布到对应栏目。</p>
+              <div class="success-type-notes">
+                <p class="auto-note">📋 <strong>法规文件 / 事故报告 / 标准规范</strong>：管理员审核后即可发布</p>
+                <p class="doc-note">📄 <strong>资料文档</strong>：管理员编排整理后，需管理员终审发布</p>
+              </div>
+              <div class="success-actions">
+                <a href="/" class="back-link">← 返回首页</a>
+                <a href="/submit/" class="again-link">再投一篇</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- 侧边说明 -->
+          <div class="submit-sidebar">
+            <div class="sidebar-card">
+              <h4>📋 审核说明</h4>
+              <ul>
+                <li><strong>法规文件 / 事故报告 / 标准规范</strong>：提交后由管理员审核，符合要求即可发布至对应栏目</li>
+                <li><strong>资料文档</strong>：提交后由管理员编排整理，需管理员终审后方可发布</li>
+                <li>所有投稿留痕可追溯，确保内容真实可靠</li>
+              </ul>
+            </div>
+            <div class="sidebar-card">
+              <h4>💡 投稿建议</h4>
+              <ul>
+                <li>确保内容真实可靠，优先提供官方来源链接</li>
+                <li>标题简洁明确，便于检索和分类</li>
+                <li>附件使用规范格式（PDF 优先）</li>
+                <li>填写邮箱可接收审核结果通知</li>
+              </ul>
+            </div>
+            <div class="sidebar-card">
+              <h4>🔗 相关链接</h4>
+              <ul>
+                <li><a href="/standards/">📊 标准规范</a></li>
+                <li><a href="/regulations/">📜 法规文件</a></li>
+                <li><a href="/accidents/">⚠️ 事故报告</a></li>
+                <li><a href="/documents/">📚 资料文档</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</Layout>
+
+<style is:global>
+  .submit-wrapper {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px 0 40px;
+  }
+
+  .submit-header {
+    margin-bottom: 28px;
+  }
+
+  .submit-header .page-title {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .submit-header .page-description {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  .submit-content {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+  }
+
+  .submit-form-section {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .submit-form {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+
+  .required {
+    color: #ef4444;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="url"],
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #374151;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #2a9d8f;
+    box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.12);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+  }
+
+  .file-upload-area {
+    position: relative;
+  }
+
+  .file-upload-input-wrapper {
+    position: relative;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 32px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .file-upload-input-wrapper:hover {
+    border-color: #2a9d8f;
+    background: #f0fdfa;
+  }
+
+  .file-upload-input-wrapper input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .file-upload-placeholder {
+    color: #9ca3af;
+    font-size: 14px;
+  }
+
+  .file-upload-placeholder .upload-icon {
+    font-size: 28px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .file-upload-hint {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 8px;
+  }
+
+  .file-preview {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #374151;
+  }
+
+  .form-actions {
+    margin-top: 24px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #2a9d8f, #264653);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .submit-btn:hover {
+    opacity: 0.9;
+  }
+
+  .submit-btn:active {
+    transform: scale(0.98);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .btn-loading {
+    font-size: 14px;
+  }
+
+  /* 成功提示 */
+  .success-message {
+    background: #fff;
+    border: 1px solid #d1fae5;
+    border-radius: 12px;
+    padding: 40px 32px;
+    text-align: center;
+  }
+
+  .success-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .success-message h3 {
+    font-size: 20px;
+    color: #065f46;
+    margin: 0 0 12px;
+  }
+
+  .success-message > p {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0 0 16px;
+    line-height: 1.6;
+  }
+
+  .success-type-notes {
+    text-align: left;
+    background: #f0fdfa;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+
+  .success-type-notes p {
+    margin: 6px 0;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.6;
+  }
+
+  .success-type-notes .doc-note {
+    color: #d97706;
+  }
+
+  .success-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .back-link,
+  .again-link {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+
+  .back-link {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .back-link:hover {
+    background: #e5e7eb;
+  }
+
+  .again-link {
+    background: #2a9d8f;
+    color: #fff;
+  }
+
+  .again-link:hover {
+    background: #21867a;
+  }
+
+  /* 侧边栏 */
+  .submit-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .sidebar-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .sidebar-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 12px;
+  }
+
+  .sidebar-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sidebar-card li {
+    position: relative;
+    padding-left: 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+  }
+
+  .sidebar-card li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #2a9d8f;
+  }
+
+  .sidebar-card li:last-child {
+    margin-bottom: 0;
+  }
+
+  .sidebar-card a {
+    color: #2a9d8f;
+    text-decoration: none;
+  }
+
+  .sidebar-card a:hover {
+    text-decoration: underline;
+  }
+
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .submit-content {
+      flex-direction: column;
+    }
+
+    .submit-sidebar {
+      width: 100%;
+    }
+
+    .submit-wrapper {
+      padding: 12px 0 32px;
+    }
+
+    .submit-form {
+      padding: 16px;
+    }
+
+    .success-actions {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('submitForm');
+    const successMsg = document.getElementById('successMessage');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnLoading = document.getElementById('btnLoading');
+    const fileInput = document.getElementById('attachments');
+    const filePreview = document.getElementById('filePreview');
+
+    // 文件预览
+    fileInput.addEventListener('change', function () {
+      filePreview.innerHTML = '';
+      if (this.files.length === 0) return;
+      Array.from(this.files).forEach(function (file) {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        const size = (file.size / 1024 / 1024).toFixed(1);
+        item.textContent = '📎 ' + file.name + ' (' + size + ' MB)';
+        filePreview.appendChild(item);
+      });
+    });
+
+    // 拖拽区域视觉反馈
+    const uploadWrapper = document.querySelector('.file-upload-input-wrapper');
+    if (uploadWrapper) {
+      ['dragenter', 'dragover'].forEach(function (evt) {
+        uploadWrapper.addEventListener(evt, function (e) {
+          e.preventDefault();
+          uploadWrapper.style.borderColor = '#2a9d8f';
+          uploadWrapper.style.background = '#f0fdfa';
+        });
+      });
+      ['dragleave', 'drop'].forEach(function (evt) {
+        uploadWrapper.addEventListener(evt, function (e) {
+          e.preventDefault();
+          uploadWrapper.style.borderColor = '#d1d5db';
+          uploadWrapper.style.background = '';
+        });
+      });
+    }
+
+    // 表单提交
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+
+      submitBtn.disabled = true;
+      btnText.style.display = 'none';
+      btnLoading.style.display = 'inline';
+
+      try {
+        const res = await fetch('/api/submit', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          form.style.display = 'none';
+          successMsg.style.display = 'block';
+        } else {
+          alert('提交失败：' + (data.error || '未知错误'));
+        }
+      } catch (err) {
+        alert('提交失败，请检查网络后重试。');
+      } finally {
+        submitBtn.disabled = false;
+        btnText.style.display = 'inline';
+        btnLoading.style.display = 'none';
+      }
+    });
+  });
+</script>
