@@ -247,6 +247,33 @@ function cleanRegulationTitle(title) {
   return title;
 }
 
+/** 获取 Strapi admin token，用于后台 API 查询 */
+async function getAdminToken() {
+  const adminUrl = (process.env.STRAPI_BASE || 'http://8.149.139.66:1337').replace(/\/api$/, '') + '/admin/login';
+  const email = process.env.STRAPI_ADMIN_EMAIL || 'admin@hser.ren';
+  const password = process.env.STRAPI_ADMIN_PASSWORD || 'StrapiAdmin2026';
+  const res = await fetch(adminUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(`Admin login failed: ${res.status}`);
+  const json = await res.json();
+  return json.data.token;
+}
+
+/** 用 admin token 查询 content-manager API，统计投稿数量 */
+async function countSubmissions(token) {
+  const base = (process.env.STRAPI_BASE || 'http://8.149.139.66:1337').replace(/\/api$/, '');
+  const url = `${base}/content-manager/collection-types/api::message.message` +
+    '?filters[$and][0][category][$startsWith]=submission' +
+    '&pagination[pageSize]=1&pagination[page]=1';
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return 0;
+  const json = await res.json();
+  return json.pagination?.total ?? 0;
+}
+
 /** 加载法规下载链接映射表（slug → downloadUrl），从独立 JSON 文件读取 */
 function loadRegulationDownloads() {
   const filePath = path.join(OUT_DIR, 'regulation-downloads.json');
@@ -267,14 +294,17 @@ async function fetchLatest(endpoint, fields, pageSize = 6, sort = 'createdAt:des
 async function generateHomeData(accidents, filteredRegulations, standards) {
   // ✅ FIX: 使用已处理的数据（带 YYMM-NNN slug），不再从 Strapi 重新拉取
   // Stats totals still come from Strapi, but previews use processed data with new slugs
-  const [aiApps, regsTotal, stdsTotal, accsTotal, videos, docs, msgs] = await Promise.all([
+  // 投稿统计用 admin token 查 content-manager API
+  const adminToken = await getAdminToken();
+  const submissionCount = await countSubmissions(adminToken);
+
+  const [aiApps, regsTotal, stdsTotal, accsTotal, videos, docs] = await Promise.all([
     fetchLatest('ai-apps', ['title', 'slug', 'description', 'icon', 'category'], 6, 'createdAt:desc'),
     fetchLatest('regulations', ['title', 'slug', 'source', 'standardNo', 'effectiveDate', 'publishDate'], 1, 'publishDate:desc'),
     fetchLatest('standards', ['title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'description'], 1, 'effectiveDate:desc'),
     fetchLatest('accidents', ['title', 'slug', 'category', 'severity', 'date'], 1, 'date:desc'),
     fetchLatest('videos', ['title', 'slug', 'description', 'videoUrl', 'duration', 'category'], 3, 'createdAt:desc'),
     fetchLatest('documents', ['title', 'slug', 'description', 'fileType', 'publishDate'], 6, 'createdAt:desc'),
-    fetchLatest('messages', ['title', 'slug', 'author', 'publishDate', 'category'], 6, 'publishDate:desc'),
   ]);
 
   const total = (res) => res?.meta?.pagination?.total ?? 0;
@@ -314,7 +344,7 @@ async function generateHomeData(accidents, filteredRegulations, standards) {
       accidents: total(accsTotal),
       videos: total(videos),
       documents: total(docs),
-      messages: total(msgs),
+      submissions: submissionCount,
     },
     aiApps: aiApps?.data ?? [],
     regulations: homeRegulations,
@@ -322,7 +352,7 @@ async function generateHomeData(accidents, filteredRegulations, standards) {
     accidents: homeAccidents,
     videos: videos?.data ?? [],
     documents: docs?.data ?? [],
-    messages: msgs?.data ?? [],
+    submissions: [],
   };
 
   writeJson('home-data', homeData);

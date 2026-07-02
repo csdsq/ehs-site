@@ -13,7 +13,7 @@ import Layout from '../layouts/Layout.astro';
       <a href="/accidents/" class="stat-item"><span class="stat-value" id="stat-accs">--</span><span class="stat-label">事故报告</span></a>
       <!-- <a href="/videos/" class="stat-item"><span class="stat-value" id="stat-videos">--</span><span class="stat-label">视频课堂</span></a> <!-- 暂时隐藏 -->
       <a href="/documents/" class="stat-item"><span class="stat-value" id="stat-docs">--</span><span class="stat-label">资料文档</span></a>
-      <a href="/messages/" class="stat-item"><span class="stat-value" id="stat-msgs">--</span><span class="stat-label">留言板</span></a>
+      <a href="/submit/" class="stat-item"><span class="stat-value" id="stat-submissions">--</span><span class="stat-label">同行投稿</span></a>
     </div>
   </div>
 
@@ -278,7 +278,7 @@ import Layout from '../layouts/Layout.astro';
       s('stat-accs', stats?.accidents);
       s('stat-videos', stats?.videos);
       s('stat-docs', stats?.documents);
-      s('stat-msgs', stats?.messages);
+      s('stat-submissions', stats?.submissions);
 
       // Render lists (non-video modules)
       const renderList = (elId, data, href, type) => {

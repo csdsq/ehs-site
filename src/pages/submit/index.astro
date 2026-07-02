@@ -25,8 +25,8 @@ import Layout from '../../layouts/Layout.astro';
 
               <!-- 邮箱 -->
               <div class="form-group">
-                <label for="email">邮箱</label>
-                <input type="email" id="email" name="email" placeholder="选填，用于接收审核结果通知" />
+                <label for="email">邮箱 <span class="required">*</span></label>
+                <input type="email" id="email" name="email" required placeholder="用于接收审核结果通知" />
               </div>
 
               <!-- 投稿类型 -->
@@ -34,9 +34,10 @@ import Layout from '../../layouts/Layout.astro';
                 <label for="type">投稿类型 <span class="required">*</span></label>
                 <select id="type" name="type" required>
                   <option value="">请选择投稿类型</option>
+                  <option value="ai-app">AI应用</option>
+                  <option value="standard">国标地标</option>
                   <option value="regulation">法规文件</option>
                   <option value="accident">事故报告</option>
-                  <option value="standard">标准规范</option>
                   <option value="document">资料文档</option>
                 </select>
               </div>
@@ -49,8 +50,8 @@ import Layout from '../../layouts/Layout.astro';
 
               <!-- 来源链接 -->
               <div class="form-group">
-                <label for="sourceUrl">来源链接</label>
-                <input type="url" id="sourceUrl" name="sourceUrl" placeholder="原始来源网页链接（选填）" />
+                <label for="sourceUrl">来源链接 <span class="required">*</span></label>
+                <input type="url" id="sourceUrl" name="sourceUrl" required placeholder="原始来源网页链接" />
               </div>
 
               <!-- 备注 -->
@@ -59,9 +60,18 @@ import Layout from '../../layouts/Layout.astro';
                 <textarea id="notes" name="notes" rows="4" placeholder="补充说明、内容摘要或其他信息（选填）"></textarea>
               </div>
 
-              <!-- 附件上传 -->
+              <!-- 附件上传开关 -->
               <div class="form-group">
-                <label for="attachments">附件上传</label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="toggleAttachments" />
+                  <span class="checkbox-custom"></span>
+                  <span>需要上传附件</span>
+                </label>
+              </div>
+
+              <!-- 附件上传区域（默认隐藏） -->
+              <div class="form-group" id="attachmentsSection" style="display:none">
+                <label for="attachments">选择文件</label>
                 <div class="file-upload-area">
                   <div class="file-upload-input-wrapper">
                     <input type="file" id="attachments" name="attachments" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.zip" />
@@ -70,7 +80,7 @@ import Layout from '../../layouts/Layout.astro';
                       <span>点击选择文件或拖拽到此处</span>
                     </div>
                   </div>
-                  <div class="file-upload-hint">支持 PDF、Word、Excel、图片等常见格式，单个文件不超过 10MB</div>
+                  <div class="file-upload-hint">支持 PDF、Word、Excel、图片等常见格式，单个文件不超过 50MB</div>
                 </div>
                 <div id="filePreview" class="file-preview"></div>
               </div>
@@ -213,14 +223,33 @@ import Layout from '../../layouts/Layout.astro';
   .form-group select:focus,
   .form-group textarea:focus {
     outline: none;
-    border-color: #2a9d8f;
-    box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.12);
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 
   .form-group textarea {
     resize: vertical;
     min-height: 80px;
     font-family: inherit;
+  }
+
+  /* Checkbox 样式 */
+  .checkbox-label {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500 !important;
+    font-size: 14px;
+    color: #374151;
+    user-select: none;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #2563eb;
+    cursor: pointer;
   }
 
   .file-upload-area {
@@ -238,8 +267,8 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   .file-upload-input-wrapper:hover {
-    border-color: #2a9d8f;
-    background: #f0fdfa;
+    border-color: #2563eb;
+    background: #eff6ff;
   }
 
   .file-upload-input-wrapper input[type="file"] {
@@ -292,18 +321,18 @@ import Layout from '../../layouts/Layout.astro';
   .submit-btn {
     width: 100%;
     padding: 12px 24px;
-    background: linear-gradient(135deg, #2a9d8f, #264653);
+    background: #2563eb;
     color: #fff;
     border: none;
     border-radius: 8px;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
+    transition: background 0.2s, transform 0.1s;
   }
 
   .submit-btn:hover {
-    opacity: 0.9;
+    background: #1d4ed8;
   }
 
   .submit-btn:active {
@@ -392,12 +421,12 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   .again-link {
-    background: #2a9d8f;
+    background: #2563eb;
     color: #fff;
   }
 
   .again-link:hover {
-    background: #21867a;
+    background: #1d4ed8;
   }
 
   /* 侧边栏 */
@@ -446,7 +475,7 @@ import Layout from '../../layouts/Layout.astro';
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #2a9d8f;
+    background: #2563eb;
   }
 
   .sidebar-card li:last-child {
@@ -454,7 +483,7 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   .sidebar-card a {
-    color: #2a9d8f;
+    color: #2563eb;
     text-decoration: none;
   }
 
@@ -495,6 +524,17 @@ import Layout from '../../layouts/Layout.astro';
     const btnLoading = document.getElementById('btnLoading');
     const fileInput = document.getElementById('attachments');
     const filePreview = document.getElementById('filePreview');
+    const toggleAttachments = document.getElementById('toggleAttachments');
+    const attachmentsSection = document.getElementById('attachmentsSection');
+
+    // 附件上传开关
+    toggleAttachments.addEventListener('change', function () {
+      attachmentsSection.style.display = this.checked ? 'block' : 'none';
+      if (!this.checked) {
+        fileInput.value = '';
+        filePreview.innerHTML = '';
+      }
+    });
 
     // 文件预览
     fileInput.addEventListener('change', function () {
@@ -515,8 +555,8 @@ import Layout from '../../layouts/Layout.astro';
       ['dragenter', 'dragover'].forEach(function (evt) {
         uploadWrapper.addEventListener(evt, function (e) {
           e.preventDefault();
-          uploadWrapper.style.borderColor = '#2a9d8f';
-          uploadWrapper.style.background = '#f0fdfa';
+          uploadWrapper.style.borderColor = '#2563eb';
+          uploadWrapper.style.background = '#eff6ff';
         });
       });
       ['dragleave', 'drop'].forEach(function (evt) {
@@ -533,6 +573,10 @@ import Layout from '../../layouts/Layout.astro';
       e.preventDefault();
 
       const formData = new FormData(form);
+      // 如果未勾选上传附件，从 formData 中移除 files 字段
+      if (!toggleAttachments.checked) {
+        formData.delete('attachments');
+      }
 
       submitBtn.disabled = true;
       btnText.style.display = 'none';

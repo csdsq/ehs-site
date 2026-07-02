@@ -14,8 +14,9 @@ const ADMIN_PASSWORD = 'StrapiAdmin2026';
 const SUBMISSION_TYPES = {
   regulation: { category: 'submission-regulation', label: '法规文件' },
   accident: { category: 'submission-accident', label: '事故报告' },
-  standard: { category: 'submission-standard', label: '标准规范' },
+  standard: { category: 'submission-standard', label: '国标地标' },
   document: { category: 'submission-document', label: '资料文档' },
+  'ai-app': { category: 'submission-ai-app', label: 'AI应用' },
 };
 
 /**
@@ -30,7 +31,7 @@ function parseMultipart(req) {
       const busboy = Busboy({
         headers: req.headers,
         limits: {
-          fileSize: 10 * 1024 * 1024, // 10MB
+          fileSize: 50 * 1024 * 1024, // 50MB
           files: 5,
         },
       });
