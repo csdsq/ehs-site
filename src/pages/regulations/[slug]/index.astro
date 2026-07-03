@@ -1,5 +1,5 @@
 ---
-export const prerender = false;
+export const prerender = true;
 import Layout from '../../../layouts/Layout.astro';
 import PageComment from '../../../components/PageComment.astro';
 
@@ -19,21 +19,21 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = '/api/strapi';
+    const STATIC_DATA_URL = '/data/regulations.json';
     const CACHE_KEY = 'reg_detail_' + slug;
     const CACHE_TTL = 30 * 60 * 1000;
 
     async function loadDetail() {
+      // 1. 优先 localStorage 缓存
       const cached = localStorage.getItem(CACHE_KEY);
       const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
       if (cached && cachedAt && Date.now() - parseInt(cachedAt) < CACHE_TTL) {
         renderItem(JSON.parse(cached));
         return;
       }
+
       try {
-        // ✅ FIX: 使用嵌套格式的 slug 映射表
-        // slugMapping 格式: { newSlug: { regulations: originalSlug, accidents: originalSlug, standards: originalSlug } }
-        // 法规详情页只读取 .regulations 字段，避免误查到其他集合的 slug
+        // 2. 解析 slug 映射
         let querySlug = slug;
         const slugRes = await fetch('/data/slug-mapping.json');
         if (slugRes.ok) {
@@ -42,9 +42,12 @@ const { slug } = Astro.params;
             querySlug = slugMap[slug].regulations;
           }
         }
-        const res = await fetch(`${API}/regulations?filters[slug][$eq]=${querySlug}&pagination[pageSize]=1`);
-        const json = await res.json();
-        const item = json.data?.[0];
+
+        // 3. 从静态 JSON 加载（CDN 缓存，无 serverless 开销）
+        const dataRes = await fetch(STATIC_DATA_URL);
+        const allData = await dataRes.json();
+        const item = allData.find(i => i.slug === querySlug);
+
         if (item) {
           localStorage.setItem(CACHE_KEY, JSON.stringify(item));
           localStorage.setItem(CACHE_KEY + '_ts', String(Date.now()));
@@ -70,7 +73,7 @@ const { slug } = Astro.params;
       document.getElementById('detail-tags').innerHTML = tagHtml;
 
       const content = (item.content || '').trim();
-      const hasFullText = content && !content.startsWith('{') && !content.includes('<table');
+      const hasFullText = content && !content.startsWith('{') && content.length > 100;
       const infoRows = [
         ['发文机构', item.source],
         ['发文号', item.standardNo],

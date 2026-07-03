@@ -1,5 +1,5 @@
 ---
-export const prerender = false;
+export const prerender = true;
 import Layout from '../../../layouts/Layout.astro';
 import PageComment from '../../../components/PageComment.astro';
 
@@ -19,20 +19,21 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
-    const API = '/api/strapi';
+    const STATIC_DATA_URL = '/data/accidents.json';
     const CACHE_KEY = 'acc_detail_' + slug;
     const CACHE_TTL = 30 * 60 * 1000;
 
     async function loadDetail() {
+      // 1. 优先 localStorage 缓存
       const cached = localStorage.getItem(CACHE_KEY);
       const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
       if (cached && cachedAt && Date.now() - parseInt(cachedAt) < CACHE_TTL) {
         renderItem(JSON.parse(cached));
         return;
       }
+
       try {
-        // ✅ FIX: 使用嵌套格式的 slug 映射表
-        // 事故详情页只读取 .accidents 字段，避免误查到其他集合的 slug
+        // 2. 解析 slug 映射
         let querySlug = slug;
         const slugRes = await fetch('/data/slug-mapping.json');
         if (slugRes.ok) {
@@ -41,14 +42,12 @@ const { slug } = Astro.params;
             querySlug = slugMap[slug].accidents;
           }
         }
-        let res = await fetch(`${API}/accidents?filters[slug][$eq]=${querySlug}&pagination[pageSize]=1`);
-        let json = await res.json();
-        let item = json.data?.[0];
-        if (!item) {
-          res = await fetch(`${API}/accidents/${slug}`);
-          json = await res.json();
-          item = json.data;
-        }
+
+        // 3. 从静态 JSON 加载（CDN 缓存，无 serverless 开销）
+        const dataRes = await fetch(STATIC_DATA_URL);
+        const allData = await dataRes.json();
+        const item = allData.find(i => i.slug === querySlug);
+
         if (item) {
           localStorage.setItem(CACHE_KEY, JSON.stringify(item));
           localStorage.setItem(CACHE_KEY + '_ts', String(Date.now()));
@@ -61,7 +60,7 @@ const { slug } = Astro.params;
       }
     }
 
-    /** 清洗伤亡：只保留人数统计，去除括号内的人名和伤情细节 */
+    /** 清洗伤亡：只保留人数统计 */
     function cleanCasualties(c) {
       if (!c || c === '-' || ['待官方公布','未知','待确认','待从完整报告获取'].includes(c.trim())) return c;
       if (/(无人员伤亡|无人员死亡|0人死亡|未造成人员伤亡)/.test(c)) return c.trim();
