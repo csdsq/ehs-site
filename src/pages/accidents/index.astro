@@ -1,279 +1,307 @@
----
-export const prerender = true;
-import Layout from '../../layouts/Layout.astro';
----
-<Layout title="事故报告" currentPath="/accidents/">
-
-  <div class="page-layout">
-    <div class="container">
-      <h1 class="page-title">事故报告</h1>
-
-      <!-- 筛选区 -->
-      <div class="filter-bar" id="acc-filter-row1">
-        <!-- 事故等级 -->
-        <div class="filter-group">
-          <span class="filter-label">等级</span>
-          <div class="filter-tags" id="severity-tags"></div>
-        </div>
-        <!-- 事故类型 -->
-        <div class="filter-group">
-          <span class="filter-label">类型</span>
-          <div class="filter-tags" id="category-tags"></div>
-        </div>
-      </div>
-
-      <div class="search-box" style="margin-bottom: 24px; max-width: 100%;">
-        <input type="text" id="acc-search" placeholder="搜索事故名称、地点..." />
-        <button id="acc-search-btn">搜索</button>
-      </div>
-
-      <div id="acc-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
-      <div class="list-grid" id="acc-list">
-        <div class="empty">加载中...</div>
-      </div>
-      <div id="acc-pagination" class="pagination-bar" style="display:none;"></div>
-    </div>
-  </div>
-
-  <script>
-    const DATA_URL = '/data/accidents.json';
-    const PREVIEW_URL = '/data/accidents-preview.json';
-    const CACHE_KEY = 'accidents_data_cache';
-    const CACHE_TTL = 30 * 60 * 1000;
-  import { SEVERITY_MAP, SEVERITY_CLASS, CATEGORY_MAP, SEVERITY_FILTERS } from '../../lib/accident-labels.js';
-  const severityMap = SEVERITY_MAP;
-  const categoryMap = CATEGORY_MAP;
-      suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
-      traffic: '交通', poisoning_suffocation: '中毒窒息',
-      falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害',
-      fire: '火灾', explosion: '爆炸',
-      electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺',
-      other_injury: '其他伤害'
-    };
-
-    let allItems: any[] = [];
-    let filteredItems: any[] = [];
-    let currentPage = 1;
-    let pageSize = 10;
-    let activeSeverity = '';
-    let activeCategory = '';
-
-    function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
-
-  function getSeverityClass(sev: string): string {
-    return SEVERITY_CLASS[sev] || 'acc-sev-general';
-  }
-      return map[sev] || 'acc-sev-general';
-    }
-
-    function renderItems(items: any[]) {
-      const el = document.getElementById('acc-list');
-      if (!el) return;
-      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
-      el.innerHTML = items.map(item => {
-        const sevLabel = severityMap[item.severity] || '';
-        const catLabel = categoryMap[item.category] || item.category || '';
-        const provLabel = item.province || '';
-        const metaItems = [];
-        if (item.date) metaItems.push(`<span>发生日期：${item.date}</span>`);
-        if (item.casualties) metaItems.push(`<span>伤亡：${item.casualties}</span>`);
-        if (provLabel) metaItems.push(`<span class="acc-tag acc-tag-prov">${provLabel}</span>`);
-        if (sevLabel) metaItems.push(`<span class="acc-tag ${getSeverityClass(item.severity)}">${sevLabel}</span>`);
-        if (catLabel) metaItems.push(`<span class="acc-tag acc-tag-cat">${catLabel}</span>`);
-        return `
-          <a href="/accidents/${item.slug || item.id}" class="list-item">
-            <div class="list-item-body">
-              <div class="list-item-title">${item.title}</div>
-              <div class="list-item-meta-row">
-                ${metaItems.join('')}
-              </div>
-            </div>
-            <div class="list-item-arrow">&rarr;</div>
-          </a>`;
-      }).join('');
-    }
-
-    function renderPagination() {
-      const el = document.getElementById('acc-pagination')!;
-      const total = filteredItems.length;
-      const totalPages = getTotalPages();
-      if (total <= pageSize) { el.style.display = 'none'; return; }
-      el.style.display = 'flex';
-
-      const start = (currentPage - 1) * pageSize + 1;
-      const end = Math.min(currentPage * pageSize, total);
-
-      let pagesHtml = '';
-      const range: number[] = [];
-      if (totalPages <= 7) {
-        for (let i = 1; i <= totalPages; i++) range.push(i);
-      } else {
-        range.push(1);
-        if (currentPage > 4) range.push(-1);
-        const s = Math.max(2, currentPage - 2);
-        const e = Math.min(totalPages - 1, currentPage + 2);
-        for (let i = s; i <= e; i++) range.push(i);
-        if (currentPage < totalPages - 3) range.push(-2);
-        range.push(totalPages);
-      }
-      for (const p of range) {
-        if (p < 0) { pagesHtml += `<span class="page-ellipsis">…</span>`; }
-        else { pagesHtml += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`; }
-      }
-
-      el.innerHTML = `
-        <div class="pagination-info">显示 ${start}-${end}，共 ${total} 项</div>
-        <div class="pagination-controls">
-          <button data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
-          ${pagesHtml}
-          <button data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
-        </div>
-        <div class="page-size-select">
-          每页
-          <select id="acc-page-size">
-            <option value="10" ${pageSize===10?'selected':''}>10</option>
-            <option value="20" ${pageSize===20?'selected':''}>20</option>
-            <option value="50" ${pageSize===50?'selected':''}>50</option>
-            <option value="100" ${pageSize===100?'selected':''}>100</option>
-          </select>
-          条
-        </div>`;
-
-      el.querySelector('#acc-page-size')!.addEventListener('change', (e: any) => {
-        pageSize = parseInt(e.target.value); currentPage = 1; updateView();
-      });
-      el.querySelectorAll('[data-page]').forEach(btn => {
-        btn.addEventListener('click', () => { currentPage = parseInt((btn as HTMLElement).dataset.page!); updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
-      });
-      el.querySelector('[data-action="prev"]')!.addEventListener('click', () => {
-        if (currentPage > 1) { currentPage--; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-      });
-      el.querySelector('[data-action="next"]')!.addEventListener('click', () => {
-        if (currentPage < getTotalPages()) { currentPage++; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-      });
-    }
-
-
-
-    function applyFilters() {
-      const q = (document.getElementById('acc-search') as HTMLInputElement).value.trim().toLowerCase();
-      filteredItems = allItems.filter(item => {
-        if (activeSeverity && item.severity !== activeSeverity) return false;
-        if (activeCategory && item.category !== activeCategory) return false;
-        if (q) {
-          const text = `${item.title ?? ''} ${item.location ?? ''} ${item.province ?? ''} ${item.casualties ?? ''}`.toLowerCase();
-          if (!text.includes(q)) return false;
-        }
-        return true;
-      });
-      currentPage = 1;
-      updateView();
-    }
-
-    function updateView() {
-      const start = (currentPage - 1) * pageSize;
-      renderItems(filteredItems.slice(start, start + pageSize));
-      renderPagination();
-      document.getElementById('acc-count')!.textContent = `共 ${filteredItems.length} 项${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 项）` : ''}`;
-    }
-
-    function normalizeProvince(item: any) {
-      const provinceNormalize: Record<string, string> = {
-        '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆'
-      };
-      if (item.province && provinceNormalize[item.province]) {
-        return { ...item, province: provinceNormalize[item.province] };
-      }
-      return item;
-    }
-
-    async function loadItems() {
-      try {
-        const now = Date.now();
-        const cached = localStorage.getItem(CACHE_KEY);
-        const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
-        const hasFullCache = cached && cachedAt && now - parseInt(cachedAt, 10) < CACHE_TTL;
-
-        if (hasFullCache) {
-          // 已有完整缓存：直接渲染并后台刷新
-          allItems = JSON.parse(cached).map(normalizeProvince);
-          filteredItems = [...allItems];
-          document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
-          buildSeverityFilters();
-          buildCategoryFilters();
-          updateView();
-          fetchFullAndCache(true);
-          return;
-        }
-
-        // 无缓存：先加载 preview（前 50 条）快速首屏，再后台加载完整数据
-        const previewRes = await fetch(PREVIEW_URL);
-        if (previewRes.ok) {
-          const previewData = (await previewRes.json()).map(normalizeProvince);
-          allItems = previewData;
-          filteredItems = [...allItems];
-          document.getElementById('acc-count')!.textContent = `加载中 ${previewData.length} 项…`;
-          buildSeverityFilters();
-          buildCategoryFilters();
-          updateView();
-        }
-
-        await fetchFullAndCache(false);
-      } catch (e) {
-        if (allItems.length === 0) {
-          document.getElementById('acc-list')!.innerHTML = '<div class="empty">加载失败</div>';
-        }
-      }
-    }
-
-    async function fetchFullAndCache(isBackground: boolean) {
-      const res = await fetch(DATA_URL);
-      if (!res.ok) throw new Error('fetch failed');
-      const allData = (await res.json()).map(normalizeProvince);
-      const now = Date.now();
-      localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
-      localStorage.setItem(CACHE_KEY + '_ts', String(now));
-      allItems = allData;
-      filteredItems = [...allItems];
-      document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
-      buildSeverityFilters();
-      buildCategoryFilters();
-      updateView();
-    }
-
-
-    function buildSeverityFilters() {
-      const container = document.getElementById('severity-tags')!;
-      container.innerHTML = '';
-      const levels = SEVERITY_FILTERS;
-      // "全部" button
-      const allBtn = document.createElement('button');
-      allBtn.className = 'filter-tag active';
-      allBtn.textContent = '全部';
-      allBtn.addEventListener('click', () => {
-        activeCategory = '';
-        container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
-        allBtn.classList.add('active');
-        applyFilters();
-      });
-      container.appendChild(allBtn);
-      for (const [val, label] of types) {
-        const btn = document.createElement('button');
-        btn.className = 'filter-tag';
-        btn.textContent = label;
-        btn.addEventListener('click', () => {
-          activeCategory = val;
-          container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          applyFilters();
-        });
-        container.appendChild(btn);
-      }
-    }
-
-    document.getElementById('acc-search')!.addEventListener('input', applyFilters);
-    document.getElementById('acc-search-btn')!.addEventListener('click', applyFilters);
-
-    loadItems();
-  </script>
-</Layout>
+---
+export const prerender = true;
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout title="事故报告" currentPath="/accidents/">
+
+  <div class="page-layout">
+    <div class="container">
+      <h1 class="page-title">事故报告</h1>
+
+      <!-- 筛选区 -->
+      <div class="filter-bar" id="acc-filter-row1">
+        <!-- 事故等级 -->
+        <div class="filter-group">
+          <span class="filter-label">等级</span>
+          <div class="filter-tags" id="severity-tags"></div>
+        </div>
+        <!-- 事故类型 -->
+        <div class="filter-group">
+          <span class="filter-label">类型</span>
+          <div class="filter-tags" id="category-tags"></div>
+        </div>
+      </div>
+
+      <div class="search-box" style="margin-bottom: 24px; max-width: 100%;">
+        <input type="text" id="acc-search" placeholder="搜索事故名称、地点..." />
+        <button id="acc-search-btn">搜索</button>
+      </div>
+
+      <div id="acc-count" style="font-size: 13px; color: var(--text-light); margin-bottom: 16px;"></div>
+      <div class="list-grid" id="acc-list">
+        <div class="empty">加载中...</div>
+      </div>
+      <div id="acc-pagination" class="pagination-bar" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const DATA_URL = '/data/accidents.json';
+    const PREVIEW_URL = '/data/accidents-preview.json';
+    const CACHE_KEY = 'accidents_data_cache';
+    const CACHE_TTL = 30 * 60 * 1000;
+    const LIVE_API_URL = '/api/strapi/accidents?pagination[pageSize]=500';
+
+    const SEVERITY_MAP: Record<string, string> = { general: '一般', larger: '较大', major: '重大', special: '特别重大' };
+    const SEVERITY_CLASS: Record<string, string> = { general: 'acc-sev-general', larger: 'acc-sev-larger', major: 'acc-sev-major', special: 'acc-sev-special' };
+    const CATEGORY_MAP: Record<string, string> = { suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏', traffic: '交通', poisoning_suffocation: '中毒窒息', falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害', other_injury: '其他伤害', fire: '火灾', explosion: '爆炸', electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺' };
+    const SEVERITY_FILTERS = [
+      { value: '', label: '全部' },
+      { value: 'general', label: '一般' },
+      { value: 'larger', label: '较大' },
+      { value: 'major', label: '重大' },
+      { value: 'special', label: '特别重大' },
+    ];
+
+    let allItems: any[] = [];
+    let filteredItems: any[] = [];
+    let currentPage = 1;
+    let pageSize = 10;
+    let activeSeverity = '';
+    let activeCategory = '';
+
+    function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
+
+    function getSeverityClass(sev: string): string {
+      return SEVERITY_CLASS[sev] || 'acc-sev-general';
+    }
+
+    function renderItems(items: any[]) {
+      const el = document.getElementById('acc-list');
+      if (!el) return;
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
+      el.innerHTML = items.map(item => {
+        const sevLabel = SEVERITY_MAP[item.severity] || '';
+        const catLabel = CATEGORY_MAP[item.category] || item.category || '';
+        const provLabel = item.province || '';
+        const metaItems: string[] = [];
+        if (item.date) metaItems.push(`<span>发生日期：${item.date}</span>`);
+        if (item.casualties) metaItems.push(`<span>伤亡：${item.casualties}</span>`);
+        if (provLabel) metaItems.push(`<span class="acc-tag acc-tag-prov">${provLabel}</span>`);
+        if (sevLabel) metaItems.push(`<span class="acc-tag ${getSeverityClass(item.severity)}">${sevLabel}</span>`);
+        if (catLabel) metaItems.push(`<span class="acc-tag acc-tag-cat">${catLabel}</span>`);
+        return `
+          <a href="/accidents/${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${item.title}</div>
+              <div class="list-item-meta-row">
+                ${metaItems.join('')}
+              </div>
+            </div>
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
+      }).join('');
+    }
+
+    function renderPagination() {
+      const el = document.getElementById('acc-pagination')!;
+      const total = filteredItems.length;
+      const totalPages = getTotalPages();
+      if (total <= pageSize) { el.style.display = 'none'; return; }
+      el.style.display = 'flex';
+
+      const start = (currentPage - 1) * pageSize + 1;
+      const end = Math.min(currentPage * pageSize, total);
+
+      let pagesHtml = '';
+      const range: number[] = [];
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) range.push(i);
+      } else {
+        range.push(1);
+        if (currentPage > 4) range.push(-1);
+        const s = Math.max(2, currentPage - 2);
+        const e = Math.min(totalPages - 1, currentPage + 2);
+        for (let i = s; i <= e; i++) range.push(i);
+        if (currentPage < totalPages - 3) range.push(-2);
+        range.push(totalPages);
+      }
+      for (const p of range) {
+        if (p < 0) { pagesHtml += `<span class="page-ellipsis">…</span>`; }
+        else { pagesHtml += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`; }
+      }
+
+      el.innerHTML = `
+        <div class="pagination-info">显示 ${start}-${end}，共 ${total} 项</div>
+        <div class="pagination-controls">
+          <button data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
+          ${pagesHtml}
+          <button data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
+        </div>
+        <div class="page-size-select">
+          每页
+          <select id="acc-page-size">
+            <option value="10" ${pageSize===10?'selected':''}>10</option>
+            <option value="20" ${pageSize===20?'selected':''}>20</option>
+            <option value="50" ${pageSize===50?'selected':''}>50</option>
+            <option value="100" ${pageSize===100?'selected':''}>100</option>
+          </select>
+          条
+        </div>`;
+
+      el.querySelector('#acc-page-size')!.addEventListener('change', (e: any) => {
+        pageSize = parseInt(e.target.value); currentPage = 1; updateView();
+      });
+      el.querySelectorAll('[data-page]').forEach(btn => {
+        btn.addEventListener('click', () => { currentPage = parseInt((btn as HTMLElement).dataset.page!); updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      });
+      el.querySelector('[data-action="prev"]')!.addEventListener('click', () => {
+        if (currentPage > 1) { currentPage--; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      });
+      el.querySelector('[data-action="next"]')!.addEventListener('click', () => {
+        if (currentPage < getTotalPages()) { currentPage++; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      });
+    }
+
+    function applyFilters() {
+      const q = (document.getElementById('acc-search') as HTMLInputElement).value.trim().toLowerCase();
+      filteredItems = allItems.filter(item => {
+        if (activeSeverity && item.severity !== activeSeverity) return false;
+        if (activeCategory && item.category !== activeCategory) return false;
+        if (q) {
+          const text = `${item.title ?? ''} ${item.location ?? ''} ${item.province ?? ''} ${item.casualties ?? ''}`.toLowerCase();
+          if (!text.includes(q)) return false;
+        }
+        return true;
+      });
+      currentPage = 1;
+      updateView();
+    }
+
+    function updateView() {
+      const start = (currentPage - 1) * pageSize;
+      renderItems(filteredItems.slice(start, start + pageSize));
+      renderPagination();
+      document.getElementById('acc-count')!.textContent = `共 ${filteredItems.length} 项${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 项）` : ''}`;
+    }
+
+    function normalizeProvince(item: any) {
+      const provinceNormalize: Record<string, string> = {
+        '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆'
+      };
+      if (item.province && provinceNormalize[item.province]) {
+        return { ...item, province: provinceNormalize[item.province] };
+      }
+      return item;
+    }
+
+    async function checkForLiveUpdates() {
+      try {
+        const liveRes = await fetch(LIVE_API_URL);
+        if (!liveRes.ok) return;
+        const liveData = await liveRes.json();
+        const liveItems = liveData.data || [];
+        if (liveItems.length > allItems.length) {
+          allItems = liveItems.map(normalizeProvince);
+          filteredItems = [...allItems];
+          document.getElementById('acc-count')!.textContent = '共 ' + allItems.length + ' 项（实时）';
+          buildSeverityFilters();
+          buildCategoryFilters();
+          updateView();
+        }
+      } catch {}
+    }
+
+    async function loadItems() {
+      try {
+        const now = Date.now();
+        const cached = localStorage.getItem(CACHE_KEY);
+        const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
+        const hasFullCache = cached && cachedAt && now - parseInt(cachedAt, 10) < CACHE_TTL;
+
+        if (hasFullCache) {
+          allItems = JSON.parse(cached).map(normalizeProvince);
+          filteredItems = [...allItems];
+          document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
+          buildSeverityFilters();
+          buildCategoryFilters();
+          updateView();
+          fetchFullAndCache(true);
+          return;
+        }
+
+        const previewRes = await fetch(PREVIEW_URL);
+        if (previewRes.ok) {
+          const previewData = (await previewRes.json()).map(normalizeProvince);
+          allItems = previewData;
+          filteredItems = [...allItems];
+          document.getElementById('acc-count')!.textContent = `加载中 ${previewData.length} 项…`;
+          buildSeverityFilters();
+          buildCategoryFilters();
+          updateView();
+        }
+
+        await fetchFullAndCache(false);
+      } catch (e) {
+        if (allItems.length === 0) {
+          document.getElementById('acc-list')!.innerHTML = '<div class="empty">加载失败</div>';
+        }
+      }
+    }
+
+    async function fetchFullAndCache(isBackground: boolean) {
+      const res = await fetch(DATA_URL);
+      if (!res.ok) throw new Error('fetch failed');
+      const allData = (await res.json()).map(normalizeProvince);
+      const now = Date.now();
+      localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
+      localStorage.setItem(CACHE_KEY + '_ts', String(now));
+      allItems = allData;
+      filteredItems = [...allItems];
+      document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
+      buildSeverityFilters();
+      buildCategoryFilters();
+      updateView();
+      checkForLiveUpdates();
+    }
+
+    function buildSeverityFilters() {
+      const container = document.getElementById('severity-tags')!;
+      container.innerHTML = '';
+      for (const { value, label } of SEVERITY_FILTERS) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-tag' + (value === activeSeverity || (!value && !activeSeverity) ? ' active' : '');
+        btn.textContent = label;
+        btn.addEventListener('click', () => {
+          activeSeverity = value;
+          container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilters();
+        });
+        container.appendChild(btn);
+      }
+    }
+
+    function buildCategoryFilters() {
+      const container = document.getElementById('category-tags')!;
+      container.innerHTML = '';
+      const allBtn = document.createElement('button');
+      allBtn.className = 'filter-tag active';
+      allBtn.textContent = '全部';
+      allBtn.addEventListener('click', () => {
+        activeCategory = '';
+        container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        applyFilters();
+      });
+      container.appendChild(allBtn);
+      for (const [val, label] of Object.entries(CATEGORY_MAP)) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-tag';
+        btn.textContent = label;
+        btn.addEventListener('click', () => {
+          activeCategory = val;
+          container.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilters();
+        });
+        container.appendChild(btn);
+      }
+    }
+
+    document.getElementById('acc-search')!.addEventListener('input', applyFilters);
+    document.getElementById('acc-search-btn')!.addEventListener('click', applyFilters);
+
+    loadItems();
+  </script>
+</Layout>

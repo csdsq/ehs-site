@@ -30,6 +30,7 @@ import Layout from '../../layouts/Layout.astro';
     const DATA_URL = '/data/standards.json';
     const CACHE_KEY = 'standards_data_cache';
     const CACHE_TTL = 30 * 60 * 1000;
+    const LIVE_API_URL = '/api/strapi/standards?pagination[pageSize]=500&populate=*';
     let allItems: any[] = [];
     let filteredItems: any[] = [];
     let currentPage = 1;
@@ -421,6 +422,22 @@ import Layout from '../../layouts/Layout.astro';
       } catch (e) {
         document.getElementById('reg-list')!.innerHTML = '<div class="empty">加载失败</div>';
       }
+    }
+
+    async function checkForLiveUpdates() {
+      try {
+        const liveRes = await fetch(LIVE_API_URL);
+        if (!liveRes.ok) return;
+        const liveData = await liveRes.json();
+        const liveItems = liveData.data || [];
+        if (liveItems.length > allItems.length) {
+          allItems = liveItems;
+          filteredItems = [...allItems];
+          document.getElementById('reg-count')!.textContent = '共 ' + allItems.length + ' 项（实时）';
+          buildFilters();
+          applyFilters();
+        }
+      } catch {}
     }
 
     document.getElementById('reg-search')!.addEventListener('input', applyFilters);

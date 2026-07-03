@@ -76,6 +76,7 @@ import Layout from '../../layouts/Layout.astro';
     const DATA_URL = '/data/regulations.json';
     const CACHE_KEY = 'regulations_data_cache';
     const CACHE_TTL = 30 * 60 * 1000;
+    const LIVE_API_URL = '/api/strapi/regulations?pagination[pageSize]=500&populate=*';
     const categoryMap: Record<string,string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
 
     // 直辖市映射：标题中可能出现"深圳市""广州市"等，需归到对应省/直辖市
@@ -309,6 +310,21 @@ import Layout from '../../layouts/Layout.astro';
       } catch (e) {
         document.getElementById('std-list')!.innerHTML = '<div class="empty">加载失败</div>';
       }
+    }
+
+    async function checkForLiveUpdates() {
+      try {
+        const liveRes = await fetch(LIVE_API_URL);
+        if (!liveRes.ok) return;
+        const liveData = await liveRes.json();
+        const liveItems = liveData.data || [];
+        if (liveItems.length > allItems.length) {
+          allItems = liveItems;
+          filteredItems = [...allItems];
+          document.getElementById('std-count')!.textContent = '共 ' + allItems.length + ' 项（实时）';
+          applyFilters();
+        }
+      } catch {}
     }
 
     // 筛选标签事件
