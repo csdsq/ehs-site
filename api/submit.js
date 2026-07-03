@@ -6,6 +6,8 @@ export const config = {
 };
 
 import Busboy from 'busboy';
+import { fetchAndExtract, generateSlug } from './extract-content.js';
+import { sendPublishedNotification, sendReceivedNotification } from './notify-email.js';
 
 const STRAPI_URL = 'http://8.149.139.66:1337';
 const ADMIN_EMAIL = 'admin@hser.ren';
@@ -19,6 +21,8 @@ const SUBMISSION_TYPES = {
   'ai-app': { category: 'submission-ai-app', label: 'AI应用' },
 };
 
+const AUTO_PUBLISH_TYPES = ['regulation', 'accident', 'standard']; // 可自动发布的类型
+
 /**
  * 解析 multipart/form-data 请求
  */
@@ -30,41 +34,25 @@ function parseMultipart(req) {
     try {
       const busboy = Busboy({
         headers: req.headers,
-        limits: {
-          fileSize: 50 * 1024 * 1024, // 50MB
-          files: 5,
-        },
+        limits: { fileSize: 50 * 1024 * 1024, files: 5 },
       });
 
-      busboy.on('field', (name, val) => {
-        fields[name] = val;
-      });
+      busboy.on('field', (name, val) => { fields[name] = val; });
 
       busboy.on('file', (fieldname, file, info) => {
         const { filename, mimeType } = info;
         const chunks = [];
         file.on('data', (chunk) => chunks.push(chunk));
         file.on('end', () => {
-          files.push({
-            fieldname,
-            filename,
-            mimeType,
-            buffer: Buffer.concat(chunks),
-          });
+          files.push({ fieldname, filename, mimeType, buffer: Buffer.concat(chunks) });
         });
         file.on('limit', () => {
-          reject(new Error(`文件 ${filename} 超过 10MB 限制`));
+          reject(new Error(`文件 ${filename} 超过 50MB 限制`));
         });
       });
 
-      busboy.on('finish', () => {
-        resolve({ fields, files });
-      });
-
-      busboy.on('error', (err) => {
-        reject(err);
-      });
-
+      busboy.on('finish', () => resolve({ fields, files }));
+      busboy.on('error', (err) => reject(err));
       req.pipe(busboy);
     } catch (err) {
       reject(err);
@@ -79,10 +67,7 @@ async function loginStrapi() {
   const res = await fetch(`${STRAPI_URL}/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: ADMIN_EMAIL,
-      password: ADMIN_PASSWORD,
-    }),
+    body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
   });
 
   if (!res.ok) {
@@ -104,9 +89,7 @@ async function uploadToStrapi(file, token) {
 
   const res = await fetch(`${STRAPI_URL}/upload`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
 
@@ -116,49 +99,11 @@ async function uploadToStrapi(file, token) {
   }
 
   const data = await res.json();
-  return data[0]; // 返回上传后的文件信息
+  return data[0];
 }
 
 /**
- * 构建投稿的 content 字段（含附件信息）
- */
-function buildContent({ nickname, email, sourceUrl, notes, attachments }) {
-  let content = '';
-
-  if (sourceUrl) {
-    content += `来源链接：${sourceUrl}\n`;
-  }
-  if (notes) {
-    content += `备注说明：${notes}\n`;
-  }
-  if (attachments && attachments.length > 0) {
-    content += `\n附件列表：\n`;
-    attachments.forEach((att, i) => {
-      content += `${i + 1}. ${att.name} (${att.url || att.id})\n`;
-    });
-  }
-
-  return content || '（无额外说明）';
-}
-
-/**
- * 生成唯一 slug
- */
-function generateSlug(title) {
-  // slug 只允许 [A-Za-z0-9-_.~]，去除中文和其他特殊字符
-  const sanitized = title
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase()
-    .slice(0, 80);
-  const ts = Date.now().toString(36);
-  return `sub-${sanitized || 'post'}-${ts}`;
-}
-
-/**
- * 创建 Message 记录（通过 content-manager API + admin token）
+ * 创建 Message 记录
  */
 async function createMessage({ title, content, author, email, category, token }) {
   const res = await fetch(
@@ -175,7 +120,7 @@ async function createMessage({ title, content, author, email, category, token })
         author,
         email: email || '投稿@anonymous',
         category,
-        slug: generateSlug(title),
+        slug: generateSlug(title, 'msg'),
       }),
     },
   );
@@ -186,7 +131,134 @@ async function createMessage({ title, content, author, email, category, token })
   }
 
   const json = await res.json();
-  return json; // content-manager API 返回 {data: {...}}
+  return json;
+}
+
+/**
+ * 获取 Strapi collection 的 API path 和创建 entry
+ */
+function getCollectionInfo(type) {
+  const map = {
+    regulation: { apiPath: 'regulations', singular: 'regulation' },
+    accident: { apiPath: 'accidents', singular: 'accident' },
+    standard: { apiPath: 'standards', singular: 'standard' },
+  };
+  return map[type] || null;
+}
+
+/**
+ * 自动发布到目标 collection
+ * 使用 content-manager API (admin token)
+ */
+async function autoPublishToStrapi({ type, extractResult, submission, token }) {
+  const collectionInfo = getCollectionInfo(type);
+  if (!collectionInfo) return { success: false, error: `不支持的类型: ${type}` };
+
+  const { title, content, source, publishDate } = extractResult;
+
+  // 构建 entry 数据（根据 type 映射字段）
+  let entryData = {};
+
+  if (type === 'regulation') {
+    entryData = {
+      title: title || submission.title,
+      content: content,
+      publishDate: publishDate || new Date().toISOString().slice(0, 10),
+      category: 'safety', // 默认安全类
+      source: source || '用户投稿',
+      slug: generateSlug(title || submission.title, 'reg'),
+      description: (content || '').slice(0, 200).replace(/\n/g, ' '),
+    };
+  } else if (type === 'accident') {
+    entryData = {
+      title: title || submission.title,
+      content: content,
+      date: publishDate || new Date().toISOString().slice(0, 10),
+      severity: 'general', // 默认一般
+      casualties: '',
+      location: '',
+      category: 'other_injury', // 默认其他伤害
+      province: '',
+      slug: generateSlug(title || submission.title, 'acc'),
+      description: (content || '').slice(0, 200).replace(/\n/g, ' '),
+      company: '',
+    };
+  } else if (type === 'standard') {
+    entryData = {
+      title: title || submission.title,
+      content: content,
+      publishDate: publishDate || new Date().toISOString().slice(0, 10),
+      category: 'safety',
+      source: source || '用户投稿',
+      slug: generateSlug(title || submission.title, 'std'),
+      standardNo: '',
+      effectiveDate: '',
+      regionLevel: 'national',
+      description: (content || '').slice(0, 200).replace(/\n/g, ' '),
+    };
+  }
+
+  const collection = collectionInfo.apiPath;
+
+  // 尝试用 Public API 创建（需要 API Token 权限）
+  // 先用 content-manager API 确保有完整权限
+  const apiUrl = `${STRAPI_URL}/content-manager/collection-types/api::${collectionInfo.singular}.${collection}`;
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(entryData),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      // 如果字段校验失败，记录但不阻塞
+      console.error(`Publish failed for ${type}:`, errText.slice(0, 500));
+      return { success: false, error: `发布失败: ${errText.slice(0, 200)}` };
+    }
+
+    const result = await res.json();
+    const entryId = result.data?.documentId || result.data?.id;
+    console.log(`Auto-published ${type}: ${entryId || 'unknown'}`);
+
+    return {
+      success: true,
+      entryId,
+      slug: entryData.slug,
+      collection,
+    };
+  } catch (err) {
+    console.error(`Auto-publish error for ${type}:`, err.message);
+    return { success: false, error: `发布异常: ${err.message}` };
+  }
+}
+
+/**
+ * 更新 Message 记录（标记发布状态）
+ */
+async function updateMessageStatus(messageId, updates, token) {
+  try {
+    const res = await fetch(
+      `${STRAPI_URL}/content-manager/collection-types/api::message.message/${messageId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      },
+    );
+    if (!res.ok) {
+      console.error(`Update message status failed: ${res.status}`);
+    }
+  } catch (err) {
+    console.error('Update message status error:', err.message);
+  }
 }
 
 export default async function handler(req, res) {
@@ -206,7 +278,6 @@ export default async function handler(req, res) {
     // 1. 解析 multipart 表单
     const { fields, files } = await parseMultipart(req);
     console.log('Parsed fields:', Object.keys(fields));
-    console.log('Files count:', files.length);
 
     const { nickname, email, type, title, sourceUrl, notes } = fields;
 
@@ -223,7 +294,7 @@ export default async function handler(req, res) {
 
     const subType = SUBMISSION_TYPES[type];
 
-    // 3. 登录 Strapi 获取 admin token
+    // 3. 登录 Strapi
     let token;
     try {
       token = await loginStrapi();
@@ -247,41 +318,118 @@ export default async function handler(req, res) {
           });
         } catch (uploadErr) {
           console.error(`File upload failed for ${file.filename}:`, uploadErr);
-          // 单个文件上传失败不影响整体
         }
       }
     }
 
-    // 5. 构建 content
-    const content = buildContent({
-      nickname: nickname.trim(),
-      email: (email || '').trim(),
-      sourceUrl: (sourceUrl || '').trim(),
-      notes: (notes || '').trim(),
-      attachments: uploadedAttachments,
-    });
+    // 5. 构建基础 content
+    let baseContent = '';
+    if (sourceUrl) baseContent += `来源链接：${sourceUrl}\n`;
+    if (notes) baseContent += `备注说明：${notes}\n`;
+    if (uploadedAttachments.length > 0) {
+      baseContent += `\n附件列表：\n`;
+      uploadedAttachments.forEach((att, i) => {
+        baseContent += `${i + 1}. ${att.name} (${att.url || att.id})\n`;
+      });
+    }
 
-    // 6. 创建 Message 记录
+    // 6. 自动提取 + 自动发布（仅 regulation/accident/standard）
+    let autoPublished = false;
+    let publishInfo = null;
+    let extractResult = null;
+    let publishUrl = '';
+    let finalContent = baseContent || '（无额外说明）';
+    let msgStatus = 'pending_review';
+
+    if (AUTO_PUBLISH_TYPES.includes(type) && sourceUrl) {
+      console.log(`Attempting auto-extract for ${type}: ${sourceUrl}`);
+      extractResult = await fetchAndExtract(sourceUrl, type);
+
+      if (extractResult.success) {
+        console.log(`Extraction succeeded: title="${extractResult.title?.slice(0, 40)}", content_length=${extractResult.content?.length}`);
+
+        // 自动发布到 Strapi collection
+        publishInfo = await autoPublishToStrapi({
+          type,
+          extractResult,
+          submission: { title: title.trim(), sourceUrl },
+          token,
+        });
+
+        if (publishInfo.success) {
+          autoPublished = true;
+          publishUrl = `https://hser.ren/${type === 'standard' ? 'standards' : type + 's'}/${publishInfo.slug || publishInfo.entryId}`;
+          finalContent = `✅ 已自动发布\n来源链接：${sourceUrl}\n备注：${notes || '无'}\n\n--- 自动提取内容 ---\n\n${extractResult.content}`;
+          msgStatus = 'auto_published';
+          console.log(`Auto-published successfully: ${publishUrl}`);
+        } else {
+          // 提取成功但发布失败：保留提取内容但设为 manual review
+          finalContent = `⚠️ 自动提取成功但发布失败：${publishInfo.error}\n\n--- 提取内容 ---\n\n${extractResult.content}\n\n--- 原始信息 ---\n\n${baseContent}`;
+          msgStatus = 'extract_ok_publish_failed';
+          console.error(`Auto-publish failed: ${publishInfo.error}`);
+        }
+      } else {
+        // 提取失败
+        finalContent = `⚠️ 自动提取失败：${extractResult.error}\n\n--- 来源链接 ---\n${sourceUrl}\n\n--- 原始信息 ---\n\n${baseContent}`;
+        msgStatus = 'extract_failed';
+        console.log(`Extraction failed: ${extractResult.error}`);
+      }
+    } else if (type === 'document' || type === 'ai-app') {
+      // 资料文档 / AI应用：需要人工处理
+      msgStatus = 'pending_review';
+    }
+
+    // 7. 创建 Message 记录
     const message = await createMessage({
       title: title.trim(),
-      content,
+      content: finalContent,
       author: nickname.trim(),
       email: (email || '').trim(),
-      category: subType.category,
+      category: `${subType.category}|${msgStatus}|${publishUrl || ''}`,
       token,
     });
 
-    console.log('Submission created:', JSON.stringify(message.data));
+    console.log('Message created:', message.data?.id || message.data?.documentId);
 
-    // 7. 返回成功
+    // 8. 发送邮件通知
+    const emailAddr = (email || '').trim();
+    const toName = nickname.trim();
+
+    if (emailAddr) {
+      if (autoPublished) {
+        // 自动发布成功 → 发送"已发布"通知
+        await sendPublishedNotification({
+          toEmail: emailAddr,
+          toName,
+          title: title.trim(),
+          type,
+          publishUrl,
+        });
+      } else {
+        // 需要审核 → 发送"已接收"通知
+        await sendReceivedNotification({
+          toEmail: emailAddr,
+          toName,
+          title: title.trim(),
+          type,
+        });
+      }
+    }
+
+    // 9. 返回成功
     return res.status(200).json({
       success: true,
-      message: '投稿成功！审核通过后将发布到对应栏目。',
+      message: autoPublished
+        ? '✅ 投稿已自动发布！详情已发送至你的邮箱。'
+        : '投稿成功！审核通过后将发布到对应栏目。',
       data: {
         id: message.data?.id || message.data?.documentId,
         type,
-        category: subType.category,
+        status: msgStatus,
+        autoPublished,
+        publishUrl: publishUrl || undefined,
         attachments: uploadedAttachments.length,
+        emailSent: !!emailAddr,
       },
     });
   } catch (error) {
