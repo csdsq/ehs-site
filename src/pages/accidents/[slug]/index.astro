@@ -74,7 +74,7 @@ const { slug } = Astro.params;
     }
 
     function renderItem(item) {
-      const severityMap = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
+      const severityMap = { general: '一般', larger: '较大', major: '重大', special: '特别重大' };
       const categoryMap = {
         suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
         traffic: '交通', poisoning_suffocation: '中毒窒息',
@@ -82,7 +82,7 @@ const { slug } = Astro.params;
         other_injury: '其他伤害', fire: '火灾', explosion: '爆炸',
         electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺'
       };
-      const sevClassMap = { major: 'acc-sev-major', larger: 'acc-sev-larger', general: 'acc-sev-general', minor: 'acc-sev-minor' };
+      const sevClassMap = { general: 'acc-sev-general', larger: 'acc-sev-larger', major: 'acc-sev-major', special: 'acc-sev-special' };
       const sevLabel = severityMap[item.severity] || item.severity || '';
       const catLabel = categoryMap[item.category] || item.category || '';
       const provLabel = item.province || '';
