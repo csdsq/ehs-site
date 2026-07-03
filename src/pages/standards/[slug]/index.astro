@@ -34,20 +34,10 @@ const { slug } = Astro.params;
       }
 
       try {
-        // 2. 解析 slug 映射
-        let querySlug = slug;
-        const slugRes = await fetch('/data/slug-mapping.json');
-        if (slugRes.ok) {
-          const slugMap = await slugRes.json();
-          if (slugMap[slug] && slugMap[slug].standards) {
-            querySlug = slugMap[slug].standards;
-          }
-        }
-
-        // 3. 从静态 JSON 加载（CDN 缓存，无 serverless 开销）
+        // 直接用 URL 中的 YYMM-NNN slug 查找静态 JSON
         const dataRes = await fetch(STATIC_DATA_URL);
         const allData = await dataRes.json();
-        const item = allData.find(i => i.slug === querySlug);
+        const item = allData.find(i => i.slug === slug);
 
         if (item) {
           localStorage.setItem(CACHE_KEY, JSON.stringify(item));
