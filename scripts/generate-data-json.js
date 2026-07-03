@@ -365,7 +365,9 @@ async function main() {
   // Keep in sync with src/pages/accidents/index.astro expectations
   const accidents = sortByDateDesc(
     await fetchAll('accidents', [
-      'title', 'slug', 'severity', 'category', 'province', 'date', 'casualties', 'location'
+      'title', 'slug', 'severity', 'category', 'province', 'date', 'casualties',
+      'location', 'company', 'content', 'causes', 'suggestions', 'personnelHandling',
+      'reportUrl', 'economicLoss'
     ], 'date:desc'),
     'date'
   );
@@ -379,7 +381,8 @@ async function main() {
   // Keep in sync with src/pages/regulations/index.astro expectations
   const regulations = sortByDateDescFallback(
     await fetchAll('regulations', [
-      'title', 'category', 'source', 'standardNo', 'effectiveDate', 'publishDate', 'slug'
+      'title', 'category', 'source', 'standardNo', 'effectiveDate', 'publishDate',
+      'slug', 'content', 'downloadUrl', 'description'
     ], 'publishDate:desc'),
     'publishDate',
     'effectiveDate'
@@ -414,7 +417,8 @@ async function main() {
   // Keep in sync with src/pages/standards/index.astro expectations
   const standards = sortByDateDesc(
     await fetchAll('standards', [
-      'title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'source'
+      'title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate',
+      'source', 'content', 'downloadUrl', 'description', 'regionLevel', 'summary'
     ], 'effectiveDate:desc'),
     'effectiveDate'
   );
