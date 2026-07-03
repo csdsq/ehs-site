@@ -40,7 +40,7 @@ import Layout from '../../layouts/Layout.astro';
     const PREVIEW_URL = '/data/accidents-preview.json';
     const CACHE_KEY = 'accidents_data_cache';
     const CACHE_TTL = 30 * 60 * 1000;
-    const severityMap: Record<string,string> = { major: '特大', larger: '重大', general: '较大', minor: '一般' };
+    const severityMap: Record<string,string> = { general: '一般', larger: '较大', major: '重大', special: '特别重大' };
     const categoryMap: Record<string,string> = {
       suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
       traffic: '交通', poisoning_suffocation: '中毒窒息',
@@ -60,7 +60,7 @@ import Layout from '../../layouts/Layout.astro';
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
     function getSeverityClass(sev: string): string {
-      const map: Record<string,string> = { major: 'acc-sev-major', larger: 'acc-sev-larger', general: 'acc-sev-general', minor: 'acc-sev-minor' };
+      const map: Record<string,string> = { general: 'acc-sev-general', larger: 'acc-sev-larger', major: 'acc-sev-major', special: 'acc-sev-special' };
       return map[sev] || 'acc-sev-general';
     }
 
@@ -246,8 +246,8 @@ import Layout from '../../layouts/Layout.astro';
       const levels = [
         { value: 'major', label: '特大' },
         { value: 'larger', label: '重大' },
-        { value: 'general', label: '较大' },
-        { value: 'minor', label: '一般' },
+        { value: 'general', label: '一般' },
+        { value: 'minor', label: '轻微' },
       ];
       // "全部" button
       const allBtn = document.createElement('button');
