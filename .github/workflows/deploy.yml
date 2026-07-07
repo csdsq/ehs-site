@@ -1,4 +1,4 @@
-name: Deploy to Vercel
+name: Deploy to ECS
 
 on:
   push:
@@ -8,7 +8,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Vercel Deploy
-        run: |
-          curl -s -X POST \
-            "https://api.vercel.com/v1/integrations/deploy/prj_iO1s9vFbh1J1w2lu2sQlFT2ITvqr/ovZQ6nyGpJ"
+      - uses: actions/checkout@v4
+      
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: 8.149.139.66
+          port: 2222
+          username: root
+          key: \${{ secrets.ECS_SSH_KEY }}
+          script: |
+            cd /var/www/hser.ren
+            git pull origin main
+            npm install --legacy-peer-deps
+            node scripts/generate-data-json.js
+            npx astro build
+            pm2 restart hser-ren
