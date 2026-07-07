@@ -27,10 +27,9 @@ import Layout from '../../layouts/Layout.astro';
   </div>
 
   <script>
-    const DATA_URL = '/data/standards.json';
-    const CACHE_KEY = 'standards_data_cache';
-    const CACHE_TTL = 30 * 60 * 1000;
-    const LIVE_API_URL = '/api/strapi/standards?pagination[pageSize]=500&populate=*';
+    import { fetchAllSummaries, fetchPreview } from '../../lib/strapi-client';
+    const PREVIEW_URL = '/data/standards-preview.json';
+    const SUMMARY_FIELDS = ['title','slug','standardNo','source','category','publishDate','effectiveDate','description','regionLevel','summary'];
     let allItems: any[] = [];
     let filteredItems: any[] = [];
     let currentPage = 1;
@@ -377,67 +376,26 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     async function loadItems() {
+      const listEl = document.getElementById('reg-list');
       try {
-        let allData: any[] = [];
-        let fromCache = false;
-
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (parsed.timestamp && Date.now() - parsed.timestamp < CACHE_TTL) {
-              allData = parsed.data;
-              fromCache = true;
-            }
-          } catch {}
-        }
-
-        if (!fromCache) {
-          const res = await fetch(DATA_URL);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          allData = await res.json();
-          try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ data: allData, timestamp: Date.now() }));
-          } catch {}
-        }
-
-        allItems = allData;
+        // 按需从 Strapi 拉摘要（不含 content），本地缓存 30 分钟
+        allItems = await fetchAllSummaries('standards', SUMMARY_FIELDS, 'effectiveDate:desc');
         filteredItems = [...allItems];
         document.getElementById('reg-count')!.textContent = `共 ${allItems.length} 项`;
         buildFilters();
         updateView();
-
-        if (fromCache) {
-          fetch(DATA_URL).then(res => res.json()).then(freshData => {
-            if (JSON.stringify(freshData) !== JSON.stringify(allData)) {
-              allItems = freshData;
-              filteredItems = [...allItems];
-              try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: freshData, timestamp: Date.now() }));
-              } catch {}
-              applyFilters();
-            }
-          }).catch(() => {});
-        }
       } catch (e) {
-        document.getElementById('reg-list')!.innerHTML = '<div class="empty">加载失败</div>';
-      }
-    }
-
-    async function checkForLiveUpdates() {
-      try {
-        const liveRes = await fetch(LIVE_API_URL);
-        if (!liveRes.ok) return;
-        const liveData = await liveRes.json();
-        const liveItems = liveData.data || [];
-        if (liveItems.length > allItems.length) {
-          allItems = liveItems;
+        // 代理不可用时，退回本地 preview
+        try {
+          allItems = await fetchPreview(PREVIEW_URL);
           filteredItems = [...allItems];
-          document.getElementById('reg-count')!.textContent = '共 ' + allItems.length + ' 项（实时）';
+          document.getElementById('reg-count')!.textContent = `共 ${allItems.length} 项（离线缓存）`;
           buildFilters();
-          applyFilters();
+          updateView();
+        } catch {
+          if (listEl) listEl.innerHTML = '<div class="empty">加载失败</div>';
         }
-      } catch {}
+      }
     }
 
     document.getElementById('reg-search')!.addEventListener('input', applyFilters);

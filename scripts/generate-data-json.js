@@ -375,8 +375,12 @@ async function main() {
   // 为事故生成统一 slug：按 date（事故日期）分组
   const accSlugMap = generateSlugs(normalizedAccidents, 'date');
   writeJson('accidents', normalizedAccidents);
-  // Preview file for instant first paint (first 50 most recent items)
-  writeJson('accidents-preview', normalizedAccidents.slice(0, 50));
+  // 兜底预览：全量摘要（不含 content），API 代理不可用时列表页降级使用
+  writeJson('accidents-preview', normalizedAccidents.map(a => ({
+    id: a.id, documentId: a.documentId, title: a.title, slug: a.slug,
+    severity: a.severity, category: a.category, province: a.province,
+    date: a.date, casualties: a.casualties, location: a.location, company: a.company,
+  })));
 
   // Keep in sync with src/pages/regulations/index.astro expectations
   const regulations = sortByDateDescFallback(
@@ -413,6 +417,12 @@ async function main() {
   // ✅ FIX: Generate slugs BEFORE writing JSON, so regulations.json has YYMM-NNN slugs
   const regSlugMap = generateSlugs(filteredRegulations, 'publishDate');
   writeJson('regulations', filteredRegulations);
+  // 兜底预览：全量摘要（不含 content）
+  writeJson('regulations-preview', filteredRegulations.map(r => ({
+    id: r.id, documentId: r.documentId, title: r.title, slug: r.slug,
+    category: r.category, source: r.source, standardNo: r.standardNo,
+    effectiveDate: r.effectiveDate, publishDate: r.publishDate, downloadUrl: r.downloadUrl,
+  })));
 
   // Keep in sync with src/pages/standards/index.astro expectations
   const standards = sortByDateDesc(
@@ -425,6 +435,13 @@ async function main() {
   // ✅ FIX: Generate slugs BEFORE writing JSON, so standards.json has YYMM-NNN slugs
   const stdSlugMap = generateSlugs(standards, 'effectiveDate');
   writeJson('standards', standards);
+  // 兜底预览：全量摘要（不含 content）
+  writeJson('standards-preview', standards.map(s => ({
+    id: s.id, documentId: s.documentId, title: s.title, slug: s.slug,
+    standardNo: s.standardNo, source: s.source, category: s.category,
+    publishDate: s.publishDate, effectiveDate: s.effectiveDate,
+    description: s.description, regionLevel: s.regionLevel, summary: s.summary,
+  })));
 
   // Generate single JSON for the homepage, replacing 7 parallel API calls
   await generateHomeData(normalizedAccidents, filteredRegulations, standards);

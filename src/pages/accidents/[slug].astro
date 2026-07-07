@@ -1,8 +1,19 @@
 ---
-export const prerender = false;
-// SSR 壳页 - 客户端从静态 JSON 加载数据
-import Layout from '../../../layouts/Layout.astro';
-import PageComment from '../../../components/PageComment.astro';
+import Layout from '../../layouts/Layout.astro';
+import PageComment from '../../components/PageComment.astro';
+import fs from 'node:fs';
+import path from 'node:path';
+
+export function getStaticPaths() {
+  const dataPath = path.join(process.cwd(), 'public/data/accidents.json');
+  let items = [];
+  try {
+    items = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+  } catch (e) {
+    console.warn('⚠️ accidents.json not found for getStaticPaths');
+  }
+  return items.map(item => ({ params: { slug: item.slug } }));
+}
 
 const { slug } = Astro.params;
 ---
@@ -20,25 +31,25 @@ const { slug } = Astro.params;
   </div>
 
   <script define:vars={{ slug }}>
+    import { fetchBySlug, findInFullJson } from '../../lib/strapi-client';
     const STATIC_DATA_URL = '/data/accidents.json';
     const CACHE_KEY = 'acc_detail_' + slug;
     const CACHE_TTL = 30 * 60 * 1000;
 
     async function loadDetail() {
-      // 1. 优先 localStorage 缓存
       const cached = localStorage.getItem(CACHE_KEY);
       const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
       if (cached && cachedAt && Date.now() - parseInt(cachedAt) < CACHE_TTL) {
         renderItem(JSON.parse(cached));
         return;
       }
-
       try {
-        // 直接用 URL 中的 YYMM-NNN slug 查找静态 JSON
-        const dataRes = await fetch(STATIC_DATA_URL);
-        const allData = await dataRes.json();
-        const item = allData.find(i => i.slug === slug);
-
+        // 按需按 slug 拉单条（含 content），仅几 KB
+        let item = await fetchBySlug('accidents', slug);
+        if (!item) {
+          // 代理不可用时，退回全量 JSON 查找
+          item = await findInFullJson(STATIC_DATA_URL, slug);
+        }
         if (item) {
           localStorage.setItem(CACHE_KEY, JSON.stringify(item));
           localStorage.setItem(CACHE_KEY + '_ts', String(Date.now()));
@@ -51,7 +62,7 @@ const { slug } = Astro.params;
       }
     }
 
-    /** 清洗伤亡：只保留人数统计 */
+    /** 清洗伤亡：只保留人数统计，去除括号内的人名和伤情细节 */
     function cleanCasualties(c) {
       if (!c || c === '-' || ['待官方公布','未知','待确认','待从完整报告获取'].includes(c.trim())) return c;
       if (/(无人员伤亡|无人员死亡|0人死亡|未造成人员伤亡)/.test(c)) return c.trim();

@@ -36,11 +36,9 @@ import Layout from '../../layouts/Layout.astro';
   </div>
 
   <script>
-    const DATA_URL = '/data/accidents.json';
+    import { fetchAllSummaries, fetchPreview } from '../../lib/strapi-client';
     const PREVIEW_URL = '/data/accidents-preview.json';
-    const CACHE_KEY = 'accidents_data_cache';
-    const CACHE_TTL = 30 * 60 * 1000;
-    const LIVE_API_URL = '/api/strapi/accidents?pagination[pageSize]=500';
+    const SUMMARY_FIELDS = ['title','slug','severity','category','province','date','casualties','location','company'];
 
     const SEVERITY_MAP: Record<string, string> = { general: '一般', larger: '较大', major: '重大', special: '特别重大' };
     const SEVERITY_CLASS: Record<string, string> = { general: 'acc-sev-general', larger: 'acc-sev-larger', major: 'acc-sev-major', special: 'acc-sev-special' };
@@ -185,74 +183,29 @@ import Layout from '../../layouts/Layout.astro';
       return item;
     }
 
-    async function checkForLiveUpdates() {
-      try {
-        const liveRes = await fetch(LIVE_API_URL);
-        if (!liveRes.ok) return;
-        const liveData = await liveRes.json();
-        const liveItems = liveData.data || [];
-        if (liveItems.length > allItems.length) {
-          allItems = liveItems.map(normalizeProvince);
-          filteredItems = [...allItems];
-          document.getElementById('acc-count')!.textContent = '共 ' + allItems.length + ' 项（实时）';
-          buildSeverityFilters();
-          buildCategoryFilters();
-          updateView();
-        }
-      } catch {}
-    }
-
     async function loadItems() {
+      const listEl = document.getElementById('acc-list');
       try {
-        const now = Date.now();
-        const cached = localStorage.getItem(CACHE_KEY);
-        const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
-        const hasFullCache = cached && cachedAt && now - parseInt(cachedAt, 10) < CACHE_TTL;
-
-        if (hasFullCache) {
-          allItems = JSON.parse(cached).map(normalizeProvince);
-          filteredItems = [...allItems];
-          document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
-          buildSeverityFilters();
-          buildCategoryFilters();
-          updateView();
-          fetchFullAndCache(true);
-          return;
-        }
-
-        const previewRes = await fetch(PREVIEW_URL);
-        if (previewRes.ok) {
-          const previewData = (await previewRes.json()).map(normalizeProvince);
-          allItems = previewData;
-          filteredItems = [...allItems];
-          document.getElementById('acc-count')!.textContent = `加载中 ${previewData.length} 项…`;
-          buildSeverityFilters();
-          buildCategoryFilters();
-          updateView();
-        }
-
-        await fetchFullAndCache(false);
+        // 按需从 Strapi 拉摘要（不含 content），本地缓存 30 分钟
+        allItems = (await fetchAllSummaries('accidents', SUMMARY_FIELDS, 'date:desc')).map(normalizeProvince);
+        filteredItems = [...allItems];
+        document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
+        buildSeverityFilters();
+        buildCategoryFilters();
+        updateView();
       } catch (e) {
-        if (allItems.length === 0) {
-          document.getElementById('acc-list')!.innerHTML = '<div class="empty">加载失败</div>';
+        // 代理不可用时，退回本地 preview
+        try {
+          allItems = (await fetchPreview(PREVIEW_URL)).map(normalizeProvince);
+          filteredItems = [...allItems];
+          document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项（离线缓存）`;
+          buildSeverityFilters();
+          buildCategoryFilters();
+          updateView();
+        } catch {
+          if (listEl) listEl.innerHTML = '<div class="empty">加载失败</div>';
         }
       }
-    }
-
-    async function fetchFullAndCache(isBackground: boolean) {
-      const res = await fetch(DATA_URL);
-      if (!res.ok) throw new Error('fetch failed');
-      const allData = (await res.json()).map(normalizeProvince);
-      const now = Date.now();
-      localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
-      localStorage.setItem(CACHE_KEY + '_ts', String(now));
-      allItems = allData;
-      filteredItems = [...allItems];
-      document.getElementById('acc-count')!.textContent = `共 ${allItems.length} 项`;
-      buildSeverityFilters();
-      buildCategoryFilters();
-      updateView();
-      checkForLiveUpdates();
     }
 
     function buildSeverityFilters() {

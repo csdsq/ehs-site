@@ -1,18 +1,18 @@
 {
-  "name": "ehs-site",
+  "name": "hser-site",
   "type": "module",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "bash build-and-patch.sh",
+    "build": "node scripts/generate-data-json.js && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "generate-data": "node scripts/generate-data-json.js"
   },
   "dependencies": {
-    "@astrojs/vercel": "^7.8.2",
-    "astro": "^4.0.0",
+    "@astrojs/node": "^9.0.0",
+    "astro": "^5.7.0",
     "busboy": "^1.6.0",
-    "nodemailer": "^6.9.0"
+    "nodemailer": "^6.9.16"
   }
 }

@@ -73,10 +73,9 @@ import Layout from '../../layouts/Layout.astro';
   </div>
 
   <script>
-    const DATA_URL = '/data/regulations.json';
-    const CACHE_KEY = 'regulations_data_cache';
-    const CACHE_TTL = 30 * 60 * 1000;
-    const LIVE_API_URL = '/api/strapi/regulations?pagination[pageSize]=500&populate=*';
+    import { fetchAllSummaries, fetchPreview } from '../../lib/strapi-client';
+    const PREVIEW_URL = '/data/regulations-preview.json';
+    const SUMMARY_FIELDS = ['title','slug','category','source','standardNo','effectiveDate','publishDate','downloadUrl'];
     const categoryMap: Record<string,string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
 
     // 直辖市映射：标题中可能出现"深圳市""广州市"等，需归到对应省/直辖市
@@ -266,65 +265,24 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     async function loadItems() {
+      const listEl = document.getElementById('std-list');
       try {
-        let allData: any[] = [];
-        let fromCache = false;
-
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (parsed.timestamp && Date.now() - parsed.timestamp < CACHE_TTL) {
-              allData = parsed.data;
-              fromCache = true;
-            }
-          } catch {}
-        }
-
-        if (!fromCache) {
-          const res = await fetch(DATA_URL);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          allData = await res.json();
-          try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ data: allData, timestamp: Date.now() }));
-          } catch {}
-        }
-
-        allItems = allData;
+        // 按需从 Strapi 拉摘要（不含 content），本地缓存 30 分钟
+        allItems = await fetchAllSummaries('regulations', SUMMARY_FIELDS, 'publishDate:desc');
         filteredItems = [...allItems];
         document.getElementById('std-count')!.textContent = `共 ${allItems.length} 项`;
         updateView();
-
-        if (fromCache) {
-          fetch(DATA_URL).then(res => res.json()).then(freshData => {
-            if (JSON.stringify(freshData) !== JSON.stringify(allData)) {
-              allItems = freshData;
-              filteredItems = [...allItems];
-              try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: freshData, timestamp: Date.now() }));
-              } catch {}
-              applyFilters();
-            }
-          }).catch(() => {});
-        }
       } catch (e) {
-        document.getElementById('std-list')!.innerHTML = '<div class="empty">加载失败</div>';
-      }
-    }
-
-    async function checkForLiveUpdates() {
-      try {
-        const liveRes = await fetch(LIVE_API_URL);
-        if (!liveRes.ok) return;
-        const liveData = await liveRes.json();
-        const liveItems = liveData.data || [];
-        if (liveItems.length > allItems.length) {
-          allItems = liveItems;
+        // 代理不可用时，退回本地 preview（摘要，无 content）
+        try {
+          allItems = await fetchPreview(PREVIEW_URL);
           filteredItems = [...allItems];
-          document.getElementById('std-count')!.textContent = '共 ' + allItems.length + ' 项（实时）';
-          applyFilters();
+          document.getElementById('std-count')!.textContent = `共 ${allItems.length} 项（离线缓存）`;
+          updateView();
+        } catch {
+          if (listEl) listEl.innerHTML = '<div class="empty">加载失败</div>';
         }
-      } catch {}
+      }
     }
 
     // 筛选标签事件

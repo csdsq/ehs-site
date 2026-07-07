@@ -1,50 +1,61 @@
 ---
-export const prerender = false;
-// SSR 壳页 - 客户端从静态 JSON 加载数据
-import Layout from '../../../layouts/Layout.astro';
-import PageComment from '../../../components/PageComment.astro';
+import Layout from '../../layouts/Layout.astro';
+import PageComment from '../../components/PageComment.astro';
+import fs from 'node:fs';
+import path from 'node:path';
+
+export function getStaticPaths() {
+  const dataPath = path.join(process.cwd(), 'public/data/regulations.json');
+  let items = [];
+  try {
+    items = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+  } catch (e) {
+    console.warn('⚠️ regulations.json not found for getStaticPaths');
+  }
+  return items.map(item => ({ params: { slug: item.slug } }));
+}
 
 const { slug } = Astro.params;
 ---
-<Layout title="国标地标详情" currentPath="/standards/">
+<Layout title="法规文件详情" currentPath="/regulations/">
   <div class="container">
     <div class="detail-breadcrumb-flat">
-      <a href="/">首页</a> / <a href="/standards/">国标地标</a> / 详情
+      <a href="/">首页</a> / <a href="/regulations/">法规文件</a> / 详情
     </div>
     <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
     <div id="detail-tags" style="margin-bottom: 16px;"></div>
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
-    <PageComment pageUrl={`/standards/${slug}`} />
+    <PageComment pageUrl={`/regulations/${slug}`} />
   </div>
 
   <script define:vars={{ slug }}>
-    const STATIC_DATA_URL = '/data/standards.json';
-    const CACHE_KEY = 'std_detail_' + slug;
+    import { fetchBySlug, findInFullJson } from '../../lib/strapi-client';
+    const STATIC_DATA_URL = '/data/regulations.json';
+    const CACHE_KEY = 'reg_detail_' + slug;
     const CACHE_TTL = 30 * 60 * 1000;
 
     async function loadDetail() {
-      // 1. 优先 localStorage 缓存
       const cached = localStorage.getItem(CACHE_KEY);
       const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
       if (cached && cachedAt && Date.now() - parseInt(cachedAt) < CACHE_TTL) {
         renderItem(JSON.parse(cached));
         return;
       }
-
       try {
-        // 直接用 URL 中的 YYMM-NNN slug 查找静态 JSON
-        const dataRes = await fetch(STATIC_DATA_URL);
-        const allData = await dataRes.json();
-        const item = allData.find(i => i.slug === slug);
-
+        // 按需按 slug 拉单条（含 content），仅几 KB
+        let item = await fetchBySlug('regulations', slug);
+        if (!item) {
+          // 代理不可用时，退回全量 JSON 查找
+          item = await findInFullJson(STATIC_DATA_URL, slug);
+        }
         if (item) {
           localStorage.setItem(CACHE_KEY, JSON.stringify(item));
           localStorage.setItem(CACHE_KEY + '_ts', String(Date.now()));
           renderItem(item);
         } else {
-          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该标准</div>';
+          document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该规范</div>';
         }
       } catch (e) {
         document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
@@ -52,41 +63,44 @@ const { slug } = Astro.params;
     }
 
     function renderItem(item) {
-      const content = (item.content || '').trim();
-      const hasFullText = content && !content.startsWith('{') && content.length > 100;
       const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+      const regionMap = { national: '国家', provincial: '省', municipal: '市' };
       const catLabel = categoryMap[item.category] || '';
-      const infoRows = [
-        ['标准编号', item.standardNo],
-        ['发布机构', item.source],
-        item.publishDate ? ['发布日期', item.publishDate] : null,
-        item.effectiveDate ? ['实施日期', item.effectiveDate] : null,
-        ['标准类别', catLabel || item.category],
-      ].filter(Boolean).filter(([,v]) => v && v !== '-');
+      const regLabel = regionMap[item.regionLevel] || '';
+      let tagHtml = '';
+      if (catLabel) tagHtml += `<span class="std-tag std-tag-${item.category}">${catLabel}</span> `;
+      if (regLabel) tagHtml += `<span class="std-tag std-tag-region">${regLabel}</span>`;
 
       document.getElementById('detail-title').textContent = item.title || '';
-      if (catLabel) {
-        document.getElementById('detail-tags').innerHTML = `<span class="std-tag std-tag-${item.category}">${catLabel}</span>`;
-      }
+      document.getElementById('detail-tags').innerHTML = tagHtml;
+
+      const content = (item.content || '').trim();
+      const hasFullText = content && !content.startsWith('{') && content.length > 100;
+
+      // 固定三项：发文机构、发文号、实施日期（优先实施日期，无则用发布日期兜底）
+      const effectiveDate = item.effectiveDate || item.publishDate || '';
+      const infoRows = [
+        ['发文机构', item.source || '暂无'],
+        ['发文号', item.standardNo || '暂无'],
+        ['实施日期', effectiveDate || '暂无'],
+      ];
 
       document.getElementById('detail-body').innerHTML = `
         <section class="detail-section">
           <h2 class="detail-section-title">基本信息</h2>
           <div class="detail-section-content">
-            ${infoRows.length > 0
-              ? `<div class="info-card-list">
-                   ${infoRows.map(([k,v]) => `
-                     <div class="info-card-item">
-                       <span class="info-card-label">${k}</span>
-                       <span class="info-card-value">${v}</span>
-                     </div>`).join('')}
-                 </div>`
-              : '<p class="detail-empty">暂无基本信息</p>'}
+            <div class="info-card-list">
+              ${infoRows.map(([k,v]) => `
+                <div class="info-card-item">
+                  <span class="info-card-label">${k}</span>
+                  <span class="info-card-value">${v}</span>
+                </div>`).join('')}
+            </div>
           </div>
         </section>
         ${hasFullText ? `
         <section class="detail-section">
-          <h2 class="detail-section-title">标准全文</h2>
+          <h2 class="detail-section-title">法规全文</h2>
           <div class="detail-section-content">
             <div class="regulation-full-text">${content}</div>
           </div>
