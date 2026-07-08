@@ -22,7 +22,7 @@ jobs:
             cd /var/www/hser.ren
             git fetch origin
             git reset --hard origin/main
-            npm install --legacy-peer-deps
+            npm install --registry=https://registry.npmjs.org/ --legacy-peer-deps
             node scripts/generate-data-json.js
             npx astro build
             pm2 restart hser-ren
