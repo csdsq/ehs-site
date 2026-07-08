@@ -474,6 +474,51 @@ async function main() {
     description: s.description, regionLevel: s.regionLevel, summary: s.summary,
   })));
 
+  // documents — Strapi 公开 API 不允许访问 documents collection，
+  // 构建时从内部 Strapi 拉取并写入 preview JSON，供页面静态加载。
+  const documents = sortByDateDesc(
+    await fetchAll('documents', [
+      'title', 'slug', 'category', 'fileType', 'fileSize', 'publishDate',
+      'description', 'downloadUrl'
+    ], 'createdAt:desc'),
+    'publishDate'
+  );
+  writeJson('documents', documents);
+  writeJson('documents-preview', documents.map(d => ({
+    id: d.id, documentId: d.documentId, title: d.title, slug: d.slug,
+    category: d.category, fileType: d.fileType, fileSize: d.fileSize,
+    publishDate: d.publishDate, description: d.description, downloadUrl: d.downloadUrl,
+  })));
+
+  // ai-apps — 同上，构建时拉取写入 preview JSON
+  const aiAppsFull = sortByDateDesc(
+    await fetchAll('ai-apps', [
+      'title', 'slug', 'category', 'description', 'features', 'appUrl',
+      'icon'
+    ], 'createdAt:desc'),
+    'createdAt'
+  );
+  writeJson('ai-apps', aiAppsFull);
+  writeJson('ai-apps-preview', aiAppsFull.map(a => ({
+    id: a.id, documentId: a.documentId, title: a.title, slug: a.slug,
+    category: a.category, description: a.description, features: a.features,
+    appUrl: a.appUrl, icon: a.icon,
+  })));
+
+  // videos — 同上（videos collection 实际字段：url, duration, category, description, slug, icon, downloadUrl, videoUrl, thumbnail）
+  const videosFull = sortByDateDesc(
+    await fetchAll('videos', [
+      'title', 'slug', 'category', 'description', 'url', 'duration', 'icon', 'downloadUrl'
+    ], 'createdAt:desc'),
+    'createdAt'
+  );
+  writeJson('videos', videosFull);
+  writeJson('videos-preview', videosFull.map(v => ({
+    id: v.id, documentId: v.documentId, title: v.title, slug: v.slug,
+    category: v.category, description: v.description, url: v.url,
+    duration: v.duration, icon: v.icon, downloadUrl: v.downloadUrl,
+  })));
+
   // Generate single JSON for the homepage, replacing 7 parallel API calls
   await generateHomeData(normalizedAccidents, filteredRegulations, standards);
 

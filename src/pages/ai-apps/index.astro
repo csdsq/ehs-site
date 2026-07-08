@@ -18,7 +18,7 @@ import Layout from '../../layouts/Layout.astro';
   </div>
 
   <script>
-    import { fetchAllSummaries } from '../../lib/strapi-client';
+    import { fetchAllSummaries, fetchPreview } from '../../lib/strapi-client';
     const PREVIEW_URL = '/data/ai-apps-preview.json';
     const SUMMARY_FIELDS = ['title','slug','category','description','features','appUrl'];
 
@@ -103,7 +103,8 @@ import Layout from '../../layouts/Layout.astro';
 
     async function load() {
       try {
-        allItems = await fetchAllSummaries('ai-apps', SUMMARY_FIELDS, PREVIEW_URL);
+        // ai-apps collection 被 Strapi 公开 API 阻止，直接用构建时生成的 preview JSON
+        allItems = await fetchPreview(PREVIEW_URL);
         applyFilters();
       } catch (e) {
         document.getElementById('ai-list')!.innerHTML = '<div class="empty">加载失败</div>';
