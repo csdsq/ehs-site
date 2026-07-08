@@ -247,6 +247,31 @@ function cleanRegulationTitle(title) {
   return title;
 }
 
+/**
+ * 清洗国标标题：去掉 —2025 或 -2019 等前缀
+ * 清洗国标日期：如果日期年份 > 2030（显然是标准号伪装），清空该日期
+ */
+function normalizeStandards(items) {
+  return items.map(item => {
+    let result = { ...item };
+    // 清洗标题：去掉 —2025 或 -2019 前缀
+    if (result.title) {
+      result.title = result.title.replace(/^[—-]\d{4}\s*/, '').replace(/^[—-]\d{4}/, '').trim();
+    }
+    // 清洗日期：年份 > 2030 的清空
+    for (const field of ['publishDate', 'effectiveDate']) {
+      const val = result[field];
+      if (val && typeof val === 'string' && val.length === 10) {
+        const year = parseInt(val.split('-')[0], 10);
+        if (year > 2030 || year < 1900) {
+          result[field] = null;
+        }
+      }
+    }
+    return result;
+  });
+}
+
 /** 获取 Strapi admin token，用于后台 API 查询 */
 async function getAdminToken() {
   const adminUrl = (process.env.STRAPI_BASE || 'http://8.149.139.66:1337').replace(/\/api$/, '') + '/admin/login';
@@ -425,15 +450,21 @@ async function main() {
   })));
 
   // Keep in sync with src/pages/standards/index.astro expectations
-  const standards = sortByDateDesc(
+  const rawStandards = sortByDateDesc(
     await fetchAll('standards', [
       'title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate',
       'source', 'content', 'downloadUrl', 'description', 'regionLevel', 'summary'
     ], 'effectiveDate:desc'),
     'effectiveDate'
   );
+  // 构建时清洗：标题去前缀、假日期清空
+  const standards = normalizeStandards(rawStandards);
   // ✅ FIX: Generate slugs BEFORE writing JSON, so standards.json has YYMM-NNN slugs
   const stdSlugMap = generateSlugs(standards, 'effectiveDate');
+  const standardsCleanCount = rawStandards.length - standards.filter(s => s.title === (rawStandards.find(r => r.documentId === s.documentId) || {}).title).length;
+  if (standardsCleanCount > 0 || standards.some(s => !s.publishDate || !s.effectiveDate)) {
+    console.log(`Standards normalized: cleaned titles and/or cleared fake dates.`);
+  }
   writeJson('standards', standards);
   // 兜底预览：全量摘要（不含 content）
   writeJson('standards-preview', standards.map(s => ({

@@ -1,4 +1,5 @@
 ---
+export const prerender = true;
 import Layout from '../../layouts/Layout.astro';
 ---
 <Layout title="资料文档" currentPath="/documents/">
@@ -6,34 +7,11 @@ import Layout from '../../layouts/Layout.astro';
   <div class="page-layout">
     <div class="container">
       <h1 class="page-title">资料文档</h1>
+      <p class="page-subtitle">EHS 相关资料、课件、模板下载</p>
 
-      <!-- 筛选标签区 -->
-      <div class="filter-bar">
-        <div class="filter-group">
-          <span class="filter-label">专业</span>
-          <div class="filter-tags" id="specialty-filters">
-            <button class="filter-tag active" data-value="">全部</button>
-            <button class="filter-tag" data-value="安全">安全</button>
-            <button class="filter-tag" data-value="环保">环保</button>
-            <button class="filter-tag" data-value="职业健康">职业健康</button>
-          </div>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">行业</span>
-          <div class="filter-tags" id="industry-filters">
-            <button class="filter-tag active" data-value="">全部</button>
-            <button class="filter-tag" data-value="交通">交通</button>
-            <button class="filter-tag" data-value="化工">化工</button>
-            <button class="filter-tag" data-value="工贸">工贸</button>
-            <button class="filter-tag" data-value="建筑">建筑</button>
-            <button class="filter-tag" data-value="矿山">矿山</button>
-            <button class="filter-tag" data-value="通用">通用</button>
-          </div>
-        </div>
-      </div>
-
+      <!-- 搜索区 -->
       <div class="search-box" style="margin-bottom: 24px; max-width: 100%;">
-        <input type="text" id="doc-search" placeholder="搜索资料名称..." />
+        <input type="text" id="doc-search" placeholder="搜索资料名称、分类..." />
         <button id="doc-search-btn">搜索</button>
       </div>
 
@@ -46,83 +24,39 @@ import Layout from '../../layouts/Layout.astro';
   </div>
 
   <script>
-    const API = '/api/strapi';
-
-    // 根据标题和描述推导专业标签
-    const specialtyRules: [string[], string][] = [
-      [['消防','火灾','防爆','安全培训','安全检查','隐患','事故','应急','安全规章','安全操作','安全生产','四防','监控'], '安全'],
-      [['环保','环境','生态','污染','废物','排污','水污染','大气','噪声','土壤'], '环保'],
-      [['职业健康','职业卫生','职业病','防护用品','工效学','辐射'], '职业健康'],
-    ];
-
-    // 根据标题和描述推导行业标签
-    const industryRules: [string[], string][] = [
-      [['道路','运输','旅客','货运','客运','车辆','危险货物','动态监控'], '交通'],
-      [['化工','危化','危险化学品','储运'], '化工'],
-      [['工贸','冶金','机械','轻工','纺织','建材'], '工贸'],
-      [['建筑','施工','工地','脚手架','坍塌'], '建筑'],
-      [['矿山','煤矿','非煤矿','矿井'], '矿山'],
-    ];
-
-    function extractSpecialty(title: string, desc: string): string {
-      const text = title + desc;
-      for (const [keywords, label] of specialtyRules) {
-        if (keywords.some(k => text.includes(k))) return label;
-      }
-      return '安全'; // 默认归安全
-    }
-
-    function extractIndustry(title: string, desc: string): string {
-      const text = title + desc;
-      for (const [keywords, label] of industryRules) {
-        if (keywords.some(k => text.includes(k))) return label;
-      }
-      return '通用'; // 默认归通用
-    }
-
-    // 专业标签颜色映射
-    const specialtyColorMap: Record<string,string> = {
-      '安全': 'safety',
-      '环保': 'environment',
-      '职业健康': 'occupational_health',
-    };
+    import { fetchAllSummaries } from '../../lib/strapi-client';
+    const PREVIEW_URL = '/data/documents-preview.json';
+    const SUMMARY_FIELDS = ['title','slug','category','fileType','fileSize','publishDate','description'];
 
     let allItems: any[] = [];
     let filteredItems: any[] = [];
     let currentPage = 1;
     let pageSize = 10;
-    let activeSpecialty = '';
-    let activeIndustry = '';
+    let searchQuery = '';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
     function renderItems(items: any[]) {
       const el = document.getElementById('doc-list');
       if (!el) return;
-      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无资料</div>'; return; }
+      if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
       el.innerHTML = items.map(item => {
-        const spec = extractSpecialty(item.title || '', item.description || '');
-        const ind = extractIndustry(item.title || '', item.description || '');
-        const specClass = specialtyColorMap[spec] || 'safety';
-        const tagParts = [];
-        tagParts.push(`<span class="std-tag std-tag-${specClass}">${spec}</span>`);
-        if (ind !== '通用') tagParts.push(`<span class="std-tag std-tag-region">${ind}</span>`);
-
-        const metaParts = [];
-        if (item.fileType) metaParts.push(`<span>${item.fileType.toUpperCase()}</span>`);
-        if (item.publishDate) metaParts.push(`<span>${item.publishDate}</span>`);
-
+        const metaItems: string[] = [];
+        if (item.category) metaItems.push(`<span class="std-tag std-tag-type-industry">${item.category}</span>`);
+        const ft = (item.fileType || '').toUpperCase();
+        const fileSize = item.fileSize ? ` · ${item.fileSize}` : '';
+        if (ft) metaItems.push(`<span class="std-tag std-tag-type-gb">${ft}${fileSize}</span>`);
+        if (item.publishDate) metaItems.push(`<span>${item.publishDate}</span>`);
         return `
-        <a href="/documents/${item.slug || item.id}" class="list-item">
-          <div class="list-item-body">
-            <div class="list-item-title">${item.title}</div>
-            <div class="list-item-meta-row">
-              ${tagParts.join('')}
-              ${metaParts.join('')}
+          <a href="/documents/${item.slug || item.id}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${item.title}</div>
+              <div class="list-item-meta-row">
+                ${metaItems.join('')}
+              </div>
             </div>
-          </div>
-          <div class="list-item-arrow">&rarr;</div>
-        </a>`;
+            <div class="list-item-arrow">&rarr;</div>
+          </a>`;
       }).join('');
     }
 
@@ -133,120 +67,75 @@ import Layout from '../../layouts/Layout.astro';
       if (total <= pageSize) { el.style.display = 'none'; return; }
       el.style.display = 'flex';
 
-      const start = (currentPage - 1) * pageSize + 1;
-      const end = Math.min(currentPage * pageSize, total);
+      let html = `<span>共 ${total} 条</span><div class="pagination-controls">`;
+      html += `<button ${currentPage <= 1 ? 'disabled' : ''} data-page="${currentPage - 1}">&laquo;</button>`;
 
-      let pagesHtml = '';
-      const range: number[] = [];
-      if (totalPages <= 7) {
-        for (let i = 1; i <= totalPages; i++) range.push(i);
-      } else {
-        range.push(1);
-        if (currentPage > 4) range.push(-1);
-        const s = Math.max(2, currentPage - 2);
-        const e = Math.min(totalPages - 1, currentPage + 2);
-        for (let i = s; i <= e; i++) range.push(i);
-        if (currentPage < totalPages - 3) range.push(-2);
-        range.push(totalPages);
-      }
-      for (const p of range) {
-        if (p < 0) { pagesHtml += `<span class="page-ellipsis">…</span>`; }
-        else { pagesHtml += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`; }
-      }
+      const maxVisible = 5;
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+      if (endPage - startPage + 1 < maxVisible) startPage = Math.max(1, endPage - maxVisible + 1);
 
-      el.innerHTML = `
-        <div class="pagination-info">显示 ${start}-${end}，共 ${total} 份资料</div>
-        <div class="pagination-controls">
-          <button data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
-          ${pagesHtml}
-          <button data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
-        </div>
-        <div class="page-size-select">
-          每页
-          <select id="doc-page-size">
-            <option value="10" ${pageSize===10?'selected':''}>10</option>
-            <option value="20" ${pageSize===20?'selected':''}>20</option>
-            <option value="50" ${pageSize===50?'selected':''}>50</option>
-            <option value="100" ${pageSize===100?'selected':''}>100</option>
-          </select>
-          条
-        </div>`;
-
-      el.querySelector('#doc-page-size')!.addEventListener('change', (e: any) => {
-        pageSize = parseInt(e.target.value); currentPage = 1; updateView();
-      });
-      el.querySelectorAll('[data-page]').forEach(btn => {
-        btn.addEventListener('click', () => { currentPage = parseInt((btn as HTMLElement).dataset.page!); updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
-      });
-      el.querySelector('[data-action="prev"]')!.addEventListener('click', () => {
-        if (currentPage > 1) { currentPage--; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-      });
-      el.querySelector('[data-action="next"]')!.addEventListener('click', () => {
-        if (currentPage < getTotalPages()) { currentPage++; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-      });
+      if (startPage > 1) { html += `<button data-page="1">1</button>`; if (startPage > 2) html += `<span class="page-ellipsis">...</span>`; }
+      for (let i = startPage; i <= endPage; i++) { html += `<button class="${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`; }
+      if (endPage < totalPages) { if (endPage < totalPages - 1) html += `<span class="page-ellipsis">...</span>`; html += `<button data-page="${totalPages}">${totalPages}</button>`; }
+      html += `<button ${currentPage >= totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">&raquo;</button>`;
+      html += '</div>';
+      el.innerHTML = html;
     }
 
     function applyFilters() {
-      const q = (document.getElementById('doc-search') as HTMLInputElement).value.trim().toLowerCase();
-      filteredItems = allItems.filter(item => {
-        if (activeSpecialty) {
-          const spec = extractSpecialty(item.title || '', item.description || '');
-          if (spec !== activeSpecialty) return false;
-        }
-        if (activeIndustry) {
-          const ind = extractIndustry(item.title || '', item.description || '');
-          if (ind !== activeIndustry) return false;
-        }
-        if (q) {
-          const text = `${item.title ?? ''} ${item.category ?? ''} ${item.fileType ?? ''}`.toLowerCase();
-          if (!text.includes(q)) return false;
-        }
-        return true;
-      });
+      filteredItems = [...allItems];
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        filteredItems = filteredItems.filter(item =>
+          (item.title || '').toLowerCase().includes(q) ||
+          (item.category || '').toLowerCase().includes(q) ||
+          (item.description || '').toLowerCase().includes(q)
+        );
+      }
       currentPage = 1;
-      updateView();
-    }
-
-    function updateView() {
       const start = (currentPage - 1) * pageSize;
       renderItems(filteredItems.slice(start, start + pageSize));
       renderPagination();
-      document.getElementById('doc-count')!.textContent = `共 ${filteredItems.length} 份资料${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 份）` : ''}`;
+      document.getElementById('doc-count')!.textContent = `共 ${filteredItems.length} 条资料`;
     }
 
-    async function loadItems() {
+    function goToPage(page: number) {
+      currentPage = Math.max(1, Math.min(page, getTotalPages()));
+      const start = (currentPage - 1) * pageSize;
+      renderItems(filteredItems.slice(start, start + pageSize));
+      renderPagination();
+    }
+
+    document.getElementById('doc-pagination')?.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('button');
+      if (btn && !btn.disabled) goToPage(Number(btn.dataset.page));
+    });
+
+    const searchBtn = document.getElementById('doc-search-btn');
+    const searchInput = document.getElementById('doc-search');
+    if (searchBtn && searchInput) {
+      searchBtn.addEventListener('click', () => { searchQuery = searchInput.value.trim(); applyFilters(); });
+      searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { searchQuery = searchInput.value.trim(); applyFilters(); } });
+    }
+
+    async function load() {
       try {
-        const res = await fetch(`${API}/documents?pagination[pageSize]=200&sort=createdAt:desc&fields[0]=title&fields[1]=slug&fields[2]=description&fields[3]=fileType&fields[4]=publishDate&fields[5]=category`);
-        const json = await res.json();
-        allItems = json.data ?? [];
-        filteredItems = [...allItems];
-        const total = json.meta?.pagination?.total ?? 0;
-        document.getElementById('doc-count')!.textContent = `共 ${total} 份资料`;
-        updateView();
+        allItems = await fetchAllSummaries('documents', SUMMARY_FIELDS, PREVIEW_URL);
+        applyFilters();
       } catch (e) {
         document.getElementById('doc-list')!.innerHTML = '<div class="empty">加载失败</div>';
       }
     }
-
-    // 筛选标签事件
-    document.getElementById('specialty-filters')!.addEventListener('click', (e: any) => {
-      if (!e.target.classList.contains('filter-tag')) return;
-      document.querySelectorAll('#specialty-filters .filter-tag').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-      activeSpecialty = e.target.dataset.value || '';
-      applyFilters();
-    });
-    document.getElementById('industry-filters')!.addEventListener('click', (e: any) => {
-      if (!e.target.classList.contains('filter-tag')) return;
-      document.querySelectorAll('#industry-filters .filter-tag').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-      activeIndustry = e.target.dataset.value || '';
-      applyFilters();
-    });
-
-    document.getElementById('doc-search')!.addEventListener('input', applyFilters);
-    document.getElementById('doc-search-btn')!.addEventListener('click', applyFilters);
-
-    loadItems();
+    load();
   </script>
 </Layout>
+
+<style>
+  .page-layout { padding: 32px 0 60px; }
+  .page-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .page-subtitle { font-size: 15px; color: var(--text-light); margin-bottom: 24px; }
+  @media (max-width: 768px) {
+    .page-title { font-size: 22px; }
+  }
+</style>

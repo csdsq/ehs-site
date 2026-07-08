@@ -12,25 +12,25 @@ const { title, currentPath = '/' } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="HSEr.ren - EHS安全合规知识平台" />
+    <meta name="description" content="EHS经验分享 - 安全生产、职业健康、环保合规知识平台" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title} | HSEr</title>
+    <title>{title} | EHS经验分享</title>
+    <!-- Busuanzi 访问统计 -->
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
   </head>
   <body>
     <!-- Navigation -->
     <header class="site-header">
       <div class="container header-inner">
         <a href="/" class="site-logo">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          <span class="logo-text">HSEr</span>
+          <span class="logo-icon">🛡</span>
+          <span class="logo-text">EHS经验分享</span>
         </a>
         <nav class="site-nav" id="siteNav">
-          <a href="/regulations/" class={currentPath === '/regulations/' ? 'nav-link active' : 'nav-link'}>法规文件</a>
-          <a href="/standards/" class={currentPath === '/standards/' ? 'nav-link active' : 'nav-link'}>国标地标</a>
-          <a href="/accidents/" class={currentPath === '/accidents/' ? 'nav-link active' : 'nav-link'}>事故报告</a>
           <a href="/ai-apps/" class={currentPath === '/ai-apps/' ? 'nav-link active' : 'nav-link'}>AI应用</a>
+          <a href="/standards/" class={currentPath === '/standards/' ? 'nav-link active' : 'nav-link'}>国标地标</a>
+          <a href="/regulations/" class={currentPath === '/regulations/' ? 'nav-link active' : 'nav-link'}>法规文件</a>
+          <a href="/accidents/" class={currentPath === '/accidents/' ? 'nav-link active' : 'nav-link'}>事故报告</a>
           <a href="/documents/" class={currentPath === '/documents/' ? 'nav-link active' : 'nav-link'}>资料文档</a>
           <a href="/submit/" class={currentPath === '/submit/' ? 'nav-link active' : 'nav-link'}>同行投稿</a>
         </nav>
@@ -50,10 +50,10 @@ const { title, currentPath = '/' } = Astro.props;
         <div class="footer-grid">
           <div class="footer-col">
             <h4>栏目导航</h4>
-            <a href="/regulations/">法规文件</a>
-            <a href="/standards/">国标地标</a>
-            <a href="/accidents/">事故报告</a>
             <a href="/ai-apps/">AI应用</a>
+            <a href="/standards/">国标地标</a>
+            <a href="/regulations/">法规文件</a>
+            <a href="/accidents/">事故报告</a>
           </div>
           <div class="footer-col">
             <h4>更多</h4>
@@ -67,7 +67,14 @@ const { title, currentPath = '/' } = Astro.props;
           </div>
         </div>
         <div class="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} HSEr.ren. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} EHS经验分享. All rights reserved.</p>
+          <p class="footer-icp">
+            <span id="busuanzi_container_site_pv">
+              本站总访问量 <span id="busuanzi_value_site_pv"></span> 次
+            </span>
+            &nbsp;|&nbsp;
+            <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">京ICP备XXXXXXXX号</a>
+          </p>
         </div>
       </div>
     </footer>
@@ -182,9 +189,10 @@ const { title, currentPath = '/' } = Astro.props;
 
 <style is:global>
   :root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --primary-light: #eff6ff;
+    /* 旧版橙色主题色 */
+    --primary: #f97316;
+    --primary-dark: #ea580c;
+    --primary-light: #fff7ed;
     --text: #1f2937;
     --text-light: #6b7280;
     --text-lighter: #9ca3af;
@@ -267,7 +275,7 @@ const { title, currentPath = '/' } = Astro.props;
     flex-shrink: 0;
   }
 
-  .site-logo svg { width: 28px; height: 28px; }
+  .logo-icon { font-size: 24px; }
 
   .site-nav {
     display: flex;
@@ -454,7 +462,7 @@ const { title, currentPath = '/' } = Astro.props;
     outline: none;
     transition: border-color var(--transition);
   }
-  .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
   .search-box button {
     padding: 10px 20px;
     background: var(--primary);
@@ -640,6 +648,17 @@ const { title, currentPath = '/' } = Astro.props;
     padding-top: 20px;
     border-top: 1px solid var(--border-light);
   }
+  .footer-icp {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-lighter);
+  }
+  .footer-icp a {
+    color: var(--text-lighter);
+  }
+  .footer-icp a:hover {
+    color: var(--primary);
+  }
 
   /* Responsive */
   @media (max-width: 768px) {
@@ -685,7 +704,7 @@ const { title, currentPath = '/' } = Astro.props;
     font-size: 14px;
     font-weight: 600;
     border-radius: 999px;
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.35);
     cursor: pointer;
     transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
     user-select: none;
@@ -693,7 +712,7 @@ const { title, currentPath = '/' } = Astro.props;
   .feedback-fab:hover {
     background: var(--primary-dark);
     transform: translateY(-2px);
-    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.45);
+    box-shadow: 0 10px 26px rgba(249, 115, 22, 0.45);
   }
   .feedback-fab:active { transform: translateY(0); }
 
@@ -763,7 +782,7 @@ const { title, currentPath = '/' } = Astro.props;
     margin-bottom: 12px;
     transition: border-color var(--transition);
   }
-  .fb-detail:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+  .fb-detail:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1); }
 
   .fb-submit {
     width: 100%;
