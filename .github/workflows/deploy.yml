@@ -10,12 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Diagnose secret (no mask leak)
-        run: |
-          echo "LEN=${#ECS_SSH_KEY}"
-          echo "HEAD_B64=$(printf '%s' "$ECS_SSH_KEY" | head -c 24 | base64)"
-          echo "TAIL_B64=$(printf '%s' "$ECS_SSH_KEY" | tail -c 24 | base64)"
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
@@ -25,7 +19,8 @@ jobs:
           key: ${{ secrets.ECS_SSH_KEY }}
           script: |
             cd /var/www/hser.ren
-            git pull origin main
+            git fetch origin
+            git reset --hard origin/main
             npm install --legacy-peer-deps
             node scripts/generate-data-json.js
             npx astro build
