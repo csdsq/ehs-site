@@ -9,14 +9,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Diagnose secret (no mask leak)
+        run: |
+          echo "LEN=${#ECS_SSH_KEY}"
+          echo "HEAD_B64=$(printf '%s' "$ECS_SSH_KEY" | head -c 24 | base64)"
+          echo "TAIL_B64=$(printf '%s' "$ECS_SSH_KEY" | tail -c 24 | base64)"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: 8.149.139.66
           port: 2222
           username: root
-          key: \${{ secrets.ECS_SSH_KEY }}
+          key: ${{ secrets.ECS_SSH_KEY }}
           script: |
             cd /var/www/hser.ren
             git pull origin main
