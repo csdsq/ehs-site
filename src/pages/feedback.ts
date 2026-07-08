@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer';
 /**
  * 站点反馈接口 —— Astro 服务端端点（ECS Node SSR 下运行）
  * 取代原 Vercel Serverless Function（api/feedback.js），因为 ECS 迁移后 Vercel 函数不再执行。
+ * 路由为 /feedback（非 /api/feedback，因 /api/* 仍被 Vercel 旧规则拦截）。
  *
  * 前端 Layout.astro 的反馈面板 POST 到这里，字段：
  *   { type, detail, pageUrl, pageTitle }

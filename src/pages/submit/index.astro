@@ -575,7 +575,7 @@ import Layout from '../../layouts/Layout.astro';
       btnLoading.style.display = 'inline';
 
       try {
-        const res = await fetch('/api/submit', {
+        const res = await fetch('/submitform', {
           method: 'POST',
           body: formData,
         });

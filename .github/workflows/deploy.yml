@@ -18,6 +18,7 @@ jobs:
           username: root
           key: ${{ secrets.ECS_SSH_KEY }}
           script: |
+            set -e
             cd /var/www/hser.ren
             git fetch origin
             git reset --hard origin/main

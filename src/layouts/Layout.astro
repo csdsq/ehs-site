@@ -1,129 +1,791 @@
 ---
-// src/layouts/Layout.astro
-import '../styles/global.css';
-
 interface Props {
-  title?: string;
+  title: string;
   currentPath?: string;
 }
-const { title = 'EHS经验分享', currentPath = '' } = Astro.props;
 
-const navItems = [
-  { label: 'AI应用', href: '/ai-apps/' },
-  { label: '国标地标', href: '/standards/' },
-  { label: '法规文件', href: '/regulations/' },
-  { label: '事故报告', href: '/accidents/' },
-  // { label: '视频课堂', href: '/videos/' }, // 暂时隐藏
-  { label: '资料文档', href: '/documents/' },
-  { label: '同行投稿', href: '/submit/' },
-];
+const { title, currentPath = '/' } = Astro.props;
 ---
-<!DOCTYPE html>
-<!-- rebuilt: 20260606115148 -->
-<html lang="zh-CN"> <!-- v20260603c -->
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title} - EHS经验分享</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-</head>
-<body>
-  <header class="site-header">
-    <div class="header-inner">
-      <a href="/" class="logo">
-        <span class="logo-icon">🛡</span>
-        <span>EHS经验分享</span>
-      </a>
-      <nav>
-        <ul class="nav-links">
-          {navItems.map(item => (
-            <li>
-              <a
-                href={item.href}
-                class:list={['', { active: currentPath === item.href || (currentPath !== '/' && item.href !== '/' && currentPath.startsWith(item.href.replace(/\/$/, ''))) }]}
-              >
-                {item.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <!-- Mobile menu button -->
-      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="菜单">☰</button>
-    </div>
-    <!-- Mobile nav -->
-    <div class="mobile-nav" id="mobile-nav">
-      <ul class="mobile-nav-links">
-        {navItems.map(item => (
-          <li>
-            <a href={item.href} class:list={['', { active: currentPath === item.href }]}>
-              {item.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
-  </header>
 
-  <main>
-    <slot />
-  </main>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="HSEr.ren - EHS安全合规知识平台" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} | HSEr</title>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="/" class="site-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span class="logo-text">HSEr</span>
+        </a>
+        <nav class="site-nav" id="siteNav">
+          <a href="/regulations/" class={currentPath === '/regulations/' ? 'nav-link active' : 'nav-link'}>法规文件</a>
+          <a href="/standards/" class={currentPath === '/standards/' ? 'nav-link active' : 'nav-link'}>国标地标</a>
+          <a href="/accidents/" class={currentPath === '/accidents/' ? 'nav-link active' : 'nav-link'}>事故报告</a>
+          <a href="/ai-apps/" class={currentPath === '/ai-apps/' ? 'nav-link active' : 'nav-link'}>AI应用</a>
+          <a href="/documents/" class={currentPath === '/documents/' ? 'nav-link active' : 'nav-link'}>资料文档</a>
+          <a href="/submit/" class={currentPath === '/submit/' ? 'nav-link active' : 'nav-link'}>同行投稿</a>
+        </nav>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </header>
 
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-about">
-          <h3>🛡 EHS经验分享</h3>
-          <p style="font-size: 13px; margin-top: 8px; line-height: 1.8;">
-            聚合环境、健康、安全领域国标地标、法规文件、事故报告，<br>
-            助力EHS从业者高效获取专业安全信息。
-          </p>
-        </div>
-        <div class="footer-links">
-          <h4>访问统计</h4>
-          <div class="footer-stats">
-            <p>👤 访客 <span id="busuanzi_value_site_uv">-</span></p>
-            <p>👁 阅读 <span id="busuanzi_value_site_pv">-</span></p>
+    <main>
+      <slot />
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-col">
+            <h4>栏目导航</h4>
+            <a href="/regulations/">法规文件</a>
+            <a href="/standards/">国标地标</a>
+            <a href="/accidents/">事故报告</a>
+            <a href="/ai-apps/">AI应用</a>
+          </div>
+          <div class="footer-col">
+            <h4>更多</h4>
+            <a href="/documents/">资料文档</a>
+            <a href="/submit/">同行投稿</a>
+            <a href="/messages/">留言板</a>
+          </div>
+          <div class="footer-col">
+            <h4>关于</h4>
+            <p class="footer-desc">EHS安全合规知识平台，汇聚行业同仁，共建安全知识库。</p>
           </div>
         </div>
-        <div class="footer-links">
-          <h4>联系我们</h4>
-          <ul>
-            <li><a href="mailto:admin@hser.ren">📧 admin@hser.ren</a></li>
-            <li><a href="/messages/">ℹ️ 关于本站</a></li>
-            <li><a href="/submit/">📮 同行投稿</a></li>
-          </ul>
+        <div class="footer-bottom">
+          <p>&copy; {new Date().getFullYear()} HSEr.ren. All rights reserved.</p>
         </div>
       </div>
-      <div class="footer-bottom">
-        <p>&copy; 2026 EHS经验分享 &middot; 数据来源于官方公开渠道 &middot; 仅供学习参考</p>
-        <p style="margin-top: 6px; font-size: 12px;">
-          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026033883号-2</a>
-        </p>
-      </div>
-    </div>
-  </footer>
+    </footer>
 
-  <script>
-    const btn = document.getElementById('mobile-menu-btn');
-    const nav = document.getElementById('mobile-nav');
-    if (btn && nav) {
-      btn.addEventListener('click', () => {
-        nav.classList.toggle('open');
-        btn.textContent = nav.classList.contains('open') ? '✕' : '☰';
-      });
-    }
-  </script>
-  <!-- 不蒜子统计延迟加载，不阻塞页面渲染 -->
-  <script>
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        var s = document.createElement('script');
-        s.async = true;
-        s.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
-        document.body.appendChild(s);
-      }, 500);
-    });
-  </script>
-</body>
+    <!-- Feedback Widget -->
+    <div class="feedback-fab" id="feedbackFab" role="button" tabindex="0" aria-label="反馈问题">⚠ 反馈</div>
+    <div class="feedback-panel" id="feedbackPanel" hidden>
+      <div class="fb-header">
+        <span class="fb-title">这条内容有问题？</span>
+        <button class="fb-close" id="fbClose" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="fb-sub">选择问题类型，点击即可提交（也可顺便补充说明）：</div>
+      <div class="fb-types" id="fbTypes">
+        <button type="button" class="fb-type" data-type="link_broken">链接失效</button>
+        <button type="button" class="fb-type" data-type="content_error">内容错误</button>
+        <button type="button" class="fb-type" data-type="wrong_category">分类/标签不对</button>
+        <button type="button" class="fb-type" data-type="duplicate">重复/多余</button>
+        <button type="button" class="fb-type" data-type="other">其他</button>
+      </div>
+      <textarea class="fb-detail" id="fbDetail" placeholder="补充说明（可选）：比如哪个链接打不开、哪里写错了…" rows="3"></textarea>
+      <button class="fb-submit" id="fbSubmit" type="button">提交反馈</button>
+      <div class="fb-status" id="fbStatus"></div>
+    </div>
+
+    <script>
+      // Mobile menu toggle
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const siteNav = document.getElementById('siteNav');
+      if (mobileMenuBtn && siteNav) {
+        mobileMenuBtn.addEventListener('click', () => {
+          siteNav.classList.toggle('mobile-open');
+          mobileMenuBtn.classList.toggle('open');
+        });
+      }
+    </script>
+
+    <script>
+      // Feedback widget
+      (function () {
+        const fab = document.getElementById('feedbackFab');
+        const panel = document.getElementById('feedbackPanel');
+        const close = document.getElementById('fbClose');
+        const types = document.getElementById('fbTypes');
+        const detail = document.getElementById('fbDetail');
+        const submit = document.getElementById('fbSubmit');
+        const status = document.getElementById('fbStatus');
+        let selectedType = null;
+
+        fab.addEventListener('click', () => { panel.hidden = !panel.hidden; });
+        fab.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); panel.hidden = !panel.hidden; }
+        });
+        close.addEventListener('click', () => { panel.hidden = true; });
+
+        types.addEventListener('click', (e) => {
+          const btn = e.target.closest('.fb-type');
+          if (!btn) return;
+          types.querySelectorAll('.fb-type').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          selectedType = btn.dataset.type;
+          status.textContent = '';
+          status.className = 'fb-status';
+        });
+
+        submit.addEventListener('click', async () => {
+          if (!selectedType) {
+            status.textContent = '请先选择一个问题类型';
+            status.className = 'fb-status err';
+            return;
+          }
+          submit.disabled = true;
+          submit.textContent = '提交中…';
+          try {
+            const res = await fetch('/feedback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: selectedType,
+                detail: detail.value.trim(),
+                pageUrl: location.href,
+                pageTitle: document.title,
+              }),
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+              status.textContent = '✓ 已收到，感谢你的反馈！';
+              status.className = 'fb-status ok';
+              detail.value = '';
+              selectedType = null;
+              types.querySelectorAll('.fb-type').forEach((b) => b.classList.remove('active'));
+              setTimeout(() => {
+                panel.hidden = true;
+                status.textContent = '';
+                status.className = 'fb-status';
+                submit.disabled = false;
+                submit.textContent = '提交反馈';
+              }, 2500);
+            } else {
+              throw new Error((data && data.error) || '提交失败');
+            }
+          } catch (err) {
+            status.textContent = '提交失败，请稍后重试';
+            status.className = 'fb-status err';
+            submit.disabled = false;
+            submit.textContent = '提交反馈';
+          }
+        });
+      })();
+    </script>
+  </body>
 </html>
+
+<style is:global>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #eff6ff;
+    --text: #1f2937;
+    --text-light: #6b7280;
+    --text-lighter: #9ca3af;
+    --bg: #ffffff;
+    --bg-alt: #f9fafb;
+    --border: #e5e7eb;
+    --border-light: #f3f4f6;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --container: 1200px;
+    --header-h: 64px;
+    --transition: 0.2s ease;
+    /* Tags */
+    --tag-safety-bg: #dbeafe;
+    --tag-safety-color: #1e40af;
+    --tag-environment-bg: #d1fae5;
+    --tag-environment-color: #065f46;
+    --tag-occupational_health-bg: #fef3c7;
+    --tag-occupational_health-color: #92400e;
+    --tag-region-bg: #f3f4f6;
+    --tag-region-color: #374151;
+    /* Accident severity */
+    --sev-general: #3b82f6;
+    --sev-larger: #f59e0b;
+    --sev-major: #ef4444;
+    --sev-special: #7f1d1d;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--primary-dark); }
+
+  img { max-width: 100%; height: auto; }
+
+  .container {
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Header */
+  .site-header {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    height: var(--header-h);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    height: var(--header-h);
+    gap: 32px;
+  }
+
+  .site-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .site-logo svg { width: 28px; height: 28px; }
+
+  .site-nav {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex: 1;
+  }
+
+  .nav-link {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 0;
+    position: relative;
+    transition: color var(--transition);
+  }
+
+  .nav-link:hover, .nav-link.active { color: var(--primary); }
+  .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 1px;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .mobile-menu-btn span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 1px;
+    transition: var(--transition);
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    background: var(--primary);
+    padding: 16px 0;
+  }
+
+  .stats-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .stats-grid-6 { grid-template-columns: repeat(6, 1fr); }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: var(--radius);
+    transition: background var(--transition);
+  }
+
+  .stat-item:hover { background: rgba(255,255,255,0.1); }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-label { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+  /* Sections */
+  .section { padding: 40px 0; }
+  .section-alt { background: var(--bg-alt); }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title:hover { color: var(--primary); }
+  .section-icon { width: 22px; height: 22px; color: var(--primary); }
+  .section-more { font-size: 14px; font-weight: 500; white-space: nowrap; }
+
+  /* List grid */
+  .list-grid { display: flex; flex-direction: column; gap: 12px; }
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    transition: box-shadow var(--transition), border-color var(--transition);
+    color: inherit;
+  }
+
+  .list-item:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+  }
+
+  .list-item-body { flex: 1; min-width: 0; }
+  .list-item-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .list-item-no { font-weight: 400; color: var(--text-light); font-size: 13px; }
+  .list-item-meta-row { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-light); }
+  .list-item-meta-row span { white-space: nowrap; }
+  .list-item-arrow { color: var(--text-lighter); font-size: 18px; margin-left: 12px; }
+
+  /* Tags */
+  .std-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .std-tag-safety { background: var(--tag-safety-bg); color: var(--tag-safety-color); }
+  .std-tag-environment { background: var(--tag-environment-bg); color: var(--tag-environment-color); }
+  .std-tag-occupational_health { background: var(--tag-occupational_health-bg); color: var(--tag-occupational_health-color); }
+  .std-tag-region { background: var(--tag-region-bg); color: var(--tag-region-color); }
+  .std-tag-type-gb { background: #dbeafe; color: #1e40af; }
+  .std-tag-type-industry { background: #e0e7ff; color: #3730a3; }
+  .std-tag-type-local { background: #fce7f3; color: #9d174d; }
+
+  .acc-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .acc-sev-general { background: #dbeafe; color: #1e40af; }
+  .acc-sev-larger { background: #fef3c7; color: #92400e; }
+  .acc-sev-major { background: #fee2e2; color: #dc2626; }
+  .acc-sev-special { background: #fecaca; color: #7f1d1d; }
+  .acc-tag-cat { background: #f3f4f6; color: #374151; }
+  .acc-tag-prov { background: #e0e7ff; color: #3730a3; }
+
+  /* Filter bar */
+  .filter-bar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .filter-row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .filter-label { font-size: 13px; font-weight: 600; color: var(--text-light); white-space: nowrap; }
+  .filter-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-tag {
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg);
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .filter-tag:hover { border-color: var(--primary); color: var(--primary); }
+  .filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* Search box */
+  .search-box { display: flex; gap: 8px; }
+  .search-box input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    outline: none;
+    transition: border-color var(--transition);
+  }
+  .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .search-box button {
+    padding: 10px 20px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+  .search-box button:hover { background: var(--primary-dark); }
+
+  /* Pagination */
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 0;
+    font-size: 13px;
+    color: var(--text-light);
+    flex-wrap: wrap;
+  }
+  .pagination-controls { display: flex; gap: 4px; align-items: center; }
+  .pagination-controls button {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    cursor: pointer;
+    font-size: 13px;
+    transition: var(--transition);
+  }
+  .pagination-controls button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .pagination-controls button:hover:not(.active) { border-color: var(--primary); }
+  .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .page-ellipsis { padding: 0 4px; }
+
+  /* Detail page */
+  .detail-breadcrumb-flat {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 16px;
+  }
+  .detail-breadcrumb-flat a { color: var(--text-light); }
+  .detail-breadcrumb-flat a:hover { color: var(--primary); }
+  .detail-title-flat {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+  .detail-body { min-height: 200px; }
+  .detail-section { margin-bottom: 32px; }
+  .detail-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .detail-text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .detail-text p { margin-bottom: 12px; }
+  .detail-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .detail-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+  .detail-action-btn:hover { background: var(--primary-dark); color: #fff; }
+  .detail-empty { color: var(--text-lighter); font-size: 14px; }
+  .loading { color: var(--text-lighter); font-size: 14px; padding: 40px 0; text-align: center; }
+  .empty { color: var(--text-lighter); font-size: 14px; padding: 40px 0; text-align: center; }
+
+  /* Info cards */
+  .info-card-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .info-card-item {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    background: var(--bg-alt);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-light);
+  }
+  .info-card-label { font-size: 12px; color: var(--text-lighter); margin-bottom: 4px; }
+  .info-card-value { font-size: 14px; font-weight: 500; color: var(--text); }
+
+  .detail-info-table { width: 100%; border-collapse: collapse; }
+  .detail-info-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 14px;
+  }
+  .detail-info-table .info-label {
+    font-weight: 600;
+    color: var(--text-light);
+    width: 120px;
+    white-space: nowrap;
+  }
+  .detail-info-table .info-value { color: var(--text); }
+
+  .regulation-full-text {
+    font-size: 15px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .detail-video-wrap {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .detail-video-wrap iframe,
+  .detail-video-wrap video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* PageComment */
+  .page-comment {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Footer */
+  .site-footer {
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+    padding: 40px 0 24px;
+    margin-top: 40px;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    margin-bottom: 32px;
+  }
+  .footer-col h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .footer-col a {
+    display: block;
+    font-size: 13px;
+    color: var(--text-light);
+    padding: 4px 0;
+    transition: color var(--transition);
+  }
+  .footer-col a:hover { color: var(--primary); }
+  .footer-desc { font-size: 13px; color: var(--text-light); line-height: 1.6; }
+  .footer-bottom {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-lighter);
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .container { padding: 0 16px; }
+    .site-nav { 
+      display: none;
+      position: absolute;
+      top: var(--header-h);
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      flex-direction: column;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+    }
+    .site-nav.mobile-open { display: flex; }
+    .mobile-menu-btn { display: flex; }
+    .stats-grid-6 { grid-template-columns: repeat(3, 1fr); }
+    .footer-grid { grid-template-columns: 1fr; }
+    .list-item { padding: 12px 16px; }
+    .list-item-title { font-size: 14px; }
+    .detail-title-flat { font-size: 20px; }
+    .info-card-list { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid-6 { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Feedback Widget */
+  .feedback-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 200;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 20px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+    cursor: pointer;
+    transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+    user-select: none;
+  }
+  .feedback-fab:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.45);
+  }
+  .feedback-fab:active { transform: translateY(0); }
+
+  .feedback-panel {
+    position: fixed;
+    right: 24px;
+    bottom: 84px;
+    z-index: 200;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    padding: 18px 18px 16px;
+    animation: fbPop 0.18s ease;
+  }
+  @keyframes fbPop {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .fb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .fb-title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .fb-close {
+    border: none;
+    background: none;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--text-lighter);
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color var(--transition);
+  }
+  .fb-close:hover { color: var(--text); }
+  .fb-sub { font-size: 12px; color: var(--text-light); margin-bottom: 12px; line-height: 1.5; }
+
+  .fb-types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .fb-type {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg);
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .fb-type:hover { border-color: var(--primary); color: var(--primary); }
+  .fb-type.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .fb-detail {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.5;
+    color: var(--text);
+    outline: none;
+    resize: vertical;
+    margin-bottom: 12px;
+    transition: border-color var(--transition);
+  }
+  .fb-detail:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+  .fb-submit {
+    width: 100%;
+    padding: 11px 20px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+  .fb-submit:hover:not(:disabled) { background: var(--primary-dark); }
+  .fb-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .fb-status { font-size: 13px; margin-top: 10px; min-height: 18px; text-align: center; }
+  .fb-status.ok { color: #16a34a; }
+  .fb-status.err { color: #dc2626; }
+
+  @media (max-width: 480px) {
+    .feedback-fab { right: 16px; bottom: 16px; padding: 10px 16px; }
+    .feedback-panel { right: 16px; bottom: 72px; }
+  }
+</style>

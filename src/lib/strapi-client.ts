@@ -1,12 +1,14 @@
 /**
  * 共享的 Strapi 按需加载客户端
- * 通过同源代理 /api/strapi 访问内部 Strapi，绝不在浏览器直连 Strapi。
+ * 通过同源代理 /sapi 访问内部 Strapi，绝不在浏览器直连 Strapi。
+ * 注意：原 /api/ 前缀被 Cloudflare/Vercel 旧规则拦截（hser.ren/api/* 仍路由到 Vercel 旧函数），
+ * 故改用 /sapi 前缀，使其走 hser.ren → Cloudflare → ECS Nginx → Astro Node 的正常通道。
  * - 列表：并行分页拉取「摘要字段（不含 content）」，本地缓存 30 分钟，再做筛选/分页渲染
  * - 详情：按 slug 单条拉取（含 content），仅几 KB
  * - 兜底：代理不可用时退回本地 /data/*-preview.json（列表）或全量 JSON（详情）
  */
 
-export const STRAPI_PROXY = '/api/strapi';
+export const STRAPI_PROXY = '/sapi';
 const CACHE_TTL = 30 * 60 * 1000;
 
 export interface StrapiPage {
