@@ -48,7 +48,7 @@ import Layout from '../../layouts/Layout.astro';
         if (ft) metaItems.push(`<span class="std-tag std-tag-type-gb">${ft}${fileSize}</span>`);
         if (item.publishDate) metaItems.push(`<span>${item.publishDate}</span>`);
         return `
-          <a href="/documents/${item.slug || item.id}" class="list-item">
+          <a href="/documents/${item.slug}" class="list-item">
             <div class="list-item-body">
               <div class="list-item-title">${item.title}</div>
               <div class="list-item-meta-row">

@@ -146,7 +146,7 @@ import Layout from '../layouts/Layout.astro';
       // 法规类型：标题后加标准号，小字显示日期
       if (type === 'regulation') {
         return `
-          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+          <a href="${hrefPrefix}${item.slug}" class="list-item">
             <div class="list-item-body">
               <div class="list-item-title">${title}${standardNo ? ` <span class="list-item-no">${standardNo}</span>` : ''}</div>
               <div class="list-item-meta-row">
@@ -164,7 +164,7 @@ import Layout from '../layouts/Layout.astro';
         const stdNo = item.standardNo || '';
         const dateValue = item.effectiveDate || item.publishDate || '';
         return `
-          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+          <a href="${hrefPrefix}${item.slug}" class="list-item">
             <div class="list-item-body">
               <div class="list-item-title">${title}</div>
               <div class="list-item-meta-row">
@@ -191,7 +191,7 @@ import Layout from '../layouts/Layout.astro';
         const severity = SEVERITY_MAP[item.severity] || item.severity || '';
         const date = item.date || '';
         return `
-          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+          <a href="${hrefPrefix}${item.slug}" class="list-item">
             <div class="list-item-body">
               <div class="list-item-title">${title}</div>
               <div class="list-item-meta-row">
@@ -211,7 +211,7 @@ import Layout from '../layouts/Layout.astro';
         const typeSizeTag = (fileType || fileSize) ? ` <span class="list-item-no">(${[fileType, fileSize].filter(Boolean).join('，')})</span>` : '';
         const category = item.category || '';
         return `
-          <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+          <a href="${hrefPrefix}${item.slug}" class="list-item">
             <div class="list-item-body">
               <div class="list-item-title">${title}${typeSizeTag}</div>
               <div class="list-item-meta-row">
@@ -224,7 +224,7 @@ import Layout from '../layouts/Layout.astro';
       }
 
       return `
-        <a href="${hrefPrefix}${item.slug || item.id}" class="list-item">
+        <a href="${hrefPrefix}${item.slug}" class="list-item">
           <div class="list-item-body">
             <div class="list-item-title">${title}</div>
             ${desc ? `<div class="list-item-desc">${desc.length > 80 ? desc.slice(0,80) + '...' : desc}</div>` : ''}
@@ -250,7 +250,7 @@ import Layout from '../layouts/Layout.astro';
       }
 
       return `
-        <a href="/videos/${item.slug || item.id}" class="video-card">
+        <a href="/videos/${item.slug}" class="video-card">
           <div class="video-card-thumb">
             ${thumbSrc 
               ? `<img src="${thumbSrc}" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">

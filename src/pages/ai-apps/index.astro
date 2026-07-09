@@ -39,7 +39,7 @@ import Layout from '../../layouts/Layout.astro';
         const shortDesc = desc.length > 120 ? desc.substring(0, 120) + '...' : desc;
         const category = item.category ? `<span class="std-tag std-tag-type-gb">${item.category}</span>` : '';
         return `
-          <a href="/ai-apps/${item.slug || item.id}" class="list-item ai-card">
+          <a href="/ai-apps/${item.slug}" class="list-item ai-card">
             <div class="list-item-body">
               <div class="list-item-title">${item.title} ${category}</div>
               ${shortDesc ? `<div style="font-size:13px;color:var(--text-light);margin-top:4px;line-height:1.5;">${shortDesc}</div>` : ''}

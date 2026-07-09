@@ -176,7 +176,7 @@ function writeJson(name, data) {
 
 /**
  * 生成统一 slug：格式为 YYMM-NNN（如 2606-001）
- * 按发布年月分组，组内按日期排序后分配序列号
+ * 按发布年月分组，组内按日期排序后分配序列号，原地修改 item.slug
  */
 function generateSlugs(items, dateField = 'publishDate') {
   const groups = {};
@@ -187,7 +187,6 @@ function generateSlugs(items, dateField = 'publishDate') {
     groups[key].push(item);
   });
 
-  const slugMap = {}; // originalSlug → newSlug
   Object.keys(groups).sort().forEach(key => {
     const group = groups[key].sort((a, b) => {
       const da = a[dateField] || a.createdAt || '';
@@ -197,54 +196,15 @@ function generateSlugs(items, dateField = 'publishDate') {
     group.forEach((item, idx) => {
       const seq = String(idx + 1).padStart(3, '0');
       if (key === 'no-date') {
-        // 无日期的放在最后，用 9999-XX
-        slugMap[item.slug] = `9999-${seq}`;
         item.slug = `9999-${seq}`;
       } else {
         const parts = key.split('-');
         const yy = parts[0].slice(2);
         const mm = parts[1];
-        const newSlug = `${yy}${mm}-${seq}`;
-        slugMap[item.slug] = newSlug;
-        item.slug = newSlug;
+        item.slug = `${yy}${mm}-${seq}`;
       }
     });
   });
-  return slugMap;
-}
-
-/**
- * 清洗法规标题：从通知/印发格式中提取实际法规名称。
- * 规则：
- *   1. 优先提取《》内的内容 → "XXX关于印发《办法》的通知" → "办法"
- *   2. 无《》时，提取"印发"到"的通知"之间的内容 → "XXX印发办法的通知" → "办法"
- *   3. 以上都不匹配则返回原标题
- * 
- * 注意：此函数已不再被调用（死代码），标题清洗已在 Strapi 源头完成。
- * 前端直接使用 item.title，不做二次清洗。
- */
-function cleanRegulationTitle(title) {
-  if (!title) return title;
-  // 规则1：优先提取 《》 内的内容（最准确的法规名称）
-  const match = title.match(/《([^》]+)》/);
-  if (match) return match[1];
-  // 规则2：无《》时，从"印发..."中提取名称
-  // "XXX印发XXX办法的通知" → "XXX办法"
-  // "XXX印发XXX管理办法" (无通知) → "XXX管理办法"
-  const yinfaMatch = title.match(/印发(.+?)(?:的)?通知/);
-  if (yinfaMatch) {
-    let name = yinfaMatch[1].trim();
-    name = name.replace(/[（(][^）)]*[）)]$/, '').replace(/\s+$/, '');
-    if (name) return name;
-  }
-  // 处理"印发XXX管理办法"（末句以"办法"、"规定"、"细则"、"条例"等结尾）
-  const yinfaEndMatch = title.match(/印发(.+?)(?:办法|规定|细则|条例|制度|标准|规范|规程|决定)(?:\s|$)/);
-  if (yinfaEndMatch) {
-    let name = yinfaEndMatch[1] + (title.match(/办法|规定|细则|条例|制度|标准|规范|规程|决定/)[0]);
-    if (name) return name;
-  }
-  // 规则3：以上都不匹配则返回原标题
-  return title;
 }
 
 /**
@@ -297,17 +257,6 @@ async function countSubmissions(token) {
   if (!res.ok) return 0;
   const json = await res.json();
   return json.pagination?.total ?? 0;
-}
-
-/** 加载法规下载链接映射表（slug → downloadUrl），从独立 JSON 文件读取 */
-function loadRegulationDownloads() {
-  const filePath = path.join(OUT_DIR, 'regulation-downloads.json');
-  try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch {
-    console.warn('regulation-downloads.json not found, using empty mapping.');
-    return {};
-  }
 }
 
 async function fetchLatest(endpoint, fields, pageSize = 6, sort = 'createdAt:desc') {
@@ -432,13 +381,7 @@ async function main() {
   if (removedCount > 0) {
     console.log(`Filtered out ${removedCount} non-regulation items (意见/废止).`);
   }
-  // ✅ FIX: Download URL lookup uses OLD slug (from Strapi) → must happen BEFORE generateSlugs
-  const regDownloads = loadRegulationDownloads();
-  for (const reg of filteredRegulations) {
-    if (regDownloads[reg.slug]) {
-      reg.downloadUrl = regDownloads[reg.slug];
-    }
-  }
+  // DownloadUrl already populated from Strapi data; no external mapping needed
   // ✅ FIX: Generate slugs BEFORE writing JSON, so regulations.json has YYMM-NNN slugs
   generateSlugs(filteredRegulations, 'publishDate');
   writeJson('regulations', filteredRegulations);
