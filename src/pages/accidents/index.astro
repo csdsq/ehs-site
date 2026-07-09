@@ -56,7 +56,6 @@ import Layout from '../../layouts/Layout.astro';
     var pageSize = 10;
     var activeSeverity = '';
     var activeCategory = '';
-    var slugMap = {};
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
@@ -64,10 +63,8 @@ import Layout from '../../layouts/Layout.astro';
       return SEVERITY_CLASS[sev] || 'acc-sev-general';
     }
 
-    function toNewSlug(item) {
-      var oldSlug = item.slug || ('' + item.id);
-      if (/^\d{4}-\d{3}$/.test(oldSlug)) return oldSlug;
-      return slugMap[oldSlug] || oldSlug;
+    function getDetailLink(item) {
+      return '/accidents/' + item.slug;
     }
 
     function renderItems(items) {
@@ -87,7 +84,7 @@ import Layout from '../../layouts/Layout.astro';
         if (sevLabel) metaItems.push('<span class="acc-tag ' + getSeverityClass(item.severity) + '">' + sevLabel + '</span>');
         if (catLabel) metaItems.push('<span class="acc-tag acc-tag-cat">' + catLabel + '</span>');
 
-        var detailUrl = '/accidents/' + toNewSlug(item);
+        var detailUrl = getDetailLink(item);
         html += '<a href="' + detailUrl + '" class="list-item">'
           + '<div class="list-item-body">'
           + '<div class="list-item-title">' + (item.title || '') + '</div>'
@@ -228,31 +225,8 @@ import Layout from '../../layouts/Layout.astro';
       return fetch(url).then(function(res) { return res.json(); });
     }
 
-    function loadSlugMapping() {
-      var controller = new AbortController();
-      var timer = setTimeout(function() { controller.abort(); }, 5000);
-      return fetch('/data/slug-mapping.json', { signal: controller.signal }).then(function(res) {
-        clearTimeout(timer);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      }).then(function(map) {
-        var revMap = {};
-        for (var key in map) {
-          if (map.hasOwnProperty(key)) {
-            if (map[key].accidents) {
-              revMap[map[key].accidents] = key;
-            }
-          }
-        }
-        slugMap = revMap;
-      }).catch(function() {
-        slugMap = {};
-      });
-    }
-
     async function loadItems() {
       var listEl = document.getElementById('acc-list');
-      await loadSlugMapping();
       try {
         allItems = (await fetchAllSummaries('accidents', SUMMARY_FIELDS, 'date:desc')).map(normalizeProvince);
         filteredItems = allItems.slice();

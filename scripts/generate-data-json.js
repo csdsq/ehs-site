@@ -397,8 +397,8 @@ async function main() {
     'date'
   );
   const normalizedAccidents = normalizeAccidents(accidents);
-  // 为事故生成统一 slug：按 date（事故日期）分组
-  const accSlugMap = generateSlugs(normalizedAccidents, 'date');
+  // 为每条记录生成 YYMM-NNN 格式的 slug（原地修改 item.slug）
+  generateSlugs(normalizedAccidents, 'date');
   writeJson('accidents', normalizedAccidents);
   // 兜底预览：全量摘要（不含 content），API 代理不可用时列表页降级使用
   writeJson('accidents-preview', normalizedAccidents.map(a => ({
@@ -440,7 +440,7 @@ async function main() {
     }
   }
   // ✅ FIX: Generate slugs BEFORE writing JSON, so regulations.json has YYMM-NNN slugs
-  const regSlugMap = generateSlugs(filteredRegulations, 'publishDate');
+  generateSlugs(filteredRegulations, 'publishDate');
   writeJson('regulations', filteredRegulations);
   // 兜底预览：全量摘要（不含 content）
   writeJson('regulations-preview', filteredRegulations.map(r => ({
@@ -460,7 +460,7 @@ async function main() {
   // 构建时清洗：标题去前缀、假日期清空
   const standards = normalizeStandards(rawStandards);
   // ✅ FIX: Generate slugs BEFORE writing JSON, so standards.json has YYMM-NNN slugs
-  const stdSlugMap = generateSlugs(standards, 'effectiveDate');
+  generateSlugs(standards, 'effectiveDate');
   const standardsCleanCount = rawStandards.length - standards.filter(s => s.title === (rawStandards.find(r => r.documentId === s.documentId) || {}).title).length;
   if (standardsCleanCount > 0 || standards.some(s => !s.publishDate || !s.effectiveDate)) {
     console.log(`Standards normalized: cleaned titles and/or cleared fake dates.`);
@@ -522,27 +522,6 @@ async function main() {
   // Generate single JSON for the homepage, replacing 7 parallel API calls
   await generateHomeData(normalizedAccidents, filteredRegulations, standards);
 
-  // ✅ FIX: 生成 slug 映射表（newSlug → { module: originalSlug }）
-  // 不再合并三个 slugMap（避免 originalSlug 相同时后者覆盖前者）
-  // 而是按模块分别写入，每个 detail page 用 URL 对应的 module 字段查找
-  const slugMapping = {};
-  Object.keys(regSlugMap).forEach(oldSlug => {
-    const newSlug = regSlugMap[oldSlug];
-    if (!slugMapping[newSlug]) slugMapping[newSlug] = {};
-    slugMapping[newSlug]['regulations'] = oldSlug;
-  });
-  Object.keys(accSlugMap).forEach(oldSlug => {
-    const newSlug = accSlugMap[oldSlug];
-    if (!slugMapping[newSlug]) slugMapping[newSlug] = {};
-    slugMapping[newSlug]['accidents'] = oldSlug;
-  });
-  Object.keys(stdSlugMap).forEach(oldSlug => {
-    const newSlug = stdSlugMap[oldSlug];
-    if (!slugMapping[newSlug]) slugMapping[newSlug] = {};
-    slugMapping[newSlug]['standards'] = oldSlug;
-  });
-  writeJson('slug-mapping', slugMapping);
-  console.log(`Generated slug mapping: ${Object.keys(slugMapping).length} entries.`);
 }
 
 main().catch(err => {

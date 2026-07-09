@@ -82,7 +82,6 @@ import Layout from '../../layouts/Layout.astro';
     var pageSize = 10;
     var activeCategory = '';
     var activeRegion = '';
-    var slugMap = {};
 
     var cityProvinceMap = {
       '深圳': '广东', '广州': '广东', '珠海': '广东', '佛山': '广东', '东莞': '广东',
@@ -139,10 +138,8 @@ import Layout from '../../layouts/Layout.astro';
       return region || '地方';
     }
 
-    function toNewSlug(item) {
-      var oldSlug = item.slug || ('' + item.id);
-      if (/^\d{4}-\d{3}$/.test(oldSlug)) return oldSlug;
-      return slugMap[oldSlug] || oldSlug;
+    function getDetailLink(item) {
+      return '/regulations/' + item.slug;
     }
 
     function renderItems(items) {
@@ -167,7 +164,7 @@ import Layout from '../../layouts/Layout.astro';
 
         var metaHtml = metaParts.join('');
         var tagHtml = tagParts.length > 0 ? tagParts.join('') : '';
-        var detailUrl = '/regulations/' + toNewSlug(item);
+        var detailUrl = getDetailLink(item);
 
         html += '<a href="' + detailUrl + '" class="list-item">'
           + '<div class="list-item-body">'
@@ -306,31 +303,8 @@ import Layout from '../../layouts/Layout.astro';
       return fetch(url).then(function(res) { return res.json(); });
     }
 
-    function loadSlugMapping() {
-      var controller = new AbortController();
-      var timer = setTimeout(function() { controller.abort(); }, 5000);
-      return fetch('/data/slug-mapping.json', { signal: controller.signal }).then(function(res) {
-        clearTimeout(timer);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      }).then(function(map) {
-        var revMap = {};
-        for (var key in map) {
-          if (map.hasOwnProperty(key)) {
-            if (map[key].regulations) {
-              revMap[map[key].regulations] = key;
-            }
-          }
-        }
-        slugMap = revMap;
-      }).catch(function() {
-        slugMap = {};
-      });
-    }
-
     async function loadItems() {
       var listEl = document.getElementById('std-list');
-      await loadSlugMapping();
       try {
         allItems = await fetchAllSummaries('regulations', SUMMARY_FIELDS, 'publishDate:desc');
         filteredItems = allItems.slice();
