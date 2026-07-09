@@ -370,35 +370,7 @@ import Layout from '../../layouts/Layout.astro';
       updateView();
     }
 
-    // 从 /sapi 代理拉取摘要数据
-    function fetchAllSummaries(collection, fields, sort) {
-      var params = 'pagination[page]=1&pagination[pageSize]=100';
-      if (sort) params += '&sort=' + encodeURIComponent(sort);
-      for (var fi = 0; fi < fields.length; fi++) {
-        params += '&fields[' + fi + ']=' + encodeURIComponent(fields[fi]);
-      }
-      var url = '/sapi/' + collection + '?' + params;
-      var controller = new AbortController();
-      var timer = setTimeout(function() { controller.abort(); }, 3000);
-      return fetch(url, { signal: controller.signal }).then(function(res) {
-        clearTimeout(timer);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      }).then(function(data) {
-        var items = [];
-        if (data && data.data) {
-          for (var i = 0; i < data.data.length; i++) {
-            var d = data.data[i];
-            var attrs = d.attributes || d;
-            attrs.id = d.id;
-            attrs.documentId = d.documentId;
-            items.push(attrs);
-          }
-        }
-        return items;
-      });
-    }
-
+    // 从构建时生成的预览 JSON 加载数据（已含 YYMM-NNN 新 slug）
     function fetchPreview(url) {
       return fetch(url).then(function(res) { return res.json(); });
     }
@@ -406,21 +378,13 @@ import Layout from '../../layouts/Layout.astro';
     async function loadItems() {
       var listEl = document.getElementById('reg-list');
       try {
-        allItems = await fetchAllSummaries('standards', SUMMARY_FIELDS, 'effectiveDate:desc');
+        allItems = await fetchPreview(PREVIEW_URL);
         filteredItems = allItems.slice();
         document.getElementById('reg-count').textContent = '共 ' + allItems.length + ' 项';
         buildFilters();
         updateView();
       } catch (e) {
-        try {
-          allItems = await fetchPreview(PREVIEW_URL);
-          filteredItems = allItems.slice();
-          document.getElementById('reg-count').textContent = '共 ' + allItems.length + ' 项（离线缓存）';
-          buildFilters();
-          updateView();
-        } catch (e2) {
-          if (listEl) listEl.innerHTML = '<div class="empty">加载失败</div>';
-        }
+        if (listEl) listEl.innerHTML = '<div class="empty">加载失败</div>';
       }
     }
 
