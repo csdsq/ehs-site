@@ -89,11 +89,17 @@ const { slug } = Astro.params;
       }
     }
 
+    function proxyFileUrl(url) {
+      if (!url) return '';
+      // 将 Strapi 内部 URL 转为同源代理
+      return url.replace('https://api.hser.ren/uploads/', '/suploads/');
+    }
+
     function renderItem(item) {
       document.getElementById('detail-title').textContent = item.title || '';
 
-      // 确定文件 URL：直接用原始 downloadUrl，不做替换
-      var fileUrl = item.downloadUrl || '';
+      // 确定文件 URL：通过同源代理 /suploads/ 访问，不直接连 api.hser.ren
+      var fileUrl = proxyFileUrl(item.downloadUrl || '');
       var ft = (item.fileType || '').toLowerCase();
 
       var previewHtml = '';
