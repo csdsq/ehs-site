@@ -15,7 +15,7 @@ import nodemailer from 'nodemailer';
  *   1) 发邮件给管理员 admin@hser.ren（QQ SMTP，环境变量配置）
  *   2) 存一份到 Strapi 的 message 集合（category 前缀 feedback|类型|pending，便于人工跟踪）
  */
-const STRAPI_URL = process.env.STRAPI_URL || 'http://127.0.0.1:1337';
+const STRAPI_URL = process.env.STRAPI_URL || 'http://8.149.139.66:1337';
 const ADMIN_EMAIL = process.env.STRAPI_ADMIN_EMAIL || 'admin@hser.ren';
 const ADMIN_PASSWORD = process.env.STRAPI_ADMIN_PASSWORD || 'StrapiAdmin2026';
 

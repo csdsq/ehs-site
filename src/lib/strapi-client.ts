@@ -17,7 +17,10 @@ export interface StrapiPage {
 }
 
 async function getJson(url: string): Promise<StrapiPage> {
-  const res = await fetch(url);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3000);
+  const res = await fetch(url, { signal: controller.signal });
+  clearTimeout(timer);
   if (!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`);
   return res.json();
 }
@@ -67,10 +70,18 @@ export async function fetchBySlug(collection: string, slug: string): Promise<any
   params.set('filters[slug][$eq]', slug);
   params.set('populate', '*');
   const url = `${STRAPI_PROXY}/${collection}?${params}`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data && json.data.length > 0 ? json.data[0] : null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data && json.data.length > 0 ? json.data[0] : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** 兜底：从本地 preview JSON 加载（代理不可用时） */

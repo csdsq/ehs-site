@@ -20,7 +20,7 @@ import nodemailer from 'nodemailer';
  * 该能力较重且有外部依赖，本端点暂未移植；投稿统一进入 message 集合人工审核发布。
  * 如需恢复自动发布，可后续接入轻量抓取服务。
  */
-const STRAPI_URL = process.env.STRAPI_URL || 'http://127.0.0.1:1337';
+const STRAPI_URL = process.env.STRAPI_URL || 'http://8.149.139.66:1337';
 const ADMIN_EMAIL = process.env.STRAPI_ADMIN_EMAIL || 'admin@hser.ren';
 const ADMIN_PASSWORD = process.env.STRAPI_ADMIN_PASSWORD || 'StrapiAdmin2026';
 

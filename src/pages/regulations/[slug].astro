@@ -30,24 +30,52 @@ const { slug } = Astro.params;
     <PageComment pageUrl={`/regulations/${slug}`} />
   </div>
 
-  <script define:vars={{ slug }}>
-    import { fetchBySlug, findInFullJson } from '../../lib/strapi-client';
+  <script is:inline define:vars={{ slug }}>
+    const STRAPI_PROXY = '/sapi';
     const STATIC_DATA_URL = '/data/regulations.json';
     const CACHE_KEY = 'reg_detail_' + slug;
     const CACHE_TTL = 30 * 60 * 1000;
 
+    async function fetchBySlugApi(collection, slug) {
+      const params = new URLSearchParams();
+      params.set('filters[slug][$eq]', slug);
+      params.set('populate', '*');
+      const url = STRAPI_PROXY + '/' + collection + '?' + params.toString();
+      const controller = new AbortController();
+      const timer = setTimeout(function() { controller.abort(); }, 5000);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) return null;
+        var json = await res.json();
+        return json.data && json.data.length > 0 ? json.data[0] : null;
+      } catch(e) {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function findInFullJson(url, slug) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        var all = await res.json();
+        return all.find(function(i) { return i.slug === slug; }) || null;
+      } catch(e) {
+        return null;
+      }
+    }
+
     async function loadDetail() {
-      const cached = localStorage.getItem(CACHE_KEY);
-      const cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
+      var cached = localStorage.getItem(CACHE_KEY);
+      var cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
       if (cached && cachedAt && Date.now() - parseInt(cachedAt) < CACHE_TTL) {
         renderItem(JSON.parse(cached));
         return;
       }
       try {
-        // 按需按 slug 拉单条（含 content），仅几 KB
-        let item = await fetchBySlug('regulations', slug);
+        var item = await fetchBySlugApi('regulations', slug);
         if (!item) {
-          // 代理不可用时，退回全量 JSON 查找
           item = await findInFullJson(STATIC_DATA_URL, slug);
         }
         if (item) {
@@ -63,62 +91,61 @@ const { slug } = Astro.params;
     }
 
     function renderItem(item) {
-      const categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
-      const regionMap = { national: '国家', provincial: '省', municipal: '市' };
-      const catLabel = categoryMap[item.category] || '';
-      const regLabel = regionMap[item.regionLevel] || '';
-      let tagHtml = '';
-      if (catLabel) tagHtml += `<span class="std-tag std-tag-${item.category}">${catLabel}</span> `;
-      if (regLabel) tagHtml += `<span class="std-tag std-tag-region">${regLabel}</span>`;
+      var categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+      var regionMap = { national: '国家', provincial: '省', municipal: '市' };
+      var catLabel = categoryMap[item.category] || '';
+      var regLabel = regionMap[item.regionLevel] || '';
+      var tagHtml = '';
+      if (catLabel) tagHtml += '<span class="std-tag std-tag-' + item.category + '">' + catLabel + '</span> ';
+      if (regLabel) tagHtml += '<span class="std-tag std-tag-region">' + regLabel + '</span>';
 
       document.getElementById('detail-title').textContent = item.title || '';
       document.getElementById('detail-tags').innerHTML = tagHtml;
 
-      const content = (item.content || '').trim();
-      const hasFullText = content && !content.startsWith('{') && content.length > 100;
+      var content = (item.content || '').trim();
+      var hasFullText = content && content.indexOf('{') !== 0 && content.length > 100;
 
-      // 固定三项：发文机构、发文号、实施日期（优先实施日期，无则用发布日期兜底）
-      const effectiveDate = item.effectiveDate || item.publishDate || '';
-      const infoRows = [
+      var effectiveDate = item.effectiveDate || item.publishDate || '';
+      var infoRows = [
         ['发文机构', item.source || '暂无'],
         ['发文号', item.standardNo || '暂无'],
         ['实施日期', effectiveDate || '暂无'],
       ];
 
-      document.getElementById('detail-body').innerHTML = `
-        <section class="detail-section">
-          <h2 class="detail-section-title">基本信息</h2>
-          <div class="detail-section-content">
-            <div class="info-card-list">
-              ${infoRows.map(([k,v]) => `
-                <div class="info-card-item">
-                  <span class="info-card-label">${k}</span>
-                  <span class="info-card-value">${v}</span>
-                </div>`).join('')}
-            </div>
-          </div>
-        </section>
-        ${hasFullText ? `
-        <section class="detail-section">
-          <h2 class="detail-section-title">法规全文</h2>
-          <div class="detail-section-content">
-            <div class="regulation-full-text">${content}</div>
-          </div>
-        </section>` : ''}
-        <section class="detail-section">
-          <h2 class="detail-section-title">查看原文</h2>
-          <div class="detail-section-content">
-            <div class="detail-actions">
-              ${item.downloadUrl
-                ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-preview">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    查看原文
-                  </a>`
-                : '<p class="detail-empty">暂无原文链接</p>'}
-            </div>
-          </div>
-        </section>
-      `;
+      document.getElementById('detail-body').innerHTML =
+        '<section class="detail-section">' +
+          '<h2 class="detail-section-title">基本信息</h2>' +
+          '<div class="detail-section-content">' +
+            '<div class="info-card-list">' +
+              infoRows.map(function(kv) {
+                return '<div class="info-card-item">' +
+                  '<span class="info-card-label">' + kv[0] + '</span>' +
+                  '<span class="info-card-value">' + kv[1] + '</span>' +
+                '</div>';
+              }).join('') +
+            '</div>' +
+          '</div>' +
+        '</section>' +
+        (hasFullText ?
+          '<section class="detail-section">' +
+            '<h2 class="detail-section-title">法规全文</h2>' +
+            '<div class="detail-section-content">' +
+              '<div class="regulation-full-text">' + content + '</div>' +
+            '</div>' +
+          '</section>' : '') +
+        '<section class="detail-section">' +
+          '<h2 class="detail-section-title">查看原文</h2>' +
+          '<div class="detail-section-content">' +
+            '<div class="detail-actions">' +
+              (item.downloadUrl
+                ? '<a href="' + item.downloadUrl + '" target="_blank" rel="noopener" class="detail-action-btn btn-preview">' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+                    ' 查看原文' +
+                  '</a>'
+                : '<p class="detail-empty">暂无原文链接</p>') +
+            '</div>' +
+          '</div>' +
+        '</section>';
     }
 
     loadDetail();
