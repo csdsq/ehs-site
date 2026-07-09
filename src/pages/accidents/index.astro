@@ -214,7 +214,7 @@ import Layout from '../../layouts/Layout.astro';
         if (data && data.data) {
           for (var i = 0; i < data.data.length; i++) {
             var d = data.data[i];
-            var attrs = d.attributes || {};
+            var attrs = d.attributes || d;
             attrs.id = d.id;
             attrs.documentId = d.documentId;
             items.push(attrs);
