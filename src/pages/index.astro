@@ -136,6 +136,19 @@ import Layout from '../layouts/Layout.astro';
       }
     }
 
+    function renderAiCard(item, hrefPrefix) {
+      const title = item.title || '';
+      const desc = item.features || item.description || '';
+      const shortDesc = desc.length > 80 ? desc.slice(0, 80) + '...' : desc;
+      const category = item.category ? '<span class="std-tag std-tag-type-gb">' + item.category + '</span>' : '';
+      return '<a href="' + hrefPrefix + item.slug + '" class="ai-card">'
+        + '<div class="list-item-body">'
+        + '<div class="list-item-title">' + title + ' ' + category + '</div>'
+        + (shortDesc ? '<div class="ai-desc">' + shortDesc + '</div>' : '')
+        + '</div>'
+        + '</a>';
+    }
+
     function renderListItem(item, hrefPrefix, type) {
       const title = item.title || '';
       const desc = item.description || item.summary || '';
@@ -143,42 +156,54 @@ import Layout from '../layouts/Layout.astro';
       const publishDate = item.publishDate || '';
       const effectiveDate = item.effectiveDate || '';
 
-      // 法规类型：标题后加标准号，小字显示日期
+      // 国标地标类型：标题一行，第二行标准号+实施日期+国标/行标/地标标签
       if (type === 'regulation') {
-        return `
-          <a href="${hrefPrefix}${item.slug}" class="list-item">
-            <div class="list-item-body">
-              <div class="list-item-title">${title}${standardNo ? ` <span class="list-item-no">${standardNo}</span>` : ''}</div>
-              <div class="list-item-meta-row">
-                ${publishDate ? `<span>发布：${publishDate}</span>` : ''}
-                ${effectiveDate ? `<span>实施：${effectiveDate}</span>` : ''}
-              </div>
-            </div>
-            <div class="list-item-arrow">&rarr;</div>
-          </a>`;
-      }
-
-      // 法规文件类型：标题下小字显示发文机构、发文号、实施/发文日期（首页不显示标签）
-      if (type === 'standard') {
-        const source = item.source || '';
-        const stdNo = item.standardNo || '';
-        const dateValue = item.effectiveDate || item.publishDate || '';
+        // 判断标准级别
+        var stdType = 'industry';
+        var no = (item.standardNo || '').toUpperCase().trim();
+        if (/^GB/.test(no)) stdType = 'gb';
+        else if (/^DB/.test(no)) stdType = 'local';
+        var stdTypeMap = { gb: '国标', industry: '行标', local: '地标' };
+        var stdTypeLabel = stdTypeMap[stdType] || '行标';
         return `
           <a href="${hrefPrefix}${item.slug}" class="list-item">
             <div class="list-item-body">
               <div class="list-item-title">${title}</div>
               <div class="list-item-meta-row">
+                <span class="std-tag std-tag-type-${stdType}">${stdTypeLabel}</span>
+                ${standardNo ? `<span>${standardNo}</span>` : ''}
+                ${effectiveDate ? `<span>实施：${effectiveDate}</span>` : publishDate ? `<span>发布：${publishDate}</span>` : ''}
+              </div>
+            </div>
+          </a>`;
+      }
+
+      // 法规文件类型：标题一行，第二行发文机构+发文号+实施日期+全国/地方标签
+      if (type === 'standard') {
+        const source = item.source || '';
+        const stdNo = item.standardNo || '';
+        const dateValue = item.effectiveDate || item.publishDate || '';
+        var regLabel = '全国';
+        // 简单判断地方/全国
+        if (source && (source.indexOf('省') >= 0 || source.indexOf('市') >= 0 ||
+            source.indexOf('自治区') >= 0 || source.indexOf('县') >= 0 ||
+            source.indexOf('区') >= 0)) regLabel = '地方';
+        return `
+          <a href="${hrefPrefix}${item.slug}" class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">${title}</div>
+              <div class="list-item-meta-row">
+                <span class="std-tag std-tag-region">${regLabel}</span>
                 ${source ? `<span>${source}</span>` : ''}
                 ${stdNo ? `<span>${stdNo}</span>` : ''}
                 ${dateValue ? `<span>${dateValue}</span>` : ''}
               </div>
             </div>
-            <div class="list-item-arrow">&rarr;</div>
           </a>`;
       }
 
-      // 事故类型：标题下小字显示发生日期、事故类型、事故等级
-  const SEVERITY_MAP = { general: '一般', larger: '较大', major: '重大', special: '特别重大' }; // TODO: import from accident-labels.js
+      // 事故类型：标题一行，第二行发生日期+事故类型+事故等级
+  const SEVERITY_MAP = { general: '一般', minor: '一般', larger: '较大', major: '重大', special: '特别重大' };
       const CATEGORY_MAP = {
         suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
         traffic: '交通', poisoning_suffocation: '中毒窒息',
@@ -195,31 +220,31 @@ import Layout from '../layouts/Layout.astro';
             <div class="list-item-body">
               <div class="list-item-title">${title}</div>
               <div class="list-item-meta-row">
-                ${date ? `<span>发生日期：${date}</span>` : ''}
-                ${category ? `<span>事故类型：${category}</span>` : ''}
-                ${severity ? `<span>事故等级：${severity}</span>` : ''}
+                ${date ? `<span>${date}</span>` : ''}
+                ${category ? `<span>${category}</span>` : ''}
+                ${severity ? `<span>${severity}</span>` : ''}
               </div>
             </div>
-            <div class="list-item-arrow">&rarr;</div>
           </a>`;
       }
 
-      // 资料文档类型：标题后加（类型，大小），小字显示分类
+      // 资料文档类型：标题一行，第二行分类+文件类型+大小+发布日期
       if (type === 'document') {
         const fileType = item.fileType ? item.fileType.toUpperCase() : '';
         const fileSize = item.fileSize || '';
-        const typeSizeTag = (fileType || fileSize) ? ` <span class="list-item-no">(${[fileType, fileSize].filter(Boolean).join('，')})</span>` : '';
         const category = item.category || '';
+        var metaParts = [];
+        if (category) metaParts.push(category);
+        if (fileType) metaParts.push(fileType + (fileSize ? ' ' + fileSize : ''));
+        if (item.publishDate) metaParts.push(item.publishDate);
         return `
           <a href="${hrefPrefix}${item.slug}" class="list-item">
             <div class="list-item-body">
-              <div class="list-item-title">${title}${typeSizeTag}</div>
+              <div class="list-item-title">${title}</div>
               <div class="list-item-meta-row">
-                ${category ? `<span>${category}</span>` : ''}
-                ${item.publishDate ? `<span>${item.publishDate}</span>` : ''}
+                ${metaParts.length > 0 ? metaParts.map(function(p) { return '<span>' + p + '</span>'; }).join('') : ''}
               </div>
             </div>
-            <div class="list-item-arrow">&rarr;</div>
           </a>`;
       }
 
@@ -227,9 +252,8 @@ import Layout from '../layouts/Layout.astro';
         <a href="${hrefPrefix}${item.slug}" class="list-item">
           <div class="list-item-body">
             <div class="list-item-title">${title}</div>
-            ${desc ? `<div class="list-item-desc">${desc.length > 80 ? desc.slice(0,80) + '...' : desc}</div>` : ''}
+            ${desc ? `<div class="list-item-meta-row"><span>${desc.length > 80 ? desc.slice(0,80) + '...' : desc}</span></div>` : ''}
           </div>
-          <div class="list-item-arrow">&rarr;</div>
         </a>`;
     }
 
@@ -287,12 +311,18 @@ import Layout from '../layouts/Layout.astro';
         const el = document.getElementById(elId);
         if (!el) return;
         const items = data?.data ?? data ?? [];
-        el.innerHTML = items.length === 0
-          ? '<div class="empty">暂无数据</div>'
-          : items.map(item => renderListItem(item, href, type)).join('');
+        if (type === 'ai') {
+          el.innerHTML = items.length === 0
+            ? '<div class="empty">暂无数据</div>'
+            : items.map(item => renderAiCard(item, href)).join('');
+        } else {
+          el.innerHTML = items.length === 0
+            ? '<div class="empty">暂无数据</div>'
+            : items.map(item => renderListItem(item, href, type)).join('');
+        }
       };
 
-      renderList('home-ai-list', aiApps, '/ai-apps/');
+      renderList('home-ai-list', aiApps, '/ai-apps/', 'ai');
       renderList('home-laws-list', standards, '/standards/', 'regulation');
       renderList('home-standards-list', regulations, '/regulations/', 'standard');
       renderList('home-accs-list', accidents, '/accidents/', 'accident');

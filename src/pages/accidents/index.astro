@@ -39,8 +39,8 @@ import Layout from '../../layouts/Layout.astro';
     var PREVIEW_URL = '/data/accidents-preview.json';
     var SUMMARY_FIELDS = ['title','slug','severity','category','province','date','casualties','location','company'];
 
-    var SEVERITY_MAP = { general: '一般', larger: '较大', major: '重大', special: '特别重大' };
-    var SEVERITY_CLASS = { general: 'acc-sev-general', larger: 'acc-sev-larger', major: 'acc-sev-major', special: 'acc-sev-special' };
+    var SEVERITY_MAP = { general: '一般', minor: '一般', larger: '较大', major: '重大', special: '特别重大' };
+    var SEVERITY_CLASS = { general: 'acc-sev-general', minor: 'acc-sev-general', larger: 'acc-sev-larger', major: 'acc-sev-major', special: 'acc-sev-special' };
     var CATEGORY_MAP = { suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏', traffic: '交通', poisoning_suffocation: '中毒窒息', falling_object: '物体打击', collapse: '坍塌', crane: '起重伤害', other_injury: '其他伤害', fire: '火灾', explosion: '爆炸', electric_shock: '触电', mechanical: '机械伤害', drowning: '淹溺' };
     var SEVERITY_FILTERS = [
       { value: '', label: '全部' },
@@ -90,7 +90,6 @@ import Layout from '../../layouts/Layout.astro';
           + '<div class="list-item-title">' + (item.title || '') + '</div>'
           + '<div class="list-item-meta-row">' + metaItems.join('') + '</div>'
           + '</div>'
-          + '<div class="list-item-arrow">&rarr;</div>'
           + '</a>';
       }
       el.innerHTML = html;
