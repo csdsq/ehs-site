@@ -265,21 +265,22 @@ async function fetchLatest(endpoint, fields, pageSize = 6, sort = 'createdAt:des
   return fetchPage(url);
 }
 
-async function generateHomeData(accidents, filteredRegulations, standards) {
+async function generateHomeData(accidents, filteredRegulations, standards, documents) {
   // ✅ FIX: 使用已处理的数据（带 YYMM-NNN slug），不再从 Strapi 重新拉取
   // Stats totals still come from Strapi, but previews use processed data with new slugs
   // 投稿统计用 admin token 查 content-manager API
   const adminToken = await getAdminToken();
   const submissionCount = await countSubmissions(adminToken);
 
-  const [aiApps, regsTotal, stdsTotal, accsTotal, videos, docs] = await Promise.all([
+  const [aiApps, regsTotal, stdsTotal, accsTotal, videos] = await Promise.all([
     fetchLatest('ai-apps', ['title', 'slug', 'description', 'icon', 'category'], 6, 'createdAt:desc'),
     fetchLatest('regulations', ['title', 'slug', 'source', 'standardNo', 'effectiveDate', 'publishDate'], 1, 'publishDate:desc'),
     fetchLatest('standards', ['title', 'slug', 'standardNo', 'category', 'publishDate', 'effectiveDate', 'description'], 1, 'effectiveDate:desc'),
     fetchLatest('accidents', ['title', 'slug', 'category', 'severity', 'date'], 1, 'date:desc'),
     fetchLatest('videos', ['title', 'slug', 'description', 'videoUrl', 'duration', 'category'], 3, 'createdAt:desc'),
-    fetchLatest('documents', ['title', 'slug', 'description', 'fileType', 'publishDate'], 6, 'createdAt:desc'),
   ]);
+  // 首页统计还需 documents 总数，单独查询
+  const docsTotal = await fetchLatest('documents', ['title'], 1, 'createdAt:desc');
 
   const total = (res) => res?.meta?.pagination?.total ?? 0;
 
@@ -317,7 +318,7 @@ async function generateHomeData(accidents, filteredRegulations, standards) {
       standards: total(stdsTotal),
       accidents: total(accsTotal),
       videos: total(videos),
-      documents: total(docs),
+      documents: total(docsTotal),
       submissions: submissionCount,
     },
     aiApps: aiApps?.data ?? [],
@@ -325,7 +326,16 @@ async function generateHomeData(accidents, filteredRegulations, standards) {
     standards: homeStandards,
     accidents: homeAccidents,
     videos: videos?.data ?? [],
-    documents: docs?.data ?? [],
+    // ✅ FIX: 使用已处理的数据（带 YYMM-NNN slug），首页跳转不再 404
+    documents: documents.slice(0, 6).map(d => ({
+      title: d.title,
+      slug: d.slug,
+      fileType: d.fileType,
+      fileSize: d.fileSize,
+      category: d.category,
+      publishDate: d.publishDate,
+      description: d.description,
+    })),
     submissions: [],
   };
 
@@ -426,6 +436,8 @@ async function main() {
     ], 'createdAt:desc'),
     'publishDate'
   );
+  // ✅ 为 documents 生成 YYMM-NNN 格式 slug（与 regulations/standards/accidents 一致）
+  generateSlugs(documents, 'publishDate');
   writeJson('documents', documents);
   writeJson('documents-preview', documents.map(d => ({
     id: d.id, documentId: d.documentId, title: d.title, slug: d.slug,
@@ -463,7 +475,7 @@ async function main() {
   })));
 
   // Generate single JSON for the homepage, replacing 7 parallel API calls
-  await generateHomeData(normalizedAccidents, filteredRegulations, standards);
+  await generateHomeData(normalizedAccidents, filteredRegulations, standards, documents);
 
 }
 

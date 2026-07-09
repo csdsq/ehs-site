@@ -12,7 +12,7 @@ import type { APIRoute } from 'astro';
 const STRAPI_URL = process.env.STRAPI_URL || 'http://8.149.139.66:1337';
 
 // 只允许公开可读的集合，避免误暴露 users / uploads 等
-const ALLOWED = new Set(['regulations', 'accidents', 'standards']);
+const ALLOWED = new Set(['regulations', 'accidents', 'standards', 'documents']);
 
 export const prerender = false;
 

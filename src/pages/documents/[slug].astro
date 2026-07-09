@@ -1,109 +1,86 @@
 ---
-export const prerender = false;
 import Layout from '../../layouts/Layout.astro';
 import PageComment from '../../components/PageComment.astro';
+import fs from 'node:fs';
+import path from 'node:path';
 
+export function getStaticPaths() {
+  const dataPath = path.join(process.cwd(), 'public/data/documents.json');
+  let items = [];
+  try {
+    items = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+  } catch (e) {
+    console.warn('⚠️ documents.json not found for getStaticPaths');
+  }
+  return items.map(item => ({ params: { slug: item.slug } }));
+}
 
 const { slug } = Astro.params;
 ---
 <Layout title="资料详情" currentPath="/documents/">
-  <div class="detail-breadcrumb-flat">
-    <div class="container">
+  <div class="container">
+    <div class="detail-breadcrumb-flat">
       <a href="/">首页</a> / <a href="/documents/">资料文档</a> / 详情
     </div>
-  </div>
-  <div class="container">
     <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
-  </div>
-  <div class="container">
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
     <PageComment pageUrl={`/documents/${slug}`} />
   </div>
 
-  <script define:vars={{ slug }}>
-    const API = '/sapi';
-    async function loadDetail() {
+  <script is:inline define:vars={{ slug }}>
+    const STRAPI_PROXY = '/sapi';
+    const STATIC_DATA_URL = '/data/documents.json';
+    const CACHE_KEY = 'doc_detail_' + slug;
+    const CACHE_TTL = 30 * 60 * 1000;
+
+    async function fetchBySlugApi(collection, slug) {
+      var params = new URLSearchParams();
+      params.set('filters[slug][$eq]', slug);
+      params.set('populate', '*');
+      var url = STRAPI_PROXY + '/' + collection + '?' + params.toString();
+      var controller = new AbortController();
+      var timer = setTimeout(function() { controller.abort(); }, 5000);
       try {
-        let res = await fetch(`${API}/documents?filters[slug][$eq]=${slug}&pagination[pageSize]=1&populate=*`);
-        let json = await res.json();
-        let item = json.data?.[0];
+        var res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) return null;
+        var json = await res.json();
+        return json.data && json.data.length > 0 ? json.data[0] : null;
+      } catch(e) {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function findInFullJson(url, slug) {
+      try {
+        var res = await fetch(url);
+        if (!res.ok) return null;
+        var all = await res.json();
+        return all.find(function(i) { return i.slug === slug; }) || null;
+      } catch(e) {
+        return null;
+      }
+    }
+
+    async function loadDetail() {
+      var cached = localStorage.getItem(CACHE_KEY);
+      var cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
+      if (cached && cachedAt && Date.now() - parseInt(cachedAt) < CACHE_TTL) {
+        renderItem(JSON.parse(cached));
+        return;
+      }
+      try {
+        var item = await fetchBySlugApi('documents', slug);
         if (!item) {
-          res = await fetch(`${API}/documents/${slug}?populate=*`);
-          json = await res.json();
-          item = json.data;
+          item = await findInFullJson(STATIC_DATA_URL, slug);
         }
         if (item) {
-          document.getElementById('detail-title').textContent = item.title || '';
-
-          // Determine preview URL: use previewUrl if set, otherwise use downloadUrl
-          const fileUrl = (item.previewUrl || item.downloadUrl || '').replace('https://api.hser.ren/uploads/', '/uploads/');
-          const ft = (item.fileType || '').toLowerCase();
-
-          let previewHtml = '';
-          if (fileUrl) {
-            if (ft === 'pdf') {
-              // PDF: use browser's built-in PDF viewer via iframe
-              previewHtml = `<div class="detail-iframe-wrap">
-                <iframe src="${fileUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
-              </div>`;
-            } else if (ft.includes('doc') || ft.includes('ppt') || ft.includes('xls')) {
-              // Office files: use Microsoft Office Online Viewer
-              const encodedUrl = encodeURIComponent(fileUrl);
-              previewHtml = `<div class="detail-iframe-wrap">
-                <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
-              </div>`;
-            } else {
-              // Other file types: try iframe
-              previewHtml = `<div class="detail-iframe-wrap">
-                <iframe src="${fileUrl}" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>
-              </div>`;
-            }
-          }
-
-          // Build basic info
-          const infoItems = [];
-          if (item.category) infoItems.push({ label: '分类', value: item.category });
-          if (item.fileType) infoItems.push({ label: '文件类型', value: item.fileType.toUpperCase() });
-          if (item.fileSize) infoItems.push({ label: '文件大小', value: item.fileSize });
-          if (item.publishDate) infoItems.push({ label: '发布日期', value: item.publishDate });
-
-          document.getElementById('detail-body').innerHTML = `
-            <!-- 基本信息 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">基本信息</h2>
-              <div class="detail-section-content">
-                ${infoItems.length > 0
-                  ? `<table class="detail-info-table">
-                      <tbody>
-                        ${infoItems.map(i => `<tr><td class="detail-info-label">${i.label}</td><td>${i.value}</td></tr>`).join('')}
-                      </tbody>
-                    </table>`
-                  : '<p class="detail-empty">暂无基本信息</p>'}
-              </div>
-            </section>
-
-            <!-- 在线预览 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">在线预览</h2>
-              <div class="detail-section-content">
-                ${previewHtml
-                  ? previewHtml
-                  : '<p class="detail-empty">暂不支持在线预览</p>'}
-              </div>
-            </section>
-
-            <!-- 下载 -->
-            <section class="detail-section">
-              <h2 class="detail-section-title">下载资料</h2>
-              <div class="detail-section-content">
-                ${(item.downloadUrl || "").replace("https://api.hser.ren/uploads/", "/uploads/")
-                  ? `<a href="${(item.downloadUrl || "").replace("https://api.hser.ren/uploads/", "/uploads/")}" target="_blank" rel="noopener" download class="detail-action-btn">下载文件 (${item.fileType ? item.fileType.toUpperCase() : '文件'}${item.fileSize ? ' · ' + item.fileSize : ''})</a>`
-                  : '<p class="detail-empty">暂无下载链接</p>'}
-              </div>
-            </section>
-          `;
+          localStorage.setItem(CACHE_KEY, JSON.stringify(item));
+          localStorage.setItem(CACHE_KEY + '_ts', String(Date.now()));
+          renderItem(item);
         } else {
           document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该资料</div>';
         }
@@ -111,6 +88,72 @@ const { slug } = Astro.params;
         document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
       }
     }
+
+    function renderItem(item) {
+      document.getElementById('detail-title').textContent = item.title || '';
+
+      // 确定文件 URL：直接用原始 downloadUrl，不做替换
+      var fileUrl = item.downloadUrl || '';
+      var ft = (item.fileType || '').toLowerCase();
+
+      var previewHtml = '';
+      if (fileUrl) {
+        if (ft === 'pdf') {
+          previewHtml = '<div class="detail-iframe-wrap">' +
+            '<iframe src="' + fileUrl + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
+            '</div>';
+        } else if (ft.indexOf('doc') >= 0 || ft.indexOf('ppt') >= 0 || ft.indexOf('xls') >= 0) {
+          var encodedUrl = encodeURIComponent(fileUrl);
+          previewHtml = '<div class="detail-iframe-wrap">' +
+            '<iframe src="https://view.officeapps.live.com/op/embed.aspx?src=' + encodedUrl + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
+            '</div>';
+        } else {
+          previewHtml = '<div class="detail-iframe-wrap">' +
+            '<iframe src="' + fileUrl + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
+            '</div>';
+        }
+      }
+
+      // 基本信息
+      var infoItems = [];
+      if (item.category) infoItems.push({ label: '分类', value: item.category });
+      if (item.fileType) infoItems.push({ label: '文件类型', value: item.fileType.toUpperCase() });
+      if (item.fileSize) infoItems.push({ label: '文件大小', value: item.fileSize });
+      if (item.publishDate) infoItems.push({ label: '发布日期', value: item.publishDate });
+
+      document.getElementById('detail-body').innerHTML =
+        '<section class="detail-section">' +
+          '<h2 class="detail-section-title">基本信息</h2>' +
+          '<div class="detail-section-content">' +
+            (infoItems.length > 0
+              ? '<table class="detail-info-table"><tbody>' +
+                infoItems.map(function(i) {
+                  return '<tr><td class="detail-info-label">' + i.label + '</td><td>' + i.value + '</td></tr>';
+                }).join('') +
+                '</tbody></table>'
+              : '<p class="detail-empty">暂无基本信息</p>') +
+          '</div>' +
+        '</section>' +
+
+        '<section class="detail-section">' +
+          '<h2 class="detail-section-title">在线预览</h2>' +
+          '<div class="detail-section-content">' +
+            (previewHtml ? previewHtml : '<p class="detail-empty">暂不支持在线预览</p>') +
+          '</div>' +
+        '</section>' +
+
+        '<section class="detail-section">' +
+          '<h2 class="detail-section-title">下载资料</h2>' +
+          '<div class="detail-section-content">' +
+            (fileUrl
+              ? '<a href="' + fileUrl + '" target="_blank" rel="noopener" download class="detail-action-btn">' +
+                  '下载文件 (' + (item.fileType ? item.fileType.toUpperCase() : '文件') + (item.fileSize ? ' · ' + item.fileSize : '') + ')' +
+                '</a>'
+              : '<p class="detail-empty">暂无下载链接</p>') +
+          '</div>' +
+        '</section>';
+    }
+
     loadDetail();
   </script>
 </Layout>
