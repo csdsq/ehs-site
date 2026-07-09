@@ -72,14 +72,19 @@ import Layout from '../../layouts/Layout.astro';
     </div>
   </div>
 
-  <script>
-    import { fetchAllSummaries, fetchPreview } from '../../lib/strapi-client';
-    const PREVIEW_URL = '/data/regulations-preview.json';
-    const SUMMARY_FIELDS = ['title','slug','category','source','standardNo','effectiveDate','publishDate','downloadUrl'];
-    const categoryMap: Record<string,string> = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+  <script is:inline>
+    var PREVIEW_URL = '/data/regulations-preview.json';
+    var SUMMARY_FIELDS = ['title','slug','category','source','standardNo','effectiveDate','publishDate','downloadUrl'];
+    var categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
+    var allItems = [];
+    var filteredItems = [];
+    var currentPage = 1;
+    var pageSize = 10;
+    var activeCategory = '';
+    var activeRegion = '';
+    var slugMap = {};
 
-    // 直辖市映射：标题中可能出现"深圳市""广州市"等，需归到对应省/直辖市
-    const cityProvinceMap: Record<string,string> = {
+    var cityProvinceMap = {
       '深圳': '广东', '广州': '广东', '珠海': '广东', '佛山': '广东', '东莞': '广东',
       '南京': '江苏', '苏州': '江苏', '无锡': '江苏', '常州': '江苏', '南通': '江苏',
       '成都': '四川', '绵阳': '四川', '德阳': '四川',
@@ -87,11 +92,9 @@ import Layout from '../../layouts/Layout.astro';
       '济南': '山东', '青岛': '山东', '烟台': '山东',
     };
 
-    // 归入"其他"的省份/地区
-    const otherRegions = ['甘肃','青海','内蒙古','西藏','宁夏','新疆'];
+    var otherRegions = ['甘肃','青海','内蒙古','西藏','宁夏','新疆'];
 
-    // 国家级发文机构关键词——source匹配这些关键词时视为全国性法规
-    const nationalSourceKeywords = [
+    var nationalSourceKeywords = [
       '国务院', '国务院办公厅', '全国人大', '全国人民代表大会', '全国人大常委会', '中共中央',
       '应急管理部', '生态环境部', '国家市场监督管理总局', '国家标准委',
       '国家标准化管理委员会', '国家矿山安全监察局', '国家卫生健康委员会',
@@ -105,204 +108,263 @@ import Layout from '../../layouts/Layout.astro';
       '国家金融监督管理总局', '国家原子能机构'
     ];
 
-    // 判断是否为全国性法规（根据发文机构）
-    function isNationalBySource(item: any): boolean {
+    function isNationalBySource(item) {
       if (item.regionLevel === 'national') return true;
       if (!item.source) return false;
-      for (const kw of nationalSourceKeywords) {
-        if (item.source.includes(kw)) return true;
+      for (var i = 0; i < nationalSourceKeywords.length; i++) {
+        if (item.source.indexOf(nationalSourceKeywords[i]) >= 0) return true;
       }
       return false;
     }
 
-    function extractRegion(title: string): string {
+    function extractRegion(title) {
       if (!title) return '';
-      for (const [city, prov] of Object.entries(cityProvinceMap)) {
-        if (title.includes(city)) return prov;
+      for (var city in cityProvinceMap) {
+        if (title.indexOf(city) >= 0) return cityProvinceMap[city];
       }
-      const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江',
+      var provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江',
         '江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南',
         '四川','贵州','云南','陕西','内蒙古','广西','西藏','宁夏','新疆','甘肃','青海'];
-      for (const p of provinces) {
-        if (title.includes(p)) return p;
+      for (var i = 0; i < provinces.length; i++) {
+        if (title.indexOf(provinces[i]) >= 0) return provinces[i];
       }
       return '';
     }
 
-    let allItems: any[] = [];
-    let filteredItems: any[] = [];
-    let currentPage = 1;
-    let pageSize = 10;
-    let activeCategory = '';
-    let activeRegion = '';
-
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }
 
-    function getRegionLabel(item: any): string {
+    function getRegionLabel(item) {
       if (isNationalBySource(item)) return '全国';
-      const region = extractRegion(item.title);
+      var region = extractRegion(item.title);
       return region || '地方';
     }
 
-    function renderItems(items: any[]) {
-      const el = document.getElementById('std-list');
+    function toNewSlug(item) {
+      var oldSlug = item.slug || ('' + item.id);
+      if (/^\d{4}-\d{3}$/.test(oldSlug)) return oldSlug;
+      return slugMap[oldSlug] || oldSlug;
+    }
+
+    function renderItems(items) {
+      var el = document.getElementById('std-list');
       if (!el) return;
       if (items.length === 0) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
-      el.innerHTML = items.map(item => {
-        const metaParts = [];
-        const catLabel = categoryMap[item.category] || '';
-        const regLabel = getRegionLabel(item);
-        const tagParts = [];
-        if (catLabel) tagParts.push(`<span class="std-tag std-tag-${item.category}">${catLabel}</span>`);
-        if (regLabel) tagParts.push(`<span class="std-tag std-tag-region">${regLabel}</span>`);
+      var html = '';
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var catLabel = categoryMap[item.category] || '';
+        var regLabel = getRegionLabel(item);
+        var tagParts = [];
+        if (catLabel) tagParts.push('<span class="std-tag std-tag-' + item.category + '">' + catLabel + '</span>');
+        if (regLabel) tagParts.push('<span class="std-tag std-tag-region">' + regLabel + '</span>');
 
-        if (item.source) metaParts.push(`<span>发文机构：${item.source}</span>`);
-        if (item.standardNo) metaParts.push(`<span>发文号：${item.standardNo}</span>`);
-        const dateLabel = item.effectiveDate ? '实施日期' : '发文日期';
-        const dateValue = item.effectiveDate || item.publishDate;
-        if (dateValue) metaParts.push(`<span>${dateLabel}：${dateValue}</span>`);
-        return `
-          <a href="/regulations/${item.slug || item.id}" class="list-item">
-            <div class="list-item-body">
-              <div class="list-item-title">${item.title || ''}</div>
-              <div class="list-item-meta-row">
-                ${tagParts.length > 0 ? tagParts.join('') : ''}
-                ${metaParts.join('')}
-              </div>
-            </div>
-            <div class="list-item-arrow">&rarr;</div>
-          </a>`;
-      }).join('');
+        var metaParts = [];
+        if (item.source) metaParts.push('<span>发文机构：' + item.source + '</span>');
+        if (item.standardNo) metaParts.push('<span>发文号：' + item.standardNo + '</span>');
+        var dateLabel = item.effectiveDate ? '实施日期' : '发文日期';
+        var dateValue = item.effectiveDate || item.publishDate;
+        if (dateValue) metaParts.push('<span>' + dateLabel + '：' + dateValue + '</span>');
+
+        var metaHtml = metaParts.join('');
+        var tagHtml = tagParts.length > 0 ? tagParts.join('') : '';
+        var detailUrl = '/regulations/' + toNewSlug(item);
+
+        html += '<a href="' + detailUrl + '" class="list-item">'
+          + '<div class="list-item-body">'
+          + '<div class="list-item-title">' + (item.title || '') + '</div>'
+          + '<div class="list-item-meta-row">' + tagHtml + metaHtml + '</div>'
+          + '</div>'
+          + '<div class="list-item-arrow">&rarr;</div>'
+          + '</a>';
+      }
+      el.innerHTML = html;
     }
 
     function renderPagination() {
-      const el = document.getElementById('std-pagination')!;
-      const total = filteredItems.length;
-      const totalPages = getTotalPages();
+      var el = document.getElementById('std-pagination');
+      var total = filteredItems.length;
+      var totalPages = getTotalPages();
       if (total <= pageSize) { el.style.display = 'none'; return; }
       el.style.display = 'flex';
 
-      const start = (currentPage - 1) * pageSize + 1;
-      const end = Math.min(currentPage * pageSize, total);
+      var start = (currentPage - 1) * pageSize + 1;
+      var end = Math.min(currentPage * pageSize, total);
 
-      let pagesHtml = '';
-      const range: number[] = [];
+      var pagesHtml = '';
+      var range = [];
       if (totalPages <= 7) {
-        for (let i = 1; i <= totalPages; i++) range.push(i);
+        for (var i = 1; i <= totalPages; i++) range.push(i);
       } else {
         range.push(1);
         if (currentPage > 4) range.push(-1);
-        const s = Math.max(2, currentPage - 2);
-        const e = Math.min(totalPages - 1, currentPage + 2);
-        for (let i = s; i <= e; i++) range.push(i);
+        var s = Math.max(2, currentPage - 2);
+        var e = Math.min(totalPages - 1, currentPage + 2);
+        for (var j = s; j <= e; j++) range.push(j);
         if (currentPage < totalPages - 3) range.push(-2);
         range.push(totalPages);
       }
-      for (const p of range) {
-        if (p < 0) { pagesHtml += `<span class="page-ellipsis">…</span>`; }
-        else { pagesHtml += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`; }
+      for (var k = 0; k < range.length; k++) {
+        var p = range[k];
+        if (p < 0) { pagesHtml += '<span class="page-ellipsis">…</span>'; }
+        else { pagesHtml += '<button class="' + (p === currentPage ? 'active' : '') + '" data-page="' + p + '">' + p + '</button>'; }
       }
 
-      el.innerHTML = `
-        <div class="pagination-info">显示 ${start}-${end}，共 ${total} 项</div>
-        <div class="pagination-controls">
-          <button data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
-          ${pagesHtml}
-          <button data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
-        </div>
-        <div class="page-size-select">
-          每页
-          <select id="std-page-size">
-            <option value="10" ${pageSize===10?'selected':''}>10</option>
-            <option value="20" ${pageSize===20?'selected':''}>20</option>
-            <option value="50" ${pageSize===50?'selected':''}>50</option>
-            <option value="100" ${pageSize===100?'selected':''}>100</option>
-          </select>
-          条
-        </div>`;
+      el.innerHTML =
+        '<div class="pagination-info">显示 ' + start + '-' + end + '，共 ' + total + ' 项</div>'
+        + '<div class="pagination-controls">'
+        + '<button data-action="prev"' + (currentPage === 1 ? ' disabled' : '') + '>上一页</button>'
+        + pagesHtml
+        + '<button data-action="next"' + (currentPage === totalPages ? ' disabled' : '') + '>下一页</button>'
+        + '</div>'
+        + '<div class="page-size-select">每页'
+        + '<select id="std-page-size">'
+        + '<option value="10"' + (pageSize===10?' selected':'') + '>10</option>'
+        + '<option value="20"' + (pageSize===20?' selected':'') + '>20</option>'
+        + '<option value="50"' + (pageSize===50?' selected':'') + '>50</option>'
+        + '<option value="100"' + (pageSize===100?' selected':'') + '>100</option>'
+        + '</select>条</div>';
 
-      el.querySelector('#std-page-size')!.addEventListener('change', (e: any) => {
+      el.querySelector('#std-page-size').addEventListener('change', function(e) {
         pageSize = parseInt(e.target.value); currentPage = 1; updateView();
       });
-      el.querySelectorAll('[data-page]').forEach(btn => {
-        btn.addEventListener('click', () => { currentPage = parseInt((btn as HTMLElement).dataset.page!); updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      el.querySelectorAll('[data-page]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          currentPage = parseInt(btn.dataset.page);
+          updateView();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
       });
-      el.querySelector('[data-action="prev"]')!.addEventListener('click', () => {
+      el.querySelector('[data-action="prev"]').addEventListener('click', function() {
         if (currentPage > 1) { currentPage--; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       });
-      el.querySelector('[data-action="next"]')!.addEventListener('click', () => {
+      el.querySelector('[data-action="next"]').addEventListener('click', function() {
         if (currentPage < getTotalPages()) { currentPage++; updateView(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       });
     }
 
     function applyFilters() {
-      const q = (document.getElementById('std-search') as HTMLInputElement).value.trim().toLowerCase();
-      filteredItems = allItems.filter(item => {
-        if (activeCategory && item.category !== activeCategory) return false;
+      var q = document.getElementById('std-search').value.trim().toLowerCase();
+      filteredItems = [];
+      for (var fi = 0; fi < allItems.length; fi++) {
+        var item = allItems[fi];
+        if (activeCategory && item.category !== activeCategory) continue;
         if (activeRegion) {
           if (activeRegion === 'national') {
-            if (!isNationalBySource(item)) return false;
+            if (!isNationalBySource(item)) continue;
           } else {
-            const region = extractRegion(item.title);
-            if (region !== activeRegion) return false;
+            var region = extractRegion(item.title);
+            if (region !== activeRegion) continue;
           }
         }
         if (q) {
-          const text = `${item.title ?? ''} ${item.standardNo ?? ''} ${item.category ?? ''} ${item.source ?? ''}`.toLowerCase();
-          if (!text.includes(q)) return false;
+          var text = ((item.title || '') + ' ' + (item.standardNo || '') + ' ' + (item.category || '') + ' ' + (item.source || '')).toLowerCase();
+          if (text.indexOf(q) < 0) continue;
         }
-        return true;
-      });
+        filteredItems.push(item);
+      }
       currentPage = 1;
       updateView();
     }
 
     function updateView() {
-      const start = (currentPage - 1) * pageSize;
+      var start = (currentPage - 1) * pageSize;
       renderItems(filteredItems.slice(start, start + pageSize));
       renderPagination();
-      document.getElementById('std-count')!.textContent = `共 ${filteredItems.length} 项${filteredItems.length !== allItems.length ? `（筛选自 ${allItems.length} 项）` : ''}`;
+      document.getElementById('std-count').textContent = '共 ' + filteredItems.length + ' 项'
+        + (filteredItems.length !== allItems.length ? '（筛选自 ' + allItems.length + ' 项）' : '');
+    }
+
+    function fetchAllSummaries(collection, fields, sort) {
+      var params = 'pagination[page]=1&pagination[pageSize]=100';
+      if (sort) params += '&sort=' + encodeURIComponent(sort);
+      for (var fi = 0; fi < fields.length; fi++) {
+        params += '&fields[' + fi + ']=' + encodeURIComponent(fields[fi]);
+      }
+      var url = '/sapi/' + collection + '?' + params;
+      var controller = new AbortController();
+      var timer = setTimeout(function() { controller.abort(); }, 3000);
+      return fetch(url, { signal: controller.signal }).then(function(res) {
+        clearTimeout(timer);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }).then(function(data) {
+        var items = [];
+        if (data && data.data) {
+          for (var i = 0; i < data.data.length; i++) {
+            var d = data.data[i];
+            var attrs = d.attributes || {};
+            attrs.id = d.id;
+            attrs.documentId = d.documentId;
+            items.push(attrs);
+          }
+        }
+        return items;
+      });
+    }
+
+    function fetchPreview(url) {
+      return fetch(url).then(function(res) { return res.json(); });
+    }
+
+    function loadSlugMapping() {
+      var controller = new AbortController();
+      var timer = setTimeout(function() { controller.abort(); }, 5000);
+      return fetch('/data/slug-mapping.json', { signal: controller.signal }).then(function(res) {
+        clearTimeout(timer);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }).then(function(map) {
+        var revMap = {};
+        for (var key in map) {
+          if (map.hasOwnProperty(key)) {
+            if (map[key].regulations) {
+              revMap[map[key].regulations] = key;
+            }
+          }
+        }
+        slugMap = revMap;
+      }).catch(function() {
+        slugMap = {};
+      });
     }
 
     async function loadItems() {
-      const listEl = document.getElementById('std-list');
+      var listEl = document.getElementById('std-list');
+      await loadSlugMapping();
       try {
-        // 按需从 Strapi 拉摘要（不含 content），本地缓存 30 分钟
         allItems = await fetchAllSummaries('regulations', SUMMARY_FIELDS, 'publishDate:desc');
-        filteredItems = [...allItems];
-        document.getElementById('std-count')!.textContent = `共 ${allItems.length} 项`;
+        filteredItems = allItems.slice();
+        document.getElementById('std-count').textContent = '共 ' + allItems.length + ' 项';
         updateView();
       } catch (e) {
-        // 代理不可用时，退回本地 preview（摘要，无 content）
         try {
           allItems = await fetchPreview(PREVIEW_URL);
-          filteredItems = [...allItems];
-          document.getElementById('std-count')!.textContent = `共 ${allItems.length} 项（离线缓存）`;
+          filteredItems = allItems.slice();
+          document.getElementById('std-count').textContent = '共 ' + allItems.length + ' 项（离线缓存）';
           updateView();
-        } catch {
+        } catch (e2) {
           if (listEl) listEl.innerHTML = '<div class="empty">加载失败</div>';
         }
       }
     }
 
-    // 筛选标签事件
-    document.getElementById('category-filters')!.addEventListener('click', (e: any) => {
+    document.getElementById('category-filters').addEventListener('click', function(e) {
       if (!e.target.classList.contains('filter-tag')) return;
-      document.querySelectorAll('#category-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#category-filters .filter-tag').forEach(function(b) { b.classList.remove('active'); });
       e.target.classList.add('active');
       activeCategory = e.target.dataset.value || '';
       applyFilters();
     });
-    document.getElementById('region-filters')!.addEventListener('click', (e: any) => {
+    document.getElementById('region-filters').addEventListener('click', function(e) {
       if (!e.target.classList.contains('filter-tag')) return;
-      document.querySelectorAll('#region-filters .filter-tag').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#region-filters .filter-tag').forEach(function(b) { b.classList.remove('active'); });
       e.target.classList.add('active');
       activeRegion = e.target.dataset.value || '';
       applyFilters();
     });
 
-    document.getElementById('std-search')!.addEventListener('input', applyFilters);
-    document.getElementById('std-search-btn')!.addEventListener('click', applyFilters);
+    document.getElementById('std-search').addEventListener('input', applyFilters);
+    document.getElementById('std-search-btn').addEventListener('click', applyFilters);
 
     loadItems();
   </script>
