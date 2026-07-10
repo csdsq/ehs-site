@@ -1,6 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import PageComment from '../../components/PageComment.astro';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -18,7 +17,7 @@ export function getStaticPaths() {
 const { slug } = Astro.params;
 ---
 <Layout title="国标地标详情" currentPath="/standards/">
-  <div class="container">
+  <div class="container detail-container">
     <div class="detail-breadcrumb-flat">
       <a href="/">首页</a> / <a href="/standards/">国标地标</a> / 详情
     </div>
@@ -27,7 +26,6 @@ const { slug } = Astro.params;
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
-    <PageComment pageUrl={`/standards/${slug}`} />
   </div>
 
   <script is:inline define:vars={{ slug }}>
@@ -144,9 +142,95 @@ const { slug } = Astro.params;
         '</div>' +
       '</section>';
 
+      // 底部反馈面板
+      html += '<div class="fb-box">' +
+        '<div class="fb-title">📢 这条内容有问题？</div>' +
+        '<div class="fb-sub">选择问题类型，点击即可提交（也可顺便补充说明）：</div>' +
+        '<div class="fb-types" id="fbTypes">' +
+          '<button type="button" class="fb-type" data-type="link_broken">链接失效</button>' +
+          '<button type="button" class="fb-type" data-type="content_error">内容错误</button>' +
+          '<button type="button" class="fb-type" data-type="wrong_category">分类/标签不对</button>' +
+          '<button type="button" class="fb-type" data-type="duplicate">重复/多余</button>' +
+          '<button type="button" class="fb-type" data-type="other">其他</button>' +
+        '</div>' +
+        '<textarea class="fb-detail" id="fbDetail" placeholder="补充说明（可选）：比如哪个链接打不开、哪里写错了..." rows="3"></textarea>' +
+        '<button class="fb-submit" id="fbSubmit" type="button">提交反馈</button>' +
+        '<div class="fb-status" id="fbStatus"></div>' +
+      '</div>';
+
       document.getElementById('detail-body').innerHTML = html;
     }
 
     loadDetail();
+  </script>
+
+  <script is:inline>
+    // 反馈面板交互（在 renderItem 动态渲染后绑定）
+    (function() {
+      function bindFeedback() {
+        var types = document.getElementById('fbTypes');
+        var detail = document.getElementById('fbDetail');
+        var submit = document.getElementById('fbSubmit');
+        var status = document.getElementById('fbStatus');
+        if (!types || !submit) { setTimeout(bindFeedback, 200); return; }
+        var selectedType = null;
+
+        types.addEventListener('click', function(e) {
+          var btn = e.target.closest('.fb-type');
+          if (!btn) return;
+          var allBtns = types.querySelectorAll('.fb-type');
+          for (var i = 0; i < allBtns.length; i++) { allBtns[i].classList.remove('active'); }
+          btn.classList.add('active');
+          selectedType = btn.dataset.type;
+          status.textContent = '';
+          status.className = 'fb-status';
+        });
+
+        submit.addEventListener('click', async function() {
+          if (!selectedType) {
+            status.textContent = '请先选择一个问题类型';
+            status.className = 'fb-status err';
+            return;
+          }
+          submit.disabled = true;
+          submit.textContent = '提交中...';
+          try {
+            var res = await fetch('/feedback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: selectedType,
+                detail: detail.value.trim(),
+                pageUrl: location.href,
+                pageTitle: document.title
+              })
+            });
+            var data = await res.json();
+            if (res.ok && data.success) {
+              status.textContent = '✓ 已收到，感谢你的反馈！';
+              status.className = 'fb-status ok';
+              detail.value = '';
+              selectedType = null;
+              var allBtns = types.querySelectorAll('.fb-type');
+              for (var i = 0; i < allBtns.length; i++) { allBtns[i].classList.remove('active'); }
+              setTimeout(function() {
+                status.textContent = '';
+                status.className = 'fb-status';
+                submit.disabled = false;
+                submit.textContent = '提交反馈';
+              }, 2500);
+            } else {
+              throw new Error((data && data.error) || '提交失败');
+            }
+          } catch (err) {
+            status.textContent = '提交失败，请稍后重试';
+            status.className = 'fb-status err';
+            submit.disabled = false;
+            submit.textContent = '提交反馈';
+          }
+        });
+      }
+      bindFeedback();
+    })();
   </script>
 </Layout>
