@@ -1,7 +1,18 @@
 ---
-// SSR 页面：AI应用详情，通过 /sapi 代理按需拉取数据
-export const prerender = false;
 import Layout from '../../layouts/Layout.astro';
+import fs from 'node:fs';
+import path from 'node:path';
+
+export function getStaticPaths() {
+  const dataPath = path.join(process.cwd(), 'public/data/ai-apps.json');
+  let items = [];
+  try {
+    items = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+  } catch (e) {
+    console.warn('⚠️ ai-apps.json not found for getStaticPaths');
+  }
+  return items.map(item => ({ params: { slug: item.slug } }));
+}
 
 const { slug } = Astro.params;
 ---
@@ -19,77 +30,56 @@ const { slug } = Astro.params;
 
   <script is:inline define:vars={{ slug }}>
     const API = '/sapi';
-    async function loadDetail() {
+    const STATIC_DATA_URL = '/data/ai-apps.json';
+    const CACHE_KEY = 'ai_detail_' + slug;
+    const CACHE_TTL = 30 * 60 * 1000;
+
+    async function fetchBySlugApi(collection, slug) {
+      var params = new URLSearchParams();
+      params.set('filters[slug][$eq]', slug);
+      params.set('pagination[pageSize]', '1');
+      var url = API + '/' + collection + '?' + params.toString();
+      var controller = new AbortController();
+      var timer = setTimeout(function() { controller.abort(); }, 5000);
       try {
-        let res = await fetch(API + '/ai-apps?filters[slug][$eq]=' + slug + '&pagination[pageSize]=1');
-        let json = await res.json();
-        let item = json.data?.[0];
+        var res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) return null;
+        var json = await res.json();
+        return json.data && json.data.length > 0 ? json.data[0] : null;
+      } catch(e) {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function findInFullJson(url, slug) {
+      try {
+        var res = await fetch(url);
+        if (!res.ok) return null;
+        var all = await res.json();
+        return all.find(function(i) { return i.slug === slug; }) || null;
+      } catch(e) {
+        return null;
+      }
+    }
+
+    async function loadDetail() {
+      var cached = localStorage.getItem(CACHE_KEY);
+      var cachedAt = localStorage.getItem(CACHE_KEY + '_ts');
+      if (cached && cachedAt && Date.now() - parseInt(cachedAt) < CACHE_TTL) {
+        renderItem(JSON.parse(cached));
+        return;
+      }
+      try {
+        var item = await fetchBySlugApi('ai-apps', slug);
         if (!item) {
-          res = await fetch(API + '/ai-apps/' + slug);
-          json = await res.json();
-          item = json.data;
+          item = await findInFullJson(STATIC_DATA_URL, slug);
         }
         if (item) {
-          document.getElementById('detail-title').textContent = item.title || '';
-          document.getElementById('detail-meta').innerHTML = [
-            item.category ? '<span>' + item.category + '</span>' : '',
-          ].filter(Boolean).join(' ');
-
-          var intro = item.features || item.description || '';
-          var imageHtml = item.demoContent || '';
-          var appUrl = item.appUrl || item.url || '';
-
-          var sectionsHtml = '';
-
-          if (intro) {
-            sectionsHtml += '<section class="detail-section">' +
-              '<h2 class="detail-section-title">应用简介</h2>' +
-              '<div class="detail-section-content">' +
-                '<div class="detail-text">' + intro.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>') + '</div>' +
-              '</div>' +
-            '</section>';
-          }
-
-          if (imageHtml) {
-            sectionsHtml += '<section class="detail-section">' +
-              '<h2 class="detail-section-title">应用展示</h2>' +
-              '<div class="detail-section-content">' +
-                '<div class="detail-app-image">' + imageHtml + '</div>' +
-              '</div>' +
-            '</section>';
-          }
-
-          if (appUrl) {
-            sectionsHtml += '<section class="detail-section">' +
-              '<h2 class="detail-section-title">访问应用</h2>' +
-              '<div class="detail-section-content">' +
-                '<div class="detail-actions">' +
-                  '<a href="' + appUrl + '" target="_blank" rel="noopener" class="detail-action-btn btn-preview">' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
-                    ' 进入应用' +
-                  '</a>' +
-                '</div>' +
-              '</div>' +
-            '</section>';
-          }
-
-          // 底部反馈面板
-          sectionsHtml += '<div class="fb-box">' +
-            '<div class="fb-title">📢 这条内容有问题？</div>' +
-            '<div class="fb-sub">选择问题类型，点击即可提交（也可顺便补充说明）：</div>' +
-            '<div class="fb-types" id="fbTypes">' +
-              '<button type="button" class="fb-type" data-type="link_broken">链接失效</button>' +
-              '<button type="button" class="fb-type" data-type="content_error">内容错误</button>' +
-              '<button type="button" class="fb-type" data-type="wrong_category">分类/标签不对</button>' +
-              '<button type="button" class="fb-type" data-type="duplicate">重复/多余</button>' +
-              '<button type="button" class="fb-type" data-type="other">其他</button>' +
-            '</div>' +
-            '<textarea class="fb-detail" id="fbDetail" placeholder="补充说明（可选）：比如哪个链接打不开、哪里写错了..." rows="3"></textarea>' +
-            '<button class="fb-submit" id="fbSubmit" type="button">提交反馈</button>' +
-            '<div class="fb-status" id="fbStatus"></div>' +
-          '</div>';
-
-          document.getElementById('detail-body').innerHTML = sectionsHtml;
+          localStorage.setItem(CACHE_KEY, JSON.stringify(item));
+          localStorage.setItem(CACHE_KEY + '_ts', String(Date.now()));
+          renderItem(item);
         } else {
           document.getElementById('detail-body').innerHTML = '<div class="empty">未找到该应用</div>';
         }
@@ -97,6 +87,70 @@ const { slug } = Astro.params;
         document.getElementById('detail-body').innerHTML = '<div class="empty">加载失败</div>';
       }
     }
+
+    function renderItem(item) {
+      document.getElementById('detail-title').textContent = item.title || '';
+      document.getElementById('detail-meta').innerHTML = [
+        item.category ? '<span>' + item.category + '</span>' : '',
+      ].filter(Boolean).join(' ');
+
+      var intro = item.features || item.description || '';
+      var imageHtml = item.demoContent || '';
+      var appUrl = item.appUrl || item.url || '';
+
+      var sectionsHtml = '';
+
+      if (intro) {
+        sectionsHtml += '<section class="detail-section">' +
+          '<h2 class="detail-section-title">应用简介</h2>' +
+          '<div class="detail-section-content">' +
+            '<div class="detail-text">' + intro.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>') + '</div>' +
+          '</div>' +
+        '</section>';
+      }
+
+      if (imageHtml) {
+        sectionsHtml += '<section class="detail-section">' +
+          '<h2 class="detail-section-title">应用展示</h2>' +
+          '<div class="detail-section-content">' +
+            '<div class="detail-app-image">' + imageHtml + '</div>' +
+          '</div>' +
+        '</section>';
+      }
+
+      if (appUrl) {
+        sectionsHtml += '<section class="detail-section">' +
+          '<h2 class="detail-section-title">访问应用</h2>' +
+          '<div class="detail-section-content">' +
+            '<div class="detail-actions">' +
+              '<a href="' + appUrl + '" target="_blank" rel="noopener" class="detail-action-btn btn-preview">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+                ' 进入应用' +
+              '</a>' +
+            '</div>' +
+          '</div>' +
+        '</section>';
+      }
+
+      // 底部反馈面板
+      sectionsHtml += '<div class="fb-box">' +
+        '<div class="fb-title">📢 这条内容有问题？</div>' +
+        '<div class="fb-sub">选择问题类型，点击即可提交（也可顺便补充说明）：</div>' +
+        '<div class="fb-types" id="fbTypes">' +
+          '<button type="button" class="fb-type" data-type="link_broken">链接失效</button>' +
+          '<button type="button" class="fb-type" data-type="content_error">内容错误</button>' +
+          '<button type="button" class="fb-type" data-type="wrong_category">分类/标签不对</button>' +
+          '<button type="button" class="fb-type" data-type="duplicate">重复/多余</button>' +
+          '<button type="button" class="fb-type" data-type="other">其他</button>' +
+        '</div>' +
+        '<textarea class="fb-detail" id="fbDetail" placeholder="补充说明（可选）：比如哪个链接打不开、哪里写错了..." rows="3"></textarea>' +
+        '<button class="fb-submit" id="fbSubmit" type="button">提交反馈</button>' +
+        '<div class="fb-status" id="fbStatus"></div>' +
+      '</div>';
+
+      document.getElementById('detail-body').innerHTML = sectionsHtml;
+    }
+
     loadDetail();
   </script>
 
