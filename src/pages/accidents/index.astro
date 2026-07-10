@@ -78,11 +78,11 @@ import Layout from '../../layouts/Layout.astro';
         var catLabel = CATEGORY_MAP[item.category] || item.category || '';
         var provLabel = item.province || '';
         var metaItems = [];
-        if (item.date) metaItems.push('<span>发生日期：' + item.date + '</span>');
-        if (item.casualties) metaItems.push('<span>伤亡：' + item.casualties + '</span>');
         if (provLabel) metaItems.push('<span class="acc-tag acc-tag-prov">' + provLabel + '</span>');
         if (sevLabel) metaItems.push('<span class="acc-tag ' + getSeverityClass(item.severity) + '">' + sevLabel + '</span>');
         if (catLabel) metaItems.push('<span class="acc-tag acc-tag-cat">' + catLabel + '</span>');
+        if (item.date) metaItems.push('<span>发生日期：' + item.date + '</span>');
+        if (item.casualties) metaItems.push('<span>伤亡：' + item.casualties + '</span>');
 
         var detailUrl = getDetailLink(item);
         html += '<a href="' + detailUrl + '" class="list-item">'

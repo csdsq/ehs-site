@@ -62,20 +62,20 @@ async function fetchAll(endpoint, fields, sort = 'createdAt:desc') {
  */
 function detectSeverityFromTitle(title) {
   if (!title) return null;
-  if (title.includes('特别重大') || /特大(?!暴雨|洪)/.test(title)) return 'major';
-  if (title.includes('重大')) return 'larger';
-  if (title.includes('较大')) return 'general';
-  if (title.includes('一般')) return 'minor';
+  if (title.includes('特别重大') || /特大(?!暴雨|洪)/.test(title)) return 'special';
+  if (title.includes('重大')) return 'major';
+  if (title.includes('较大')) return 'larger';
+  if (title.includes('一般')) return 'general';
   return null;
 }
 
 /**
  * 当标题不含事故等级关键词时，从伤亡描述中推断等级。
  * 依据《生产安全事故报告和调查处理条例》：
- *   特别重大 (major): ≥30死亡
- *   重大 (larger):    10-29死亡
- *   较大 (general):    3-9死亡
- *   一般 (minor):      1-2死亡
+ *   特别重大 (special): ≥30死亡
+ *   重大 (major):       10-29死亡
+ *   较大 (larger):       3-9死亡
+ *   一般 (general):      1-2死亡
  */
 function detectSeverityFromCasualties(casualties) {
   if (!casualties || casualties === '-' ||
@@ -84,10 +84,10 @@ function detectSeverityFromCasualties(casualties) {
   const m = casualties.match(/(\d+)人死亡/);
   if (!m) return null;
   const deaths = parseInt(m[1], 10);
-  if (deaths >= 30) return 'major';
-  if (deaths >= 10) return 'larger';
-  if (deaths >= 3) return 'general';
-  return 'minor';
+  if (deaths >= 30) return 'special';
+  if (deaths >= 10) return 'major';
+  if (deaths >= 3) return 'larger';
+  return 'general';
 }
 
 /**

@@ -118,7 +118,7 @@ import Layout from '../../layouts/Layout.astro';
         tagParts.push('<span class="std-tag std-tag-type-' + stdType + '">' + getStdTypeLabel(stdType) + '</span>');
         if (item.category) {
           var catMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
-          tagParts.push('<span class="std-tag std-tag-category">' + (catMap[item.category] || item.category) + '</span>');
+          tagParts.push('<span class="std-tag std-tag-' + item.category + '">' + (catMap[item.category] || item.category) + '</span>');
         }
         if (stdType === 'local') tagParts.push('<span class="std-tag std-tag-region">' + regLabel + '</span>');
         var metaHtml = tagParts.join('');
