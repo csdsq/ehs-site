@@ -1,6 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import PageComment from '../../components/PageComment.astro';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -18,17 +17,15 @@ export function getStaticPaths() {
 const { slug } = Astro.params;
 ---
 <Layout title="事故报告详情" currentPath="/accidents/">
-  <div class="container">
+  <div class="container detail-container">
     <div class="detail-breadcrumb-flat">
       <a href="/">首页</a> / <a href="/accidents/">事故报告</a> / 详情
     </div>
     <h1 class="detail-title-flat" id="detail-title">加载中...</h1>
-    <div id="detail-tags" style="margin-bottom: 16px;"></div>
     <div class="detail-body" id="detail-body">
       <div class="loading">加载中...</div>
     </div>
-    <PageComment pageUrl={`/accidents/${slug}`} />
-  </div>
+    </div>
 
   <script is:inline define:vars={{ slug }}>
     const STRAPI_PROXY = '/sapi';
@@ -101,7 +98,104 @@ const { slug } = Astro.params;
       return parts.length > 0 ? parts.join('，') : c;
     }
 
+    /**
+     * 格式化详情文本内容：
+     * - 如果包含 HTML 标签，直接返回原内容（用于 innerHTML）
+     * - 如果是纯文本，按空行分段并包裹 <p> 标签
+     * - 子标题自动加粗（如 "事故经过："、"直接原因：" 等）
+     */
+    function formatDetailText(text) {
+      if (!text) return '';
+      // 含 HTML 标签 → 直接返回
+      if (/<[^>]+>/.test(text)) return text;
+      // 纯文本 → 按段落拆分
+      var paragraphs = text.split(/\n\s*\n/);
+      var result = '';
+      for (var i = 0; i < paragraphs.length; i++) {
+        var p = paragraphs[i].trim();
+        if (!p) continue;
+        // 子标题加粗
+        p = p.replace(/^(事故经过|事故直接原因|应急处置|直接原因|间接原因|事故原因)[：:]/, '<strong>$1：</strong>');
+        result += '<p>' + p + '</p>';
+      }
+      return result;
+    }
+
+    /**
+     * 清洗事故经过（content 字段）：
+     * - 去掉"事故直接原因"和"应急处置"开头的段落（已在其他模块中）
+     * - 去掉"事故经过："前缀（模块标题已体现）
+     * - 只保留事故经过的叙事内容
+     * - 适用于所有事故详情页
+     */
+    function cleanAccidentContent(text) {
+      if (!text) return '';
+      if (/<[^>]+>/.test(text)) return text;
+      // 按段落拆分
+      var paragraphs = text.split(/\n\s*\n/);
+      var result = '';
+      for (var i = 0; i < paragraphs.length; i++) {
+        var p = paragraphs[i].trim();
+        if (!p) continue;
+        // 跳过"事故直接原因"和"应急处置"段落（已在其他模块中）
+        if (/^事故直接原因[：:]/.test(p)) continue;
+        if (/^应急处置[：:]/.test(p)) continue;
+        // 去掉"事故经过："前缀（模块标题已有）
+        p = p.replace(/^事故经过[：:]/, '');
+        p = p.trim();
+        if (!p) continue;
+        result += '<p>' + p + '</p>';
+      }
+      return result;
+    }
+
+    function normalizeProvince(item) {
+      var p = item.province;
+      var provinceNormalize = {
+        '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆',
+        '广西壮族自治区': '广西', '昆明市': '云南'
+      };
+      if (!p) {
+        var inferred = inferProvinceFromLocation(item.location, item.title);
+        return inferred || p;
+      }
+      if (provinceNormalize[p]) return provinceNormalize[p];
+      if (p.endsWith('省')) return p.slice(0, -1);
+      if (p.endsWith('市') && !provinceNormalize[p]) return p.slice(0, -1);
+      return p;
+    }
+
+    function inferProvinceFromLocation(location, title) {
+      var text = (location || title || '');
+      if (!text) return null;
+      var cityToProvince = {
+        '深圳':'广东','广州':'广东','保定':'河北','唐山':'河北','秦皇岛':'河北',
+        '石家庄':'河北','廊坊':'河北','沧州':'河北','张家口':'河北','邯郸':'河北',
+        '邢台':'河北','衡水':'河北','承德':'河北',
+        '福州':'福建','厦门':'福建','泉州':'福建','长乐':'福建',
+        '杭州':'浙江','宁波':'浙江','温州':'浙江','长沙':'湖南',
+        '海口':'海南','沈阳':'辽宁','大连':'辽宁','济南':'山东',
+        '太原':'山西','南昌':'江西','成都':'四川','贵阳':'贵州',
+        '郑州':'河南','武汉':'湖北','合肥':'安徽','昆明':'云南',
+        '南京':'江苏','南宁':'广西','桂林':'广西'
+      };
+      var m = text.match(/([^\s，,\d]+?)市/);
+      if (m && cityToProvince[m[1]]) return cityToProvince[m[1]];
+      var provinceNames = ['河北','福建','广东','浙江','湖南','海南','辽宁','山东',
+        '山西','江西','四川','贵州','河南','湖北','安徽','云南','江苏','广西'];
+      for (var i = 0; i < provinceNames.length; i++) {
+        if (text.indexOf(provinceNames[i]) !== -1) return provinceNames[i];
+      }
+      return null;
+    }
+
     function renderItem(item) {
+      // 省份归一化
+      var normalizedProvince = normalizeProvince(item);
+      if (normalizedProvince !== item.province) {
+        item = { ...item, province: normalizedProvince };
+      }
+
       var severityMap = { general: '一般', minor: '一般', larger: '较大', major: '重大', special: '特别重大' };
       var categoryMap = {
         suffocation: '窒息', fall: '高处坠落', gas_leak: '燃气泄漏',
@@ -116,12 +210,6 @@ const { slug } = Astro.params;
       var provLabel = item.province || '';
 
       document.getElementById('detail-title').textContent = item.title || '';
-
-      var tags = [];
-      if (sevLabel) tags.push('<span class="acc-tag ' + (sevClassMap[item.severity] || 'acc-sev-general') + '">' + sevLabel + '</span>');
-      if (catLabel) tags.push('<span class="acc-tag acc-tag-cat">' + catLabel + '</span>');
-      if (provLabel) tags.push('<span class="acc-tag acc-tag-prov">' + provLabel + '</span>');
-      document.getElementById('detail-tags').innerHTML = tags.join(' ');
 
       var infoRows = [
         ['事故名称', item.title],
@@ -152,16 +240,16 @@ const { slug } = Astro.params;
         '</section>';
       }
       sectionsHtml += '<section class="detail-section"><h2 class="detail-section-title">事故经过</h2><div class="detail-section-content">' +
-        (item.content ? '<div class="detail-text">' + item.content + '</div>' : '<p class="detail-empty">暂无事故经过</p>') +
+        (item.content ? '<div class="detail-text">' + cleanAccidentContent(item.content) + '</div>' : '<p class="detail-empty">暂无事故经过</p>') +
       '</div></section>';
       sectionsHtml += '<section class="detail-section"><h2 class="detail-section-title">事故原因</h2><div class="detail-section-content">' +
-        (item.causes ? '<div class="detail-text">' + item.causes + '</div>' : '<p class="detail-empty">暂无原因分析</p>') +
+        (item.causes ? '<div class="detail-text">' + formatDetailText(item.causes) + '</div>' : '<p class="detail-empty">暂无原因分析</p>') +
       '</div></section>';
       sectionsHtml += '<section class="detail-section"><h2 class="detail-section-title">改善措施</h2><div class="detail-section-content">' +
-        (item.suggestions ? '<div class="detail-text">' + item.suggestions + '</div>' : '<p class="detail-empty">暂无改善措施</p>') +
+        (item.suggestions ? '<div class="detail-text">' + formatDetailText(item.suggestions) + '</div>' : '<p class="detail-empty">暂无改善措施</p>') +
       '</div></section>';
       sectionsHtml += '<section class="detail-section"><h2 class="detail-section-title">处理结果</h2><div class="detail-section-content">' +
-        (item.personnelHandling ? '<div class="detail-text">' + item.personnelHandling + '</div>' : '<p class="detail-empty">暂无处理结果</p>') +
+        (item.personnelHandling ? '<div class="detail-text">' + formatDetailText(item.personnelHandling) + '</div>' : '<p class="detail-empty">暂无处理结果</p>') +
       '</div></section>';
       sectionsHtml += '<section class="detail-section"><h2 class="detail-section-title">报告原文</h2><div class="detail-section-content"><div class="detail-actions">';
       if (item.reportUrl || item.downloadUrl) {
@@ -175,9 +263,95 @@ const { slug } = Astro.params;
       }
       sectionsHtml += '</div></div></section>';
 
+      // 底部反馈面板（默认展开，在"查看原文"下方、评论区上方）
+      sectionsHtml += '<div class="fb-box">' +
+        '<div class="fb-title">📢 这条内容有问题？</div>' +
+        '<div class="fb-sub">选择问题类型，点击即可提交（也可顺便补充说明）：</div>' +
+        '<div class="fb-types" id="fbTypes">' +
+          '<button type="button" class="fb-type" data-type="link_broken">链接失效</button>' +
+          '<button type="button" class="fb-type" data-type="content_error">内容错误</button>' +
+          '<button type="button" class="fb-type" data-type="wrong_category">分类/标签不对</button>' +
+          '<button type="button" class="fb-type" data-type="duplicate">重复/多余</button>' +
+          '<button type="button" class="fb-type" data-type="other">其他</button>' +
+        '</div>' +
+        '<textarea class="fb-detail" id="fbDetail" placeholder="补充说明（可选）：比如哪个链接打不开、哪里写错了..." rows="3"></textarea>' +
+        '<button class="fb-submit" id="fbSubmit" type="button">提交反馈</button>' +
+        '<div class="fb-status" id="fbStatus"></div>' +
+      '</div>';
+
       document.getElementById('detail-body').innerHTML = sectionsHtml;
     }
 
     loadDetail();
+  </script>
+
+  <script is:inline>
+    // 反馈面板交互（在 renderItem 动态渲染后绑定）
+    (function() {
+      function bindFeedback() {
+        var types = document.getElementById('fbTypes');
+        var detail = document.getElementById('fbDetail');
+        var submit = document.getElementById('fbSubmit');
+        var status = document.getElementById('fbStatus');
+        if (!types || !submit) { setTimeout(bindFeedback, 200); return; }
+        var selectedType = null;
+
+        types.addEventListener('click', function(e) {
+          var btn = e.target.closest('.fb-type');
+          if (!btn) return;
+          var allBtns = types.querySelectorAll('.fb-type');
+          for (var i = 0; i < allBtns.length; i++) { allBtns[i].classList.remove('active'); }
+          btn.classList.add('active');
+          selectedType = btn.dataset.type;
+          status.textContent = '';
+          status.className = 'fb-status';
+        });
+
+        submit.addEventListener('click', async function() {
+          if (!selectedType) {
+            status.textContent = '请先选择一个问题类型';
+            status.className = 'fb-status err';
+            return;
+          }
+          submit.disabled = true;
+          submit.textContent = '提交中...';
+          try {
+            var res = await fetch('/feedback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: selectedType,
+                detail: detail.value.trim(),
+                pageUrl: location.href,
+                pageTitle: document.title
+              })
+            });
+            var data = await res.json();
+            if (res.ok && data.success) {
+              status.textContent = '✓ 已收到，感谢你的反馈！';
+              status.className = 'fb-status ok';
+              detail.value = '';
+              selectedType = null;
+              var allBtns = types.querySelectorAll('.fb-type');
+              for (var i = 0; i < allBtns.length; i++) { allBtns[i].classList.remove('active'); }
+              setTimeout(function() {
+                status.textContent = '';
+                status.className = 'fb-status';
+                submit.disabled = false;
+                submit.textContent = '提交反馈';
+              }, 2500);
+            } else {
+              throw new Error((data && data.error) || '提交失败');
+            }
+          } catch (err) {
+            status.textContent = '提交失败，请稍后重试';
+            status.className = 'fb-status err';
+            submit.disabled = false;
+            submit.textContent = '提交反馈';
+          }
+        });
+      }
+      bindFeedback();
+    })();
   </script>
 </Layout>

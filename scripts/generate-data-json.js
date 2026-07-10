@@ -18,7 +18,85 @@ const PROVINCE_NORMALIZE = {
   '上海市': '上海',
   '天津市': '天津',
   '重庆市': '重庆',
+  '广西壮族自治区': '广西',
+  '昆明市': '云南',
 };
+
+/**
+ * 城市名 → 省份映射表，用于从 location 字段推断空省份的事故所在地。
+ * 仅覆盖数据中实际出现的城市。
+ */
+const CITY_TO_PROVINCE = {
+  '深圳': '广东', '广州': '广东', '珠海': '广东', '佛山': '广东', '东莞': '广东',
+  '惠州': '广东', '江门': '广东', '汕头': '广东', '中山': '广东', '肇庆': '广东',
+  '保定': '河北', '唐山': '河北', '秦皇岛': '河北', '石家庄': '河北', '廊坊': '河北',
+  '沧州': '河北', '张家口': '河北', '邯郸': '河北', '邢台': '河北', '衡水': '河北',
+  '承德': '河北',
+  '福州': '福建', '厦门': '福建', '泉州': '福建', '漳州': '福建', '长乐': '福建',
+  '杭州': '浙江', '宁波': '浙江', '温州': '浙江', '嘉兴': '浙江', '金华': '浙江',
+  '长沙': '湖南', '株洲': '湖南', '岳阳': '湖南',
+  '海口': '海南', '三亚': '海南',
+  '沈阳': '辽宁', '大连': '辽宁', '鞍山': '辽宁',
+  '济南': '山东', '青岛': '山东',
+  '太原': '山西', '大同': '山西',
+  '南昌': '江西', '赣州': '江西',
+  '乌鲁木齐': '新疆',
+  '成都': '四川',
+  '贵阳': '贵州',
+  '呼和浩特': '内蒙古',
+  '郑州': '河南', '洛阳': '河南',
+  '武汉': '湖北',
+  '银川': '宁夏',
+  '合肥': '安徽',
+  '昆明': '云南',
+  '南京': '江苏',
+  '西宁': '青海',
+  '兰州': '甘肃',
+  '西安': '陕西',
+  '哈尔滨': '黑龙江',
+  '长春': '吉林',
+  '拉萨': '西藏',
+  '南宁': '广西', '桂林': '广西',
+};
+
+/**
+ * 从 location 或 title 中推断事故省份。
+ * 提取城市名（"XX市"格式），匹配 CITY_TO_PROVINCE 表。
+ */
+function inferProvinceFromLocation(location, title) {
+  const text = location || title || '';
+  if (!text) return null;
+
+  // 匹配 "XX市" 格式（如 "深圳市福田区" → "深圳"）
+  const cityMatch = text.match(/([^\s，,\d]+?)市/);
+  if (cityMatch) {
+    const cityName = cityMatch[1];
+    if (CITY_TO_PROVINCE[cityName]) {
+      return CITY_TO_PROVINCE[cityName];
+    }
+  }
+
+  // 匹配 "XX省" 格式（如 "河北省保定市"）
+  const provMatch = text.match(/([^\s，,\d]+?)省/);
+  if (provMatch) {
+    return provMatch[1];
+  }
+
+  // 直接匹配省份关键词
+  const provinceNames = [
+    '河北', '福建', '广东', '浙江', '湖南', '海南', '辽宁', '山东',
+    '山西', '江西', '新疆', '四川', '贵州', '内蒙古', '河南', '湖北',
+    '宁夏', '安徽', '云南', '江苏', '广西', '黑龙江', '吉林', '甘肃',
+    '青海', '西藏', '陕西',
+  ];
+  for (const p of provinceNames) {
+    if (text.includes(p)) {
+      return p;
+    }
+  }
+
+  return null;
+}
 
 async function fetchPage(url) {
   const res = await fetch(url);
@@ -116,13 +194,35 @@ function cleanCasualties(casualties) {
   return casualties;
 }
 
+function normalizeProvince(province, location, title) {
+  // 1. 空省份 → 从 location/title 推断
+  if (!province) {
+    return inferProvinceFromLocation(location, title);
+  }
+
+  // 2. 特殊值映射
+  if (PROVINCE_NORMALIZE[province]) {
+    return PROVINCE_NORMALIZE[province];
+  }
+
+  // 3. 去"省"字（如 "辽宁省" → "辽宁"）
+  if (province.endsWith('省')) {
+    return province.slice(0, -1);
+  }
+
+  // 4. 去"市"字（如 "昆明市" → "昆明"）
+  if (province.endsWith('市') && !PROVINCE_NORMALIZE[province]) {
+    return province.slice(0, -1);
+  }
+
+  return province;
+}
+
 function normalizeAccidents(items) {
   return items.map(item => {
     let result = { ...item };
-    // 归一化省份简称
-    if (result.province && PROVINCE_NORMALIZE[result.province]) {
-      result.province = PROVINCE_NORMALIZE[result.province];
-    }
+    // 归一化省份
+    result.province = normalizeProvince(result.province, result.location, result.title);
     // 清洗标题：去掉 .pdf / .docx 后缀
     result.title = cleanTitle(result.title);
     // 清洗伤亡：只保留人数，去掉人名和伤情细节

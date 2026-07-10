@@ -184,12 +184,64 @@ import Layout from '../../layouts/Layout.astro';
 
     function normalizeProvince(item) {
       var provinceNormalize = {
-        '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆'
+        '北京市': '北京', '上海市': '上海', '天津市': '天津', '重庆市': '重庆',
+        '广西壮族自治区': '广西', '昆明市': '云南'
       };
-      if (item.province && provinceNormalize[item.province]) {
-        return { ...item, province: provinceNormalize[item.province] };
+      var p = item.province;
+      if (!p) {
+        // 空省份：从 location 或 title 推断
+        var inferred = inferProvinceFromLocation(item.location, item.title);
+        if (inferred) return { ...item, province: inferred };
+        return item;
+      }
+      // 特殊映射
+      if (provinceNormalize[p]) {
+        return { ...item, province: provinceNormalize[p] };
+      }
+      // 去"省"字
+      if (p.endsWith('省')) {
+        return { ...item, province: p.slice(0, -1) };
+      }
+      // 去"市"字（非直辖市）
+      if (p.endsWith('市') && !provinceNormalize[p]) {
+        return { ...item, province: p.slice(0, -1) };
       }
       return item;
+    }
+
+    function inferProvinceFromLocation(location, title) {
+      var text = (location || title || '');
+      if (!text) return null;
+      var cityToProvince = {
+        '深圳':'广东','广州':'广东','珠海':'广东','佛山':'广东','东莞':'广东',
+        '保定':'河北','唐山':'河北','秦皇岛':'河北','石家庄':'河北','廊坊':'河北',
+        '沧州':'河北','张家口':'河北','邯郸':'河北','邢台':'河北','衡水':'河北','承德':'河北',
+        '福州':'福建','厦门':'福建','泉州':'福建','漳州':'福建','长乐':'福建',
+        '杭州':'浙江','宁波':'浙江','温州':'浙江','嘉兴':'浙江','金华':'浙江',
+        '长沙':'湖南','株洲':'湖南','岳阳':'湖南',
+        '海口':'海南','三亚':'海南',
+        '沈阳':'辽宁','大连':'辽宁','鞍山':'辽宁',
+        '济南':'山东','青岛':'山东',
+        '太原':'山西','大同':'山西',
+        '南昌':'江西','赣州':'江西',
+        '乌鲁木齐':'新疆','成都':'四川',
+        '贵阳':'贵州','呼和浩特':'内蒙古',
+        '郑州':'河南','洛阳':'河南',
+        '武汉':'湖北','银川':'宁夏',
+        '合肥':'安徽','昆明':'云南',
+        '南京':'江苏','西宁':'青海',
+        '南宁':'广西','桂林':'广西'
+      };
+      var m = text.match(/([^\s，,\d]+?)市/);
+      if (m && cityToProvince[m[1]]) return cityToProvince[m[1]];
+      // 直接匹配省份名
+      var provinceNames = ['河北','福建','广东','浙江','湖南','海南','辽宁','山东',
+        '山西','江西','新疆','四川','贵州','内蒙古','河南','湖北',
+        '宁夏','安徽','云南','江苏','广西'];
+      for (var i = 0; i < provinceNames.length; i++) {
+        if (text.indexOf(provinceNames[i]) !== -1) return provinceNames[i];
+      }
+      return null;
     }
 
     // 从构建时生成的预览 JSON 加载数据（已含 YYMM-NNN 新 slug）
