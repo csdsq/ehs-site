@@ -271,14 +271,14 @@ import Layout from '../../layouts/Layout.astro';
         var btn = document.createElement('button');
         btn.className = 'filter-tag' + (opt.value === activeSeverity || (!opt.value && !activeSeverity) ? ' active' : '');
         btn.textContent = opt.label;
-        btn.addEventListener('click', function(val) {
+        btn.addEventListener('click', function(val, el) {
           return function() {
             activeSeverity = val;
             container.querySelectorAll('.filter-tag').forEach(function(b) { b.classList.remove('active'); });
-            btn.classList.add('active');
+            el.classList.add('active');
             applyFilters();
           };
-        }(opt.value));
+        }(opt.value, btn));
         container.appendChild(btn);
       }
     }
@@ -301,14 +301,14 @@ import Layout from '../../layouts/Layout.astro';
         var b = document.createElement('button');
         b.className = 'filter-tag';
         b.textContent = CATEGORY_MAP[val];
-        b.addEventListener('click', function(v) {
+        b.addEventListener('click', function(v, el) {
           return function() {
             activeCategory = v;
             container.querySelectorAll('.filter-tag').forEach(function(bb) { bb.classList.remove('active'); });
-            b.classList.add('active');
+            el.classList.add('active');
             applyFilters();
           };
-        }(val));
+        }(val, b));
         container.appendChild(b);
       }
     }
