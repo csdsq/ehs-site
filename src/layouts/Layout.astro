@@ -14,7 +14,7 @@ const { title, currentPath = "/" } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="EHS安全合规知识平台" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title} | EHS经验分享</title>
+    <title>{title} | EHS WiKi知识库</title>
   </head>
   <body>
     <!-- Navigation -->
@@ -22,7 +22,7 @@ const { title, currentPath = "/" } = Astro.props;
       <div class="container header-inner">
         <a href="/" class="site-logo">
           <span class="logo-icon">🛡</span>
-          <span class="logo-text">EHS经验分享</span>
+          <span class="logo-text">EHS WiKi知识库</span>
         </a>
         <nav class="site-nav" id="siteNav">
           <a href="/ai-apps/" class={currentPath === '/ai-apps/' ? 'nav-link active' : 'nav-link'}>AI应用</a>
