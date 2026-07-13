@@ -129,12 +129,15 @@ async function modeLink() {
   log(`📂 本地标准 PDF：${localPdfs.length} 个（可识别标准号 ${localByKey.size} 个）`);
 
   log('🔍 拉取 Strapi 已上传文件...');
-  const files = await listAll('upload/files');
-  const pdfs = files.filter((f) => (f.ext || '').toLowerCase() === '.pdf' || (f.mime || '').includes('pdf'));
+  // upload/files 返回纯数组（非 {data:[]} 格式），需特殊处理
+  const uploadResp = await api('/api/upload/files?pagination[pageSize]=1000', 'GET');
+  const allFiles = Array.isArray(uploadResp) ? uploadResp : (uploadResp?.data || []);
+  const pdfs = allFiles.filter((f) => (f.ext || '').toLowerCase() === '.pdf' || (f.mime || '').includes('pdf'));
   log(`📄 Strapi 中 PDF 文件：${pdfs.length} 个`);
 
   const existing = await listAll('standards');
   const usedSlugs = new Set(existing.map((r) => r.slug));
+  const existingStdNos = new Set(existing.map((r) => r.standardNo));
   log(`📊 已有 standards 记录：${existing.length} 条`);
 
   let ok = 0, skip = 0, fail = 0;
@@ -143,6 +146,7 @@ async function modeLink() {
     const no = extractStdNo(fname);
     const local = no ? localByKey.get(normKey(no)) : null;
     if (!local) { skip++; continue; } // 不是标准 PDF 或本地无对应，跳过
+    if (existingStdNos.has(local.no)) { skip++; continue; } // 已存在，跳过重复
     let slug = slugify(local.no);
     let base = slug, n = 2;
     while (usedSlugs.has(slug)) slug = `${base}-${n++}`;
@@ -157,7 +161,7 @@ async function modeLink() {
       downloadUrl,
       publishDate: year ? `${year}-01-01` : null,
       effectiveDate: year ? `${year}-01-01` : null,
-      content: '', regionLevel: category === '地方标准' ? 'local' : 'national',
+      content: '', regionLevel: category === '地方标准' ? 'provincial' : 'national',
     };
     if (DRY) { ok++; log(`  [dry] 将建: ${slug} <- ${local.file}`); continue; }
     try {
