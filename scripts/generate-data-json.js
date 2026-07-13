@@ -512,8 +512,9 @@ async function main() {
   );
   // 构建时清洗：标题去前缀、假日期清空
   const standards = normalizeStandards(rawStandards);
-  // ✅ FIX: Generate slugs BEFORE writing JSON, so standards.json has YYMM-NNN slugs
-  generateSlugs(standards, 'effectiveDate');
+  // ✅ 标准保留 Strapi 中的标准号 slug（如 AQ-1029-2019），不转 YYMM-NNN
+  // 注：generateSlugs(standards, 'effectiveDate') 已被移除——标准用标准号作 slug
+  // 法规、事故、资料文档仍使用 YYMM-NNN
   const standardsCleanCount = rawStandards.length - standards.filter(s => s.title === (rawStandards.find(r => r.documentId === s.documentId) || {}).title).length;
   if (standardsCleanCount > 0 || standards.some(s => !s.publishDate || !s.effectiveDate)) {
     console.log(`Standards normalized: cleaned titles and/or cleared fake dates.`);
