@@ -89,7 +89,8 @@ const { slug } = Astro.params;
 
     function proxyFileUrl(url) {
       if (!url) return '';
-      return url.replace('https://api.hser.ren/uploads/', '/suploads/');
+      // 资料文档独立前缀 /sdoc/（与标准 /sstd/、其它 /suploads/ 分家）
+      return url.replace('https://api.hser.ren/uploads/', '/sdoc/');
     }
 
     function renderItem(item) {

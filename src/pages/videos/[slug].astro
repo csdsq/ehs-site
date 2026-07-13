@@ -21,6 +21,11 @@ const { slug } = Astro.params;
   <script define:vars={{ slug }}>
     const API = '/sapi';
 
+    function proxyFileUrl(url) {
+      if (!url) return '';
+      return url.replace('https://api.hser.ren/uploads/', '/suploads/');
+    }
+
     function getBilibiliEmbed(url) {
       const bvMatch = url.match(/BV[a-zA-Z0-9]+/);
       if (bvMatch) return `https://player.bilibili.com/player.html?bvid=${bvMatch[0]}&autoplay=0&high_quality=1`;
@@ -104,7 +109,7 @@ const { slug } = Astro.params;
               <h2 class="detail-section-title">查看原视频</h2>
               <div class="detail-section-content">
                 ${item.downloadUrl
-                  ? `<a href="${item.downloadUrl}" target="_blank" rel="noopener" class="detail-action-btn btn-download">下载视频 &darr;</a>`
+                  ? `<a href="${proxyFileUrl(item.downloadUrl)}" target="_blank" rel="noopener" class="detail-action-btn btn-download">下载视频 &darr;</a>`
                   : pageUrl
                     ? `<a href="${pageUrl}" target="_blank" rel="noopener" class="detail-action-btn">前往原始页面 &rarr;</a>`
                     : '<p class="detail-empty">暂无来源链接</p>'}

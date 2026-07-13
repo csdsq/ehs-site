@@ -15,6 +15,21 @@ export function getStaticPaths() {
 }
 
 const { slug } = Astro.params;
+
+// 构建期读取已下载标准的本地文件映射（下载脚本 scripts/download_standards.cjs 生成）
+// 仅收录下载成功的标准：slug -> /sstd/<slug>.<ext>
+const fileMap: Record<string, string> = {};
+try {
+  const mf = path.join(process.cwd(), 'public/standards/_manifest.json');
+  if (fs.existsSync(mf)) {
+    const m = JSON.parse(fs.readFileSync(mf, 'utf-8'));
+    for (const [s, v] of Object.entries(m)) {
+      if (v && v.status === 'downloaded' && v.localFile) fileMap[s] = v.localFile;
+    }
+  }
+} catch (e) {
+  console.warn('⚠️ standards file manifest not found, preview/download will fall back to external link');
+}
 ---
 <Layout title="国标地标详情" currentPath="/standards/">
   <div class="container detail-container">
@@ -28,7 +43,7 @@ const { slug } = Astro.params;
     </div>
   </div>
 
-  <script is:inline define:vars={{ slug }}>
+  <script is:inline define:vars={{ slug, fileMap }}>
     const STRAPI_PROXY = '/sapi';
     const STATIC_DATA_URL = '/data/standards.json';
     const CACHE_KEY = 'std_detail_' + slug;
@@ -90,15 +105,26 @@ const { slug } = Astro.params;
 
     function renderItem(item) {
       var content = (item.content || '').trim();
-      var hasFullText = content && content.indexOf('{') !== 0;
       var categoryMap = { safety: '安全', environment: '环保', occupational_health: '职业健康' };
       var catLabel = categoryMap[item.category] || '';
+      // 优先用同步脚本写入的 downloadUrl（Strapi 实际地址）→ 归一化为 /sstd/ 代理在线预览；
+      // 否则回退构建期注入的本地 fileMap；externalUrl 作为无本地文件时的官方来源兜底。
+      var rawFile = item.downloadUrl || '';
+      var fileUrl = '';
+      if (rawFile.indexOf('/uploads/') >= 0 || rawFile.indexOf('api.hser.ren/uploads') >= 0) {
+        fileUrl = rawFile.replace('https://api.hser.ren/uploads/', '/sstd/').replace('/uploads/', '/sstd/');
+      } else if (typeof fileMap !== 'undefined' && fileMap[slug]) {
+        fileUrl = fileMap[slug];
+      }
+      var externalUrl = item.downloadUrl || '';
+
+      // 基本信息：标准类别置顶（安全/环保/职业健康）
       var infoRows = [
+        ['标准类别', catLabel || item.category],
         ['标准编号', item.standardNo],
         ['发布机构', item.source],
         item.publishDate ? ['发布日期', item.publishDate] : null,
         item.effectiveDate ? ['实施日期', item.effectiveDate] : null,
-        ['标准类别', catLabel || item.category],
       ].filter(Boolean).filter(function(pair) { return pair[1] && pair[1] !== '-'; });
 
       document.getElementById('detail-title').textContent = item.title || '';
@@ -121,26 +147,38 @@ const { slug } = Astro.params;
             : '<p class="detail-empty">暂无基本信息</p>') +
         '</div>' +
       '</section>';
-      if (hasFullText) {
-        html += '<section class="detail-section">' +
-          '<h2 class="detail-section-title">标准全文</h2>' +
-          '<div class="detail-section-content">' +
-            '<div class="regulation-full-text">' + content + '</div>' +
-          '</div>' +
-        '</section>';
+
+      // 标准全文：在线预览（本地文件）；未收录则提示并给出官方来源
+      html += '<section class="detail-section">' +
+        '<h2 class="detail-section-title">标准全文</h2>' +
+        '<div class="detail-section-content">';
+      if (fileUrl) {
+        html += '<div class="detail-iframe-wrap">' +
+          '<iframe src="' + fileUrl + '" style="width:100%;height:820px;border:none;border-radius:12px;background:#fff;" title="标准全文预览"></iframe>' +
+          '</div>';
+      } else {
+        html += '<p class="detail-empty">该标准全文暂未收录到本站。' +
+          (externalUrl ? '可前往官方来源查看：<a href="' + externalUrl + '" target="_blank" rel="noopener">打开官方页面</a>' : '') +
+          '</p>';
       }
+      html += '</div></section>';
+
+      // 查看原文：有本地文件则直接下载；否则跳转官方页面
       html += '<section class="detail-section">' +
         '<h2 class="detail-section-title">查看原文</h2>' +
-        '<div class="detail-section-content">' +
-          '<div class="detail-actions">' +
-            (item.downloadUrl
-              ? '<a href="' + item.downloadUrl + '" target="_blank" rel="noopener" class="detail-action-btn btn-preview">' +
-                  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
-                  ' 查看原文</a>'
-              : '<p class="detail-empty">暂无原文链接</p>') +
-          '</div>' +
-        '</div>' +
-      '</section>';
+        '<div class="detail-section-content"><div class="detail-actions">';
+      if (fileUrl) {
+        html += '<a href="' + fileUrl + '" target="_blank" rel="noopener" download class="detail-action-btn btn-preview">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+          ' 下载标准文件（PDF）</a>';
+      } else if (externalUrl) {
+        html += '<a href="' + externalUrl + '" target="_blank" rel="noopener" class="detail-action-btn btn-preview">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+          ' 查看原文（官方来源）</a>';
+      } else {
+        html += '<p class="detail-empty">暂无原文链接</p>';
+      }
+      html += '</div></div></section>';
 
       // 底部反馈面板
       html += '<div class="fb-box">' +
