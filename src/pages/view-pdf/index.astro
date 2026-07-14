@@ -310,7 +310,15 @@ export function getStaticPaths() { return []; }
       if (e.key === '-') zoomOut();
     });
 
-    pdfjsLib.getDocument(fileUrl).promise.then(function(pdf) {
+    pdfjsLib.getDocument({
+      url: fileUrl,
+      // 渐进加载：先加载第一个 chunk（~64KB）就能渲染首页
+      rangeChunkSize: 65536,
+      // 禁止自动全量下载，只按需加载 Range
+      disableAutoFetch: true,
+      // 禁止流式读取（某些服务器不支持）
+      disableStream: false,
+    }).promise.then(function(pdf) {
       pdfDoc = pdf;
       pageCount = pdf.numPages;
       startRender();
