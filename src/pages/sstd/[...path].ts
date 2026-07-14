@@ -76,24 +76,23 @@ async function proxyStrapi(seg: string, range: string | null): Promise<Response 
     clearTimeout(timer);
     if (!resp.ok && resp.status !== 206) return null;
 
-    const buffer = await resp.arrayBuffer();
     const contentType = resp.headers.get('Content-Type') || 'application/octet-stream';
     const contentLength = resp.headers.get('Content-Length');
     const contentRange = resp.headers.get('Content-Range');
     const respHeaders: Record<string, string> = {
       'Content-Type': contentType,
-      'Content-Length': contentLength || String(buffer.byteLength),
       'Accept-Ranges': 'bytes',
       'Cache-Control': 'public, max-age=86400',
       'Access-Control-Allow-Origin': '*',
     };
+    if (contentLength) respHeaders['Content-Length'] = contentLength;
     if (contentRange) respHeaders['Content-Range'] = contentRange;
 
     const ext = path.extname(safe).toLowerCase();
     const isPdf = ext === '.pdf' || contentType === 'application/pdf';
     if (!contentRange) respHeaders['Content-Disposition'] = isPdf ? 'inline' : 'attachment';
 
-    return new Response(buffer, {
+    return new Response(resp.body, {
       status: range && resp.status === 206 ? 206 : 200,
       headers: respHeaders,
     });

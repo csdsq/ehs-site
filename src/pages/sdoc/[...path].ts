@@ -169,20 +169,19 @@ export const GET: APIRoute = async ({ params, request }) => {
       return new Response(`File not found: ${resp.status}`, { status: resp.status });
     }
 
-    const buffer = await resp.arrayBuffer();
     const contentType = resp.headers.get('Content-Type') || 'application/octet-stream';
     const contentLength = resp.headers.get('Content-Length');
     const contentRange = resp.headers.get('Content-Range');
     const respHeaders: Record<string, string> = {
       'Content-Type': contentType,
-      'Content-Length': contentLength || String(buffer.byteLength),
       'Accept-Ranges': 'bytes',
       'Cache-Control': 'public, max-age=86400',
       'Access-Control-Allow-Origin': '*',
     };
+    if (contentLength) respHeaders['Content-Length'] = contentLength;
     if (contentRange) respHeaders['Content-Range'] = contentRange;
 
-    return new Response(buffer, {
+    return new Response(resp.body, {
       status: range && resp.status === 206 ? 206 : 200,
       headers: respHeaders,
     });
