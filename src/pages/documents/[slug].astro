@@ -102,8 +102,10 @@ const { slug } = Astro.params;
       var previewHtml = '';
       if (fileUrl) {
         if (ft === 'pdf') {
+          // 使用自定义 PDF.js 查看器（无下载/打印按钮，仅翻页+缩放）
+          var pdfViewUrl = '/view-pdf/?file=' + encodeURIComponent(fileUrl);
           previewHtml = '<div class="detail-iframe-wrap">' +
-            '<iframe src="' + fileUrl + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
+            '<iframe src="' + pdfViewUrl + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
             '</div>';
         } else if (ft.indexOf('doc') >= 0 || ft.indexOf('ppt') >= 0 || ft.indexOf('xls') >= 0) {
           var encodedUrl = encodeURIComponent(fileUrl);
@@ -128,11 +130,14 @@ const { slug } = Astro.params;
           '<h2 class="detail-section-title">基本信息</h2>' +
           '<div class="detail-section-content">' +
             (infoItems.length > 0
-              ? '<table class="detail-info-table"><tbody>' +
+              ? '<div class="info-card-list">' +
                 infoItems.map(function(i) {
-                  return '<tr><td class="detail-info-label">' + i.label + '</td><td>' + i.value + '</td></tr>';
+                  return '<div class="info-card-item">' +
+                    '<span class="info-card-label">' + i.label + '</span>' +
+                    '<span class="info-card-value">' + i.value + '</span>' +
+                  '</div>';
                 }).join('') +
-                '</tbody></table>'
+              '</div>'
               : '<p class="detail-empty">暂无基本信息</p>') +
           '</div>' +
         '</section>' +
@@ -148,9 +153,9 @@ const { slug } = Astro.params;
           '<h2 class="detail-section-title">下载资料</h2>' +
           '<div class="detail-section-content">' +
             (fileUrl
-              ? '<a href="' + fileUrl + '" target="_blank" rel="noopener" download class="detail-action-btn">' +
+              ? '<button type="button" class="detail-action-btn" id="btnDownload" data-fileurl="' + fileUrl + '">' +
                   '下载文件 (' + (item.fileType ? item.fileType.toUpperCase() : '文件') + (item.fileSize ? ' · ' + item.fileSize : '') + ')' +
-                '</a>'
+                '</button>'
               : '<p class="detail-empty">暂无下载链接</p>') +
           '</div>' +
         '</section>';
@@ -244,6 +249,136 @@ const { slug } = Astro.params;
         });
       }
       bindFeedback();
+    })();
+  </script>
+
+  <script is:inline>
+    // 下载验证码弹窗
+    (function() {
+      function bindDownloadCaptcha() {
+        var btn = document.getElementById('btnDownload');
+        if (!btn) { setTimeout(bindDownloadCaptcha, 200); return; }
+
+        function generateCaptcha() {
+          var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+          var code = '';
+          for (var i = 0; i < 4; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return code;
+        }
+
+        var captchaCode = '';
+        function drawCaptcha(canvas, code) {
+          captchaCode = code;
+          var ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = '#f0f0f0';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          for (var i = 0; i < 3; i++) {
+            ctx.strokeStyle = 'rgba(150,150,150,0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+            ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+            ctx.stroke();
+          }
+          for (var i = 0; i < 20; i++) {
+            ctx.fillStyle = 'rgba(100,100,100,0.4)';
+            ctx.beginPath();
+            ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          var colors = ['#2563eb', '#7c3aed', '#059669', '#dc2626'];
+          for (var i = 0; i < code.length; i++) {
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.save();
+            ctx.translate(20 + i * 22, 22);
+            ctx.rotate((Math.random() - 0.5) * 0.3);
+            ctx.fillText(code[i], 0, 0);
+            ctx.restore();
+          }
+        }
+
+        var overlay = document.createElement('div');
+        overlay.id = 'captchaOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;';
+        overlay.innerHTML =
+          '<div id="captchaModal" style="background:#fff;border-radius:16px;padding:24px;width:320px;box-shadow:0 20px 40px rgba(0,0,0,0.3);">' +
+            '<h3 style="margin:0 0 16px 0;font-size:18px;color:#111;text-align:center;">下载验证</h3>' +
+            '<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">' +
+              '<canvas id="captchaCanvas" width="100" height="36" style="border-radius:8px;border:1px solid #ddd;"></canvas>' +
+              '<button type="button" id="btnRefresh" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:#f5f5f5;cursor:pointer;font-size:14px;">刷新</button>' +
+            '</div>' +
+            '<input type="text" id="captchaInput" placeholder="请输入验证码" maxlength="4" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;margin-bottom:12px;outline:none;" />' +
+            '<div id="captchaError" style="color:#dc2626;font-size:13px;margin-bottom:8px;display:none;">验证码错误，请重新输入</div>' +
+            '<div style="display:flex;gap:8px;">' +
+              '<button type="button" id="btnCaptchaCancel" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;cursor:pointer;font-size:14px;">取消</button>' +
+              '<button type="button" id="btnCaptchaConfirm" style="flex:1;padding:10px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:14px;font-weight:500;">确认下载</button>' +
+            '</div>' +
+          '</div>';
+
+        document.body.appendChild(overlay);
+
+        var input = overlay.querySelector('#captchaInput');
+        var canvas = overlay.querySelector('#captchaCanvas');
+        var refreshBtn = overlay.querySelector('#btnRefresh');
+        var cancelBtn = overlay.querySelector('#btnCaptchaCancel');
+        var confirmBtn = overlay.querySelector('#btnCaptchaConfirm');
+        var errorDiv = overlay.querySelector('#captchaError');
+
+        function showCaptcha() {
+          overlay.style.display = 'flex';
+          input.value = '';
+          errorDiv.style.display = 'none';
+          var code = generateCaptcha();
+          drawCaptcha(canvas, code);
+          input.focus();
+        }
+
+        function hideCaptcha() {
+          overlay.style.display = 'none';
+        }
+
+        btn.addEventListener('click', showCaptcha);
+        cancelBtn.addEventListener('click', hideCaptcha);
+        refreshBtn.addEventListener('click', function() {
+          var code = generateCaptcha();
+          drawCaptcha(canvas, code);
+          input.value = '';
+          errorDiv.style.display = 'none';
+          input.focus();
+        });
+
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) hideCaptcha();
+        });
+
+        confirmBtn.addEventListener('click', function() {
+          if (input.value.toUpperCase() === captchaCode) {
+            hideCaptcha();
+            var url = btn.dataset.fileurl;
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } else {
+            errorDiv.style.display = 'block';
+            input.value = '';
+            input.focus();
+            var code = generateCaptcha();
+            drawCaptcha(canvas, code);
+          }
+        });
+
+        input.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') confirmBtn.click();
+        });
+      }
+      bindDownloadCaptcha();
     })();
   </script>
 </Layout>

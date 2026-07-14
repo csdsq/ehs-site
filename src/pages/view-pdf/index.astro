@@ -1,0 +1,322 @@
+---
+export function getStaticPaths() { return []; }
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF 预览</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:#525659;overflow:hidden}
+    #pdf-container{width:100%;height:100%;display:flex;flex-direction:column}
+    .pdf-toolbar{width:100%;padding:8px 16px;background:#323639;display:flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0}
+    .pdf-toolbar button{background:#525659;color:#ccc;border:none;border-radius:4px;padding:6px 12px;font-size:13px;cursor:pointer}
+    .pdf-toolbar button:hover:not(:disabled){background:#6b7280;color:#fff}
+    .viewer-area{flex:1;display:flex;overflow:hidden}
+    .thumb-sidebar{width:210px;background:#323639;overflow-y:auto;padding:8px;flex-shrink:0;border-right:1px solid #525659}
+    .thumb-sidebar.hidden{display:none}
+    .thumb-item{margin-bottom:10px;cursor:pointer;border-radius:4px;padding:4px}
+    .thumb-item:hover{background:rgba(255,255,255,0.1)}
+    .thumb-item.active{background:rgba(55,65,81,0.5)}
+    .thumb-item canvas{border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,0.3)}
+    .thumb-label{font-size:11px;color:#9ca3af;margin-top:4px}
+    .main-preview{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;align-items:center;padding:8px 16px 24px}
+    .page-wrapper{margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.3);position:relative;background:#fff}
+    .page-wrapper canvas{display:block;pointer-events:none;user-select:none}
+    .loading-text{color:#ccc;margin-top:120px;font-size:14px}
+    /* 文本层：透明但可选中，浏览器原生渲染文字 */
+    .textLayer{position:absolute;inset:0;overflow:hidden;line-height:1.0;z-index:2}
+    .textLayer span{position:absolute;white-space:pre;color:transparent;pointer-events:auto;cursor:text;transform-origin:0% 0%}
+    .textLayer ::selection{background:rgba(0,0,255,0.3)}
+  </style>
+</head>
+<body>
+  <div id="pdf-container">
+    <div class="pdf-toolbar">
+      <button id="toggleThumbBtn" title="切换缩略图">☰</button>
+      <button id="zoomOutBtn">-</button>
+      <span id="zoomLbl" style="color:#ccc;font-size:13px;min-width:50px;text-align:center">100%</span>
+      <button id="zoomInBtn">+</button>
+      <button id="fitBtn">适应宽度</button>
+      <button id="fullscreenBtn" title="全屏">⛶</button>
+    </div>
+    <div class="viewer-area">
+      <div class="thumb-sidebar" id="thumbSidebar"></div>
+      <div class="main-preview" id="mainPreview">
+        <p class="loading-text" id="loadingText">正在加载 PDF...</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.mjs';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+
+    var fileUrl = decodeURIComponent((window.location.search.split('file=')[1] || ''));
+    var loadingEl = document.getElementById('loadingText');
+    if (!fileUrl) { loadingEl.textContent = '无效链接'; throw 0; }
+
+    var pdfDoc = null, scale = 1.0, pageCount = 0;
+    var preview = document.getElementById('mainPreview');
+    var sidebar = document.getElementById('thumbSidebar');
+    var zoomLbl = document.getElementById('zoomLbl');
+    var dpr = window.devicePixelRatio || 1;
+
+    function fitScale(w) { return (preview.clientWidth - 32) / (w || 595); }
+
+    // 创建 wrapper 容器
+    function makeWrapper() {
+      var w = document.createElement('div');
+      w.className = 'page-wrapper';
+      w.style.cssText = 'position:relative;min-height:80px;box-shadow:0 2px 8px rgba(0,0,0,0.3);margin-bottom:12px;background:#fff';
+      return w;
+    }
+
+    // 渲染一页：canvas + 文本层
+    function renderPage(page, wrapper, vp) {
+      wrapper.style.width = vp.width + 'px';
+      wrapper.style.height = vp.height + 'px';
+      wrapper.style.minHeight = '';
+
+      // Canvas（高DPI背景）
+      var cv = document.createElement('canvas');
+      cv.width = vp.width * dpr;
+      cv.height = vp.height * dpr;
+      cv.style.cssText = 'display:block;position:absolute;left:0;top:0;width:100%;height:100%';
+      wrapper.appendChild(cv);
+      var ctx = cv.getContext('2d');
+      ctx.scale(dpr, dpr);
+      var renderTask = page.render({canvasContext:ctx, viewport:vp});
+
+      // 文本层（fire-and-forget，不阻塞页面渲染）
+      var tl = document.createElement('div');
+      tl.className = 'textLayer';
+      tl.style.cssText = 'width:' + vp.width + 'px;height:' + vp.height + 'px';
+      wrapper.appendChild(tl);
+
+      page.getTextContent({normalizeWhitespace:true}).then(function(tc) {
+        if (!tc || !tc.items) return;
+        for (var i = 0; i < tc.items.length; i++) {
+          var item = tc.items[i];
+          if (!item.str) continue;
+          var tx = pdfjsLib.Util.transform(vp.transform, item.transform);
+          var fontSize = Math.sqrt(item.transform[2]*item.transform[2] + item.transform[3]*item.transform[3]);
+          var span = document.createElement('span');
+          span.textContent = item.str;
+          span.style.left = tx[4] + 'px';
+          span.style.top = (tx[5] - fontSize * vp.scale) + 'px';
+          span.style.fontSize = (fontSize * vp.scale) + 'px';
+          span.style.fontFamily = item.fontName || 'monospace';
+          span.style.lineHeight = '1.0';
+          if (tx[0] !== vp.scale || tx[1] !== 0) {
+            span.style.transform = 'matrix(' + (tx[0]/vp.scale) + ',' + (tx[1]/vp.scale) + ',' + (tx[2]/vp.scale) + ',' + (tx[3]/vp.scale) + ',0,0)';
+          }
+          tl.appendChild(span);
+        }
+      }).catch(function() {});
+
+      return renderTask.promise;
+    }
+
+    function startRender() {
+      pdfDoc.getPage(1).then(function(page) {
+        var vp = page.getViewport({scale:1});
+        scale = Math.min(fitScale(vp.width), 1.5);
+        zoomLbl.textContent = Math.round(scale*100)+'%';
+
+        var c = document.createElement('div');
+        c.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:12px';
+        preview.appendChild(c);
+        loadingEl.style.display = 'none';
+
+        // 创建所有页面的 wrapper
+        var wrappers = [];
+        for (var i = 1; i <= pageCount; i++) {
+          var w = makeWrapper();
+          w.id = 'pw-' + i;
+          c.appendChild(w);
+          wrappers.push(w);
+        }
+
+        // 渲染前3页
+        function loadPage(p) {
+          if (p > Math.min(3, pageCount)) {
+            initThumbnails();
+            bindLazyScroll(wrappers);
+            return;
+          }
+          pdfDoc.getPage(p).then(function(page) {
+            var vp = page.getViewport({scale:scale});
+            renderPage(page, wrappers[p-1], vp).then(function() {
+              loadPage(p + 1);
+            });
+          });
+        }
+        loadPage(1);
+      });
+    }
+
+    // 懒加载：滚动接近时渲染后续页面
+    function bindLazyScroll(wrappers) {
+      var loading = false;
+      preview.addEventListener('scroll', function() {
+        if (loading) return;
+        var scrollBottom = preview.scrollTop + preview.clientHeight + 400;
+
+        // 渲染下一个未渲染的页面
+        for (var i = 2; i < wrappers.length; i++) {
+          if (wrappers[i].querySelector('canvas')) continue;
+          if (wrappers[i].offsetTop < scrollBottom) {
+            loading = true;
+            (function(pg) {
+              pdfDoc.getPage(pg).then(function(page) {
+                var vp = page.getViewport({scale:scale});
+                var w = wrappers[pg-1];
+                w.innerHTML = '';
+                makeWrapperStyle(w);
+                renderPage(page, w, vp).then(function() { loading = false; });
+              });
+            })(i + 1);
+            break;
+          }
+        }
+
+        // 更新缩略图高亮
+        var st = preview.scrollTop + preview.clientHeight / 2;
+        var best = 1;
+        var rect = preview.getBoundingClientRect();
+        for (var i = 0; i < wrappers.length; i++) {
+          if (wrappers[i].getBoundingClientRect().top - rect.top <= st) best = i + 1;
+        }
+        var items = sidebar.querySelectorAll('.thumb-item');
+        for (var i = 0; i < items.length; i++) {
+          items[i].classList.toggle('active', parseInt(items[i].dataset.page) === best);
+        }
+      }, {passive:true});
+    }
+
+    function makeWrapperStyle(w) {
+      w.style.cssText = 'position:relative;min-height:80px;box-shadow:0 2px 8px rgba(0,0,0,0.3);margin-bottom:12px;background:#fff';
+    }
+
+    // 缩略图也懒加载：先创建占位，滚动时渲染可见的
+    function initThumbnails() {
+      var thumbW = 194 * 0.8;
+      for (var p = 1; p <= pageCount; p++) {
+        (function(pg) {
+          var div = document.createElement('div');
+          div.className = 'thumb-item';
+          div.dataset.page = pg;
+          var wrap = document.createElement('div');
+          wrap.style.cssText = 'display:flex;justify-content:center;width:100%';
+          var tc = document.createElement('canvas');
+          tc.style.cssText = 'min-height:120px';
+          var lb = document.createElement('div');
+          lb.className = 'thumb-label';
+          lb.textContent = 'P' + pg;
+          wrap.appendChild(tc);
+          div.appendChild(wrap);
+          div.appendChild(lb);
+          sidebar.appendChild(div);
+          div.addEventListener('click', function() {
+            var el = document.getElementById('pw-' + pg);
+            if (el) el.scrollIntoView({behavior:'smooth',block:'start'});
+          });
+
+          // 存储渲染用参数
+          div._thumbW = thumbW;
+          div._pg = pg;
+          div._canvas = tc;
+          div._rendered = false;
+        })(p);
+      }
+      // 先渲染可见区域的缩略图
+      renderVisibleThumbs();
+      // 侧边栏滚动时渲染新出现的缩略图
+      sidebar.addEventListener('scroll', function() {
+        renderVisibleThumbs();
+      }, {passive:true});
+    }
+
+    function renderVisibleThumbs() {
+      var sbRect = sidebar.getBoundingClientRect();
+      var sTop = sbRect.top;
+      var sBottom = sbRect.bottom;
+      var items = sidebar.querySelectorAll('.thumb-item');
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        if (item._rendered) continue;
+        var r = item.getBoundingClientRect();
+        if (r.bottom > sTop && r.top < sBottom) {
+          item._rendered = true;
+          renderOneThumb(item);
+        }
+      }
+    }
+
+    function renderOneThumb(item) {
+      var pg = item._pg;
+      var tc = item._canvas;
+      var thumbW = item._thumbW;
+      pdfDoc.getPage(pg).then(function(page) {
+        var vp1 = page.getViewport({scale:1});
+        var thumbScale = thumbW / vp1.width;
+        var thumbVp = page.getViewport({scale:thumbScale});
+        tc.width = thumbVp.width * dpr;
+        tc.height = thumbVp.height * dpr;
+        tc.style.width = thumbVp.width + 'px';
+        tc.style.height = thumbVp.height + 'px';
+        tc.style.minHeight = '';
+        var ctx = tc.getContext('2d');
+        ctx.scale(dpr, dpr);
+        page.render({canvasContext:ctx, viewport:thumbVp});
+      });
+    }
+
+    function reRender() {
+      var old = preview.querySelector('div');
+      if (old) old.remove();
+      sidebar.innerHTML = '';
+      loadingEl.style.display = 'block';
+      loadingEl.textContent = '重新渲染...';
+      startRender();
+    }
+
+    function zoomIn() { scale = Math.min(scale + 0.25, 3); zoomLbl.textContent = Math.round(scale*100)+'%'; reRender(); }
+    function zoomOut() { scale = Math.max(scale - 0.25, 0.5); zoomLbl.textContent = Math.round(scale*100)+'%'; reRender(); }
+    function fitW() {
+      if (!pdfDoc) return;
+      pdfDoc.getPage(1).then(function(page) {
+        var vp = page.getViewport({scale:1});
+        scale = Math.min(fitScale(vp.width), 2);
+        zoomLbl.textContent = Math.round(scale*100)+'%';
+        reRender();
+      });
+    }
+
+    document.getElementById('zoomInBtn').addEventListener('click', zoomIn);
+    document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
+    document.getElementById('fitBtn').addEventListener('click', fitW);
+    document.getElementById('toggleThumbBtn').addEventListener('click', function() { sidebar.classList.toggle('hidden'); });
+    document.getElementById('fullscreenBtn').addEventListener('click', function() {
+      var el = document.getElementById('pdf-container');
+      if (el.requestFullscreen) { el.requestFullscreen(); }
+      else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '+' || e.key === '=') zoomIn();
+      if (e.key === '-') zoomOut();
+    });
+
+    pdfjsLib.getDocument(fileUrl).promise.then(function(pdf) {
+      pdfDoc = pdf;
+      pageCount = pdf.numPages;
+      startRender();
+    }).catch(function(err) {
+      loadingEl.textContent = 'PDF 加载失败 (' + (err.message || '未知错误') + ')';
+    });
+  </script>
+</body>
+</html>

@@ -18,6 +18,8 @@ const SITE_HOST = process.env.SITE_HOST || 'wiki.hser.ren';
 
 const BASE_DIRS = [
   path.join(process.cwd(), 'public/standards'),
+  // 本地存放路径（仅本地有效，ECS 上用 /var/www/hser.ren/uploads/standards）
+  'D:\\Work\\9、法规及绩效评价\\9.1 HSE法规收集\\9.2.1 国标地标',
   '/var/www/hser.ren/uploads/standards',
 ];
 
@@ -52,7 +54,7 @@ function isAllowedReferer(referer: string | null): boolean {
   }
 }
 
-async function proxyStrapi(seg: string): Promise<Response | null> {
+async function proxyStrapi(seg: string, range: string | null): Promise<Response | null> {
   const decoded = decodeURIComponent(seg).replace(/\\/g, '/');
   const safe = decoded
     .split('/')
@@ -64,25 +66,36 @@ async function proxyStrapi(seg: string): Promise<Response | null> {
   if (!upstream.startsWith(`${STRAPI_URL}/uploads/`)) return null;
 
   try {
+    const fetchOpts: RequestInit = { method: 'GET' };
+    if (range) {
+      fetchOpts.headers = { Range: range };
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10000);
-    const resp = await fetch(upstream, { method: 'GET', signal: controller.signal });
+    const resp = await fetch(upstream, { ...fetchOpts, signal: controller.signal });
     clearTimeout(timer);
-    if (!resp.ok) return null;
+    if (!resp.ok && resp.status !== 206) return null;
 
     const buffer = await resp.arrayBuffer();
     const contentType = resp.headers.get('Content-Type') || 'application/octet-stream';
+    const contentLength = resp.headers.get('Content-Length');
+    const contentRange = resp.headers.get('Content-Range');
+    const respHeaders: Record<string, string> = {
+      'Content-Type': contentType,
+      'Content-Length': contentLength || String(buffer.byteLength),
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'public, max-age=86400',
+      'Access-Control-Allow-Origin': '*',
+    };
+    if (contentRange) respHeaders['Content-Range'] = contentRange;
+
     const ext = path.extname(safe).toLowerCase();
     const isPdf = ext === '.pdf' || contentType === 'application/pdf';
+    if (!contentRange) respHeaders['Content-Disposition'] = isPdf ? 'inline' : 'attachment';
+
     return new Response(buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Content-Length': String(buffer.byteLength),
-        'Content-Disposition': isPdf ? 'inline' : 'attachment',
-        'Cache-Control': 'public, max-age=86400',
-        'Access-Control-Allow-Origin': '*',
-      },
+      status: range && resp.status === 206 ? 206 : 200,
+      headers: respHeaders,
     });
   } catch {
     return null;
@@ -111,6 +124,33 @@ export const GET: APIRoute = async ({ params, request }) => {
     if (cand.startsWith(base) && fs.existsSync(cand) && fs.statSync(cand).isFile()) {
       const ext = path.extname(cand).toLowerCase();
       const mime = MIME[ext] || 'application/octet-stream';
+      const stat = fs.statSync(cand);
+      const total = stat.size;
+      const range = request.headers.get('range');
+
+      if (range) {
+        // 支持 Range 请求（部分内容），便于 PDF.js 渐近加载
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
+        const chunkSize = end - start + 1;
+        const fd = fs.openSync(cand, 'r');
+        const buf = Buffer.alloc(chunkSize);
+        fs.readSync(fd, buf, 0, chunkSize, start);
+        fs.closeSync(fd);
+        return new Response(buf, {
+          status: 206,
+          headers: {
+            'Content-Type': mime,
+            'Content-Range': `bytes ${start}-${end}/${total}`,
+            'Content-Length': String(chunkSize),
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
       const buf = fs.readFileSync(cand);
       const isPdf = mime === 'application/pdf';
       return new Response(buf, {
@@ -119,6 +159,7 @@ export const GET: APIRoute = async ({ params, request }) => {
           'Content-Type': mime,
           'Content-Length': String(buf.length),
           'Content-Disposition': isPdf ? 'inline' : 'attachment',
+          'Accept-Ranges': 'bytes',
           'Cache-Control': 'public, max-age=86400',
           'Access-Control-Allow-Origin': '*',
         },
@@ -127,7 +168,8 @@ export const GET: APIRoute = async ({ params, request }) => {
   }
 
   // 2) 回退到 Strapi 媒体库代理
-  const strapiResp = await proxyStrapi(seg);
+  const range = request.headers.get('range');
+  const strapiResp = await proxyStrapi(seg, range);
   if (strapiResp) return strapiResp;
 
   return new Response('Not Found', { status: 404 });
