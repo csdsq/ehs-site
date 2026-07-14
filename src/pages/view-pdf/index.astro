@@ -8,6 +8,7 @@ export function getStaticPaths() { return []; }
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF 预览</title>
   <link rel="modulepreload" href="/pdfjs/pdf.min.mjs" />
+  <link rel="preload" href="/pdfjs/pdf.worker.min.mjs" as="fetch" crossorigin="anonymous" />
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{height:100%;background:#525659;overflow:hidden}
@@ -53,8 +54,8 @@ export function getStaticPaths() { return []; }
 
   <script type="module">
     import * as pdfjsLib from '/pdfjs/pdf.min.mjs';
-    // 不设 workerSrc → PDF.js 运行在主线程，省掉 1.3MB worker 文件下载
-    // 对文档型 PDF 影响极小，加载速度提升明显
+    // 使用本地 worker（已预加载 ~0.9s），不阻塞主线程
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs';
 
     var fileUrl = decodeURIComponent((window.location.search.split('file=')[1] || ''));
     var loadingEl = document.getElementById('loadingText');
