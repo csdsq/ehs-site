@@ -7,8 +7,8 @@ export function getStaticPaths() { return []; }
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF 预览</title>
-  <link rel="preload" href="/pdfjs/pdf.min.mjs" as="fetch" crossorigin="anonymous" />
-  <link rel="preload" href="/pdfjs/pdf.worker.min.mjs" as="fetch" crossorigin="anonymous" />
+  <link rel="modulepreload" href="/pdfjs/pdf.min.mjs" />
+  <link rel="modulepreload" href="/pdfjs/pdf.worker.min.mjs" />
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{height:100%;background:#525659;overflow:hidden}
