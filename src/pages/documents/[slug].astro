@@ -39,8 +39,9 @@ function buildHTML(): string {
 
   let previewHtml = '';
   if (isPdf && fileUrl) {
+    const pdfViewerUrl = '/view-pdf/?file=' + encodeURIComponent(fileUrl);
     previewHtml = '<div class="detail-iframe-wrap">' +
-      '<iframe src="' + fileUrl + '#toolbar=1" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
+      '<iframe src="' + pdfViewerUrl + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
       '</div>';
   } else if (fileUrl && (ft.indexOf('doc') >= 0 || ft.indexOf('ppt') >= 0 || ft.indexOf('xls') >= 0)) {
     previewHtml = '<div class="detail-iframe-wrap">' +
@@ -116,6 +117,11 @@ const pdfFileUrl = item ? proxyFileUrl(item.downloadUrl || '') : '';
 ---
 
 <Layout title={item ? item.title + ' - 资料详情' : '资料详情'} currentPath="/documents/">
+  {
+    isPdf && pdfFileUrl ? (
+      <link rel="modulepreload" href="/pdfjs/pdf.min.mjs" />
+    ) : null
+  }
   {
     isPdf && pdfFileUrl ? (
       <link rel="preload" href={pdfFileUrl} as="fetch" crossorigin="anonymous" />

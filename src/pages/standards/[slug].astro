@@ -153,9 +153,10 @@ try {
         '<h2 class="detail-section-title">标准全文 <span class="detail-hint">文档较大，加载较慢，请稍作等待</span></h2>' +
         '<div class="detail-section-content">';
       if (fileUrl) {
-        // 使用浏览器原生 PDF 查看器（含工具栏，可下载/打印/翻页）
+        // 使用自定义 PDF.js 查看器（渐进加载，首屏快，带进度条和缩略图）
+        var pdfViewUrl = '/view-pdf/?file=' + encodeURIComponent(fileUrl);
         html += '<div class="detail-iframe-wrap">' +
-          '<iframe src="' + fileUrl + '#toolbar=1" style="width:100%;height:820px;border:none;border-radius:12px;background:#525659;" title="标准全文预览"></iframe>' +
+          '<iframe src="' + pdfViewUrl + '" style="width:100%;height:820px;border:none;border-radius:12px;background:#525659;" title="标准全文预览"></iframe>' +
           '</div>';
       } else {
         html += '<p class="detail-empty">该标准全文暂未收录到本站。' +
