@@ -77,7 +77,7 @@ function buildHTML(): string {
     '</section>' +
 
     '<section class="detail-section">' +
-      '<h2 class="detail-section-title">在线预览</h2>' +
+      '<h2 class="detail-section-title">在线预览 <span class="detail-hint">文档较大，加载较慢，请稍作等待</span></h2>' +
       '<div class="detail-section-content">' +
         (previewHtml || '<p class="detail-empty">暂不支持在线预览</p>') +
       '</div>' +
@@ -120,11 +120,6 @@ const pdfFileUrl = item ? proxyFileUrl(item.downloadUrl || '') : '';
   {
     isPdf && pdfFileUrl ? (
       <link rel="modulepreload" href="/pdfjs/pdf.min.mjs" />
-    ) : null
-  }
-  {
-    isPdf && pdfFileUrl ? (
-      <link rel="preload" href="/pdfjs/pdf.worker.min.mjs" as="fetch" crossorigin="anonymous" />
     ) : null
   }
   {

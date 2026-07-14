@@ -150,7 +150,7 @@ try {
 
       // 标准全文：在线预览（本地文件）；未收录则提示并给出官方来源
       html += '<section class="detail-section">' +
-        '<h2 class="detail-section-title">标准全文</h2>' +
+        '<h2 class="detail-section-title">标准全文 <span class="detail-hint">文档较大，加载较慢，请稍作等待</span></h2>' +
         '<div class="detail-section-content">';
       if (fileUrl) {
         // 使用自定义 PDF.js 查看器（无下载/打印按钮，仅翻页+缩放）
