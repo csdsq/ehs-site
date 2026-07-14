@@ -41,7 +41,7 @@ function buildHTML(): string {
   if (isPdf && fileUrl) {
     const pdfViewerUrl = '/view-pdf/?file=' + encodeURIComponent(fileUrl);
     previewHtml = '<div class="detail-iframe-wrap">' +
-      '<iframe src="' + pdfViewerUrl + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
+      '<iframe src="' + pdfViewerUrl + '" style="width:100%;height:700px;border:none;border-radius:12px;background:#525659;"></iframe>' +
       '</div>';
   } else if (fileUrl && (ft.indexOf('doc') >= 0 || ft.indexOf('ppt') >= 0 || ft.indexOf('xls') >= 0)) {
     previewHtml = '<div class="detail-iframe-wrap">' +

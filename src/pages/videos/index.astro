@@ -31,7 +31,7 @@ import Layout from '../../layouts/Layout.astro';
     let allItems: any[] = [];
     let filteredItems: any[] = [];
     let currentPage = 1;
-    let pageSize = 10;
+    let pageSize = 20;
     let searchQuery = '';
 
     function getTotalPages() { return Math.max(1, Math.ceil(filteredItems.length / pageSize)); }

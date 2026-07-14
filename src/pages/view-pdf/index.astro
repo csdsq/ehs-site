@@ -73,6 +73,22 @@ export function getStaticPaths() { return []; }
     var dpr = window.devicePixelRatio || 1;
     var progressBar = document.getElementById('pdfProgressBar');
     var progressText = document.getElementById('pdfProgressText');
+    var renderedCount = 0;
+
+    function updateRenderProgress() {
+      renderedCount++;
+      if (pageCount > 0) {
+        var pct = Math.min(Math.round(renderedCount / pageCount * 100), 100);
+        progressBar.style.width = pct + '%';
+        progressText.textContent = '渲染 ' + renderedCount + '/' + pageCount + ' (' + pct + '%)';
+        if (renderedCount >= pageCount) {
+          setTimeout(function() {
+            progressBar.style.width = '0%';
+            progressText.textContent = '';
+          }, 800);
+        }
+      }
+    }
 
     function fitScale(w) { return (preview.clientWidth - 32) / (w || 595); }
 
@@ -160,6 +176,7 @@ export function getStaticPaths() { return []; }
           pdfDoc.getPage(p).then(function(page) {
             var vp = page.getViewport({scale:scale});
             renderPage(page, wrappers[p-1], vp).then(function() {
+              updateRenderProgress();
               loadPage(p + 1);
             });
           });
@@ -186,7 +203,7 @@ export function getStaticPaths() { return []; }
                 var w = wrappers[pg-1];
                 w.innerHTML = '';
                 makeWrapperStyle(w);
-                renderPage(page, w, vp).then(function() { loading = false; });
+                renderPage(page, w, vp).then(function() { loading = false; updateRenderProgress(); });
               });
             })(i + 1);
             break;
@@ -322,26 +339,9 @@ export function getStaticPaths() { return []; }
 
     pdfjsLib.getDocument({
       url: fileUrl,
-      // 渐进加载：先加载第一个 chunk（~64KB）就能渲染首页
       rangeChunkSize: 65536,
-      // 禁止自动全量下载，只按需加载 Range
       disableAutoFetch: true,
-      // 禁止流式读取（某些服务器不支持）
       disableStream: false,
-      // 下载进度回调
-      onProgress: function(data) {
-        if (data.total > 0) {
-          var pct = Math.min(Math.round(data.loaded / data.total * 100), 100);
-          progressBar.style.width = pct + '%';
-          progressText.textContent = pct + '%';
-          if (pct >= 100) {
-            setTimeout(function() {
-              progressBar.style.width = '0%';
-              progressText.textContent = '';
-            }, 500);
-          }
-        }
-      }
     }).promise.then(function(pdf) {
       pdfDoc = pdf;
       pageCount = pdf.numPages;
