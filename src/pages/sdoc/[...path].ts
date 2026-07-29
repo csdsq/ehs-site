@@ -54,6 +54,12 @@ function isBotUA(ua: string): boolean {
   return BOT_UA.some((k) => s.includes(k));
 }
 
+/** Office Online 使用的域名，这些域需要能拉取资源以完成预览 */
+const OFFICE_PREVIEW_HOSTS = [
+  'view.officeapps.live.com',
+  'officeapps.live.com',
+];
+
 function isAllowedReferer(referer: string | null): boolean {
   if (!referer) return true;
   try {
@@ -64,7 +70,8 @@ function isAllowedReferer(referer: string | null): boolean {
       h.endsWith('.' + SITE_HOST) ||
       h === 'localhost' ||
       h === '127.0.0.1' ||
-      h.endsWith('.localhost')
+      h.endsWith('.localhost') ||
+      OFFICE_PREVIEW_HOSTS.some((oh) => h === oh || h.endsWith('.' + oh))
     );
   } catch {
     return false;
