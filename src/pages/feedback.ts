@@ -16,8 +16,11 @@ import nodemailer from 'nodemailer';
  *   2) 存一份到 Strapi 的 message 集合（category 前缀 feedback|类型|pending，便于人工跟踪）
  */
 const STRAPI_URL = process.env.STRAPI_URL || 'http://8.149.139.66:1337';
-const ADMIN_EMAIL = process.env.STRAPI_ADMIN_EMAIL || 'csdsq@qq.com';
-const ADMIN_PASSWORD = process.env.STRAPI_ADMIN_PASSWORD || 'StrapiAdmin2026';
+// Strapi 管理员登录凭据（用于写 message 集合），与邮件收件人严格分开
+const STRAPI_ADMIN_EMAIL = process.env.STRAPI_ADMIN_EMAIL || 'admin@hser.ren';
+const STRAPI_ADMIN_PASSWORD = process.env.STRAPI_ADMIN_PASSWORD || 'StrapiAdmin2026';
+// 邮件收件人（网友反馈通知发到这里，可独立配置）
+const ADMIN_EMAIL = process.env.FEEDBACK_RECIPIENT || 'csdsq@qq.com';
 
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.qq.com';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465', 10);
@@ -111,7 +114,7 @@ async function loginStrapi(): Promise<string> {
   const res = await fetch(`${STRAPI_URL}/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
+    body: JSON.stringify({ email: STRAPI_ADMIN_EMAIL, password: STRAPI_ADMIN_PASSWORD }),
   });
   if (!res.ok) {
     const t = await res.text();
