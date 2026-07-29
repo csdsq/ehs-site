@@ -9,20 +9,20 @@ import nodemailer from 'nodemailer';
  * 前端 Layout.astro 的反馈面板 POST 到这里，字段：
  *   { type, detail, pageUrl, pageTitle }
  * 返回：
- *   { success: true, emailSent, strapiSaved }
+ *   { success: true, emailSent, strapiSaved, emailError }
  *
  * 处理：
- *   1) 发邮件给管理员 admin@hser.ren（QQ SMTP，环境变量配置）
+ *   1) 发邮件给管理员（默认 csdsq@qq.com，QQ SMTP，SMTP_PASS 兜底写死）
  *   2) 存一份到 Strapi 的 message 集合（category 前缀 feedback|类型|pending，便于人工跟踪）
  */
 const STRAPI_URL = process.env.STRAPI_URL || 'http://8.149.139.66:1337';
-const ADMIN_EMAIL = process.env.STRAPI_ADMIN_EMAIL || 'admin@hser.ren';
+const ADMIN_EMAIL = process.env.STRAPI_ADMIN_EMAIL || 'csdsq@qq.com';
 const ADMIN_PASSWORD = process.env.STRAPI_ADMIN_PASSWORD || 'StrapiAdmin2026';
 
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.qq.com';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465', 10);
 const SMTP_USER = process.env.SMTP_USER || 'csdsq@qq.com';
-const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_PASS = process.env.SMTP_PASS || 'pzvjcbdwsdiqbjfa';
 
 const TYPE_LABELS: Record<string, string> = {
   link_broken: '链接失效',
@@ -61,11 +61,11 @@ async function sendFeedbackNotification({
 }) {
   if (!SMTP_PASS) {
     console.log('[feedback] skip email: SMTP_PASS not configured');
-    return null;
+    return { info: null, error: 'SMTP_PASS not configured' };
   }
   const mailOptions = {
     from: `"HSEr 站点反馈" <${SMTP_USER}>`,
-    to: 'admin@hser.ren',
+    to: ADMIN_EMAIL,
     subject: `[站点反馈] ${typeLabel}`,
     html: `
 <!DOCTYPE html>
@@ -98,10 +98,11 @@ async function sendFeedbackNotification({
   try {
     const info = await getTransporter().sendMail(mailOptions);
     console.log('[feedback] email sent:', info.messageId);
-    return info;
+    return { info, error: null };
   } catch (err) {
-    console.error('[feedback] email failed:', (err as Error).message);
-    return null;
+    const msg = (err as Error).message;
+    console.error('[feedback] email failed:', msg);
+    return { info: null, error: msg };
   }
 }
 
@@ -193,16 +194,19 @@ export const POST: APIRoute = async ({ request }) => {
   const label = TYPE_LABELS[type];
 
   let emailSent = false;
+  let emailError: string | null = null;
   try {
-    const info = await sendFeedbackNotification({
+    const r = await sendFeedbackNotification({
       typeLabel: label,
       detail: detail || '',
       pageUrl: pageUrl || '',
       pageTitle: pageTitle || '',
     });
-    emailSent = !!info;
+    emailSent = !!r.info;
+    emailError = r.error;
   } catch (e) {
-    console.error('[feedback] email error:', (e as Error).message);
+    emailError = (e as Error).message;
+    console.error('[feedback] email error:', emailError);
   }
 
   let strapiSaved = false;
@@ -218,7 +222,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('[feedback] strapi error:', (e as Error).message);
   }
 
-  return json({ success: true, emailSent, strapiSaved });
+  return json({ success: true, emailSent, strapiSaved, emailError });
 };
 
 // CORS 预检（同源下通常不需要，但保留以兼容跨域调试）
