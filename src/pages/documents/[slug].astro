@@ -45,7 +45,7 @@ function buildHTML(): string {
       '</div>';
   } else if (fileUrl && (ft.indexOf('doc') >= 0 || ft.indexOf('ppt') >= 0 || ft.indexOf('xls') >= 0)) {
     previewHtml = '<div class="detail-iframe-wrap">' +
-      '<iframe src="https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(fileUrl) + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
+      '<iframe src="https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent('https://wiki.hser.ren' + fileUrl) + '" style="width:100%;height:700px;border:none;border-radius:12px;"></iframe>' +
       '</div>';
   } else if (fileUrl) {
     previewHtml = '<div class="detail-iframe-wrap">' +
