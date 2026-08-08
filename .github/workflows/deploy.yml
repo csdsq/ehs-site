@@ -19,10 +19,18 @@ jobs:
           key: ${{ secrets.ECS_SSH_KEY }}
           script: |
             set -e
+            echo "=== ECS Deploy $(date -u) ==="
             cd /var/www/hser.ren
+            echo "1/5 git reset..."
             git fetch origin
             git reset --hard origin/main
+            echo "2/5 npm install..."
             npm install --legacy-peer-deps
+            echo "3/5 generate data from Strapi..."
             node scripts/generate-data-json.js
+            echo "4/5 astro build..."
             npx astro build
+            echo "5/5 pm2 restart..."
             pm2 restart hser-ren
+            echo "=== Deploy complete ==="
+            node -e "try{const d=require('./public/data/standards.json');console.log('Standards count:',d.length)}catch(e){console.log('No standards.json')}"

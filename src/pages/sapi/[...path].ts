@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 /**
  * 同源 Strapi 代理（服务端转发）
- * 浏览器 → hser.ren → Cloudflare → ECS 上的 Astro Node 服务 → Strapi（同 ECS 8.149.139.66:1337）
+ * 浏览器 → wiki.hser.ren → ECS（阿里云）上的 Astro Node 服务 → Strapi（同 ECS 8.149.139.66:1337）
  * 这样浏览器永远不直接碰 Strapi：无 CORS、无混内容（https→http）问题。
  *
  * 前端调用示例（注意前缀是 /sapi，不是 /api，因 /api/* 仍被 Vercel 旧规则拦截）：
