@@ -56,6 +56,35 @@ function isAllowedReferer(referer: string | null): boolean {
   }
 }
 
+/**
+ * 解析可选的 ?name= 下载文件名（用于把带 hash 的文件名还原成友好名字）
+ * 返回值已过滤危险字符，防 HTTP 头注入（CR/LF/引号/分隔符）
+ */
+function parseDownloadName(rawUrl: string): string | null {
+  let v: string | null = null;
+  try {
+    v = new URL(rawUrl).searchParams.get('name');
+  } catch {
+    return null;
+  }
+  if (!v) return null;
+  // 去掉路径分隔符、控制字符、引号，防止头注入与目录穿越
+  const cleaned = v
+    .replace(/[\\/:*?"<>|\r\n\t]/g, '')
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim();
+  if (!cleaned) return null;
+  return cleaned.slice(0, 120);
+}
+
+/** 构造 Content-Disposition：ASCII 名直接给 filename，含中文额外给 RFC 5987 的 filename* */
+function buildDisposition(name: string): string {
+  const ascii = name.replace(/[^\x20-\x7e]/g, '_');
+  const isAscii = ascii === name;
+  if (isAscii) return `attachment; filename="${ascii}"`;
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+}
+
 export const prerender = false;
 
 export const GET: APIRoute = async ({ params, request }) => {
@@ -112,15 +141,19 @@ export const GET: APIRoute = async ({ params, request }) => {
     const contentType = resp.headers.get('Content-Type') || 'application/octet-stream';
     const contentLength = resp.headers.get('Content-Length');
 
-    return new Response(buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Content-Length': contentLength || String(buffer.byteLength),
-        'Cache-Control': 'public, max-age=86400',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'Content-Length': contentLength || String(buffer.byteLength),
+      'Cache-Control': 'public, max-age=86400',
+      'Access-Control-Allow-Origin': '*',
+      'Accept-Ranges': 'bytes',
+    };
+
+    // 可选：?name=xxx.apk 让浏览器/手机下载时保存为友好文件名
+    const dlName = parseDownloadName(request.url);
+    if (dlName) headers['Content-Disposition'] = buildDisposition(dlName);
+
+    return new Response(buffer, { status: 200, headers });
   } catch (err) {
     return new Response(
       JSON.stringify({ error: 'file_proxy_unavailable', message: String(err) }),
