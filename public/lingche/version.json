@@ -1,0 +1,9 @@
+{
+  "versionCode": 4,
+  "versionName": "1.2.1",
+  "apkUrl": "https://wiki.hser.ren/suploads/lingche_guanjia_21d2760b9c.apk?name=lingche-guanjia.apk",
+  "size": 150182,
+  "sha256": "e8249659d2b4ecd1d353d5c2afe71346a2b3570b59bf0e4abbb20939d99cc97d",
+  "changelog": "1. 修复：页面内链接无法交给其他应用时，提示语改为说明真实原因（含链接类型），不再显示容易误解的「页面打开失败，请退出后重试」\n2. 修复：同一提示短时间内反复弹出的问题，现在相同提示 4 秒内只显示一次\n3. 修复：点按钮打不开内置页面时，提示中会带上具体失败原因，便于反馈定位",
+  "forceUpdate": false
+}
