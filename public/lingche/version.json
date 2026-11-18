@@ -1,9 +1,9 @@
 {
-  "versionCode": 5,
-  "versionName": "1.3.0",
+  "versionCode": 6,
+  "versionName": "1.3.1",
   "apkUrl": "https://wiki.hser.ren/suploads/lingche_guanjia_21d2760b9c.apk?name=lingche-guanjia.apk",
-  "size": 154492,
-  "sha256": "9380337597e696af42bcd994e568f6a0e967167e50eb49699c16106698965799",
-  "changelog": "1. 变更：业务入口从 2 个调整为 5 个——车辆检查反馈、收车反馈、车辆盘点反馈、临牌领取反馈、Leapmind\n2. 变更：入口地址全部切换为新的内部服务页面\n3. 优化：按钮序号与图标随入口增加同步扩展",
+  "size": 166797,
+  "sha256": "1e5506771236cd0bddb0fd0106f5496f19def6f05108f28bbff63c7b09aeb636",
+  "changelog": "1. 优化：主页布局改为两列网格，页面更紧凑\n2. 变更：Leapmind 入口换用新图标",
   "forceUpdate": false
 }
